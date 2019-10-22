@@ -18,35 +18,37 @@
 #ifndef OPENRAVE_BOOST_PYTHON_BINDINGS
 #define OPENRAVE_BOOST_PYTHON_BINDINGS
 
-#include <numpy/arrayobject.h>
-#include <numpy/arrayscalars.h>
+#include "../python3/lib/python3.7/site-packages/numpy/core/include/numpy/arrayobject.h"
+#include "../python3/lib/python3.7/site-packages/numpy/core/include/numpy/arrayscalars.h"
 #include <Python.h>
-#include <boost/array.hpp>
-#include <boost/multi_array.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/format.hpp>
-#include <boost/python.hpp>
-#include <boost/assert.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/version.hpp>
+#include "include/boost/python.hpp"
+#include "include/boost/python/numpy.hpp"
+// #include <boost/array.hpp>
+// #include <boost/multi_array.hpp>
+// #include <boost/shared_ptr.hpp>
+// #include <boost/format.hpp>
+// #include <boost/python.hpp>
+// #include <boost/assert.hpp>
+// #include <boost/cstdint.hpp>
+// #include <boost/version.hpp>
 #include <stdint.h>
 
-#ifdef _MSC_VER
-#include <boost/typeof/std/string.hpp>
-#include <boost/typeof/std/vector.hpp>
-#include <boost/typeof/std/list.hpp>
-#include <boost/typeof/std/map.hpp>
-#include <boost/typeof/std/set.hpp>
-#include <boost/typeof/std/string.hpp>
+// #ifdef _MSC_VER
+// #include <boost/typeof/std/string.hpp>
+// #include <boost/typeof/std/vector.hpp>
+// #include <boost/typeof/std/list.hpp>
+// #include <boost/typeof/std/map.hpp>
+// #include <boost/typeof/std/set.hpp>
+// #include <boost/typeof/std/string.hpp>
 
-#define FOREACH(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); (it)++)
-#define FOREACH_NOINC(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); )
+// #define FOREACH(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); (it)++)
+// #define FOREACH_NOINC(it, v) for(BOOST_TYPEOF(v) ::iterator it = (v).begin(); it != (v).end(); )
 
-#define FOREACHC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); (it)++)
-#define FOREACHC_NOINC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); )
-#define RAVE_REGISTER_BOOST
+// #define FOREACHC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); (it)++)
+// #define FOREACHC_NOINC(it, v) for(BOOST_TYPEOF(v) ::const_iterator it = (v).begin(); it != (v).end(); )
+// #define RAVE_REGISTER_BOOST
 
-#else
+// #else
 #include <string>
 #include <vector>
 #include <list>
@@ -60,15 +62,15 @@
 #include <typeinfo>
 #define FOREACH(it, v) for(decltype((v).begin()) it = (v).begin(); it != (v).end(); (it)++)
 #define FOREACH_NOINC(it, v) for(decltype((v).begin()) it = (v).begin(); it != (v).end(); )
-#else
+#else // __cplusplus > 199711L || defined(__GXX_EXPERIMENTAL_CXX0X__)
 #define FOREACH(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); (it)++)
 #define FOREACH_NOINC(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); )
-#endif
+#endif // __cplusplus > 199711L || defined(__GXX_EXPERIMENTAL_CXX0X__)
 
 #define FOREACHC FOREACH
 #define FOREACHC_NOINC FOREACH_NOINC
 
-#endif
+// #endif
 
 #include <complex>
 #include <algorithm>
@@ -76,14 +78,45 @@
 // is_none is not supported by older versions of python
 #if BOOST_VERSION >= 104300
 #define IS_PYTHONOBJECT_NONE(o) (o).is_none()
-#else
+#else // 
 #define IS_PYTHONOBJECT_NONE(o) (!!(o))
-#endif
+#endif // BOOST_VERSION >= 104300
 
 namespace openravepy {
 
 using namespace boost::python;
-using bpndarray = boost::python::numeric::array;
+namespace p = boost::python;
+using p::object;
+using p::extract;
+namespace np = p::numpy;
+using bpndarray = np::ndarray; // boost::python::numeric::array;
+
+// char* PyString_AsString(PyObject* pystring)
+// {
+//     char *pchar = nullptr;
+//     if (PyUnicode_Check(pystring)) {
+//         PyObject * temp_bytes = PyUnicode_AsEncodedString(pystring, "UTF-8", "strict"); // Owned reference
+//         if (temp_bytes != NULL) {
+//             pchar = PyBytes_AS_STRING(temp_bytes); // Borrowed pointer
+//             pchar = strdup(pchar);
+//             Py_DECREF(temp_bytes);
+//         } else {
+//             BOOST_ASSERT(0); // TODO: Handle encoding error.
+//         }
+//     }
+//     else if (PyBytes_Check(pystring)) {
+//         pchar = PyBytes_AS_STRING(pystring); // Borrowed pointer
+//         pchar = strdup(pchar);
+//     }
+//     return pchar;
+// }
+
+// https://py3c.readthedocs.io/en/latest/reference.html
+// https://docs.python.org/3/c-api/unicode.html#c.PyUnicode_AsUTF8
+const char* PyString_AsString(PyObject* pystring) 
+{
+    return PyUnicode_AsUTF8(pystring);
+}
 
 inline boost::python::object ConvertStringToUnicode(const std::string& s)
 {
@@ -140,84 +173,6 @@ inline std::set<T> ExtractSet(const object& o)
     return v;
 }
 
-/// class for truly registering a C++ exception to a python exception
-/// add this definition to BOOST_PYTHON_MODULE:
-//
-//    typedef return_value_policy< copy_const_reference > return_copy_const_ref;
-//    class_< T >( "_custom_exception_" )
-//        .def( init<const std::string&>() )
-//        .def( init<const T&>() )
-//        .def( "message", &T::message, return_copy_const_ref() )
-//        .def( "__str__", &T::message, return_copy_const_ref() )
-//        ;
-// inside python do:
-//
-//class custom_exception(Exception):
-//    """wrap up the C++ custom_exception"""
-//    def __init__( self, app_error ):
-//        Exception.__init__( self )
-//        self._pimpl = app_error
-//    def __str__( self ):
-//        return self._pimpl.message()
-//    def __getattribute__(self, attr):
-//        my_pimpl = super(custom_exception, self).__getattribute__("_pimpl")
-//        try:
-//            return getattr(my_pimpl, attr)
-//        except AttributeError:
-//            return super(custom_exception,self).__getattribute__(attr)
-//
-// import custom_module
-// custom_module._custom_exception_.py_err_class = custom_exception
-
-//template <typename ExceptionType>
-//struct ExceptionTranslator
-//{
-//   typedef ExceptionTranslator<ExceptionType> type;
-//
-//   static PyObject *pyException;
-//
-//   static void RegisterExceptionTranslator(scope & scope, const char*
-//moduleName, const char* name)
-//   {
-//     // Add the exception to the module scope
-//     std::strstream exName;
-//     exName << moduleName << "." << name << '\0';
-//     pyException = PyErr_NewException(exName.str(), NULL, NULL);
-//     handle<> instanceException(pyException);
-//     scope.attr(name) = object(instanceException);
-//
-//     // Register a translator for the type
-//     register_exception_translator< ExceptionType >
-//       (
-//        &ExceptionTranslator<ExceptionType>::translateException
-//        );
-//   }
-//
-//   static void translateException(const ExceptionType& ex)
-//   {
-//     PyErr_SetString(pyException, ex.getMessage().ptr());
-//   }
-//};
-//
-//template<typename ExceptionType>
-//PyObject* ExceptionTranslator<ExceptionType>::pyException;
-//
-//// Convenience macro
-//#define REGISTER_EXCEPTION(scopeRef, moduleName, className) ExceptionTranslator<className>::RegisterExceptionTranslator(scopeRef, moduleName, #className)
-//
-//
-//// Module
-//======================================================================
-//BOOST_PYTHON_MODULE(my_module)
-//{
-//
-//   scope moduleScope;
-//
-//   REGISTER_EXCEPTION(moduleScope, "my_module", InstanceException);
-//
-//.....
-//}
-
 template <typename T>
 struct exception_translator
 {
@@ -270,18 +225,6 @@ struct exception_translator
         data->convertible = memory_chunk;
     }
 };
-
-// register const versions of the classes
-//template <class T> inline T* get_pointer( boost::shared_ptr<const T>
-//const& p){
-//     return const_cast<T*>(p.get());
-//}
-//
-//template <class T> struct pintee< boost::shared_ptr<const T> >{
-//     typedef T type;
-//};
-//
-//boost::python::register_ptr_to_python< boost::shared_ptr<const my_class> >();
 
 template<typename T>
 struct float_from_number
@@ -336,10 +279,10 @@ inline std::string GetPyErrorString()
     PyErr_NormalizeException(&error, &value, &traceback);
     std::string s;
     if(error != NULL) {
-        string = PyObject_Str(value);
-        if(string != NULL) {
-            s.assign(PyString_AsString(string));
-            Py_DECREF(string);
+        PyObject* pystring = PyObject_Str(value);
+        if(pystring != NULL) {
+            s.assign(PyString_AsString(pystring));
+            Py_DECREF(pystring);
         }
     }
     // Does nothing when the ptr is nullptr
@@ -355,127 +298,138 @@ void init_python_bindings();
 
 #ifdef OPENRAVE_BININGS_PYARRAY
 
-inline bpndarray toPyArrayN(const float* pvalues, size_t N)
+template <typename T>
+inline bpndarray toPyArrayN(const T* data, size_t N)
 {
+    np::dtype dt = np::dtype::get_builtin<T>();
     if( N == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f4"));
+        return np::array(boost::python::list(), dt);
     }
-    npy_intp dims[] = {npy_intp(N)};
-    PyObject *pyvalues = PyArray_SimpleNew(1,dims, PyArray_FLOAT);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(float));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
+
+    // https://www.boost.org/doc/libs/1_71_0/libs/python/doc/html/numpy/reference/ndarray.html
+    p::tuple shape = p::make_tuple(N);
+    p::tuple stride = p::make_tuple(N) ;
+    p::object own;
+    np::ndarray data_ex = np::from_data(data, dt, shape, stride, own);
+    return data_ex;
+    // npy_intp dims[] = {npy_intp(N)};
+    // PyObject *pyvalues = PyArray_SimpleNew(1,dims, PyArray_FLOAT);
+    // if( pvalues != NULL ) {
+    //     memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(float));
+    // }
+    // return static_cast<bpndarray>(handle<>(pyvalues));
 }
 
-inline bpndarray toPyArrayN(const float* pvalues, std::vector<npy_intp>& dims)
-{
-    if( dims.size() == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f4"));
-    }
-    size_t totalsize = 1;
-    FOREACH(it,dims) {
-        totalsize *= *it;
-    }
-    if( totalsize == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f4"));
-    }
-    PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_FLOAT);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(float));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
-}
+// inline bpndarray toPyArrayN(const float* pvalues, std::vector<npy_intp>& dims)
+// {
+//     np::dtype dt = np::dtype::get_builtin<float>();
+//     if( dims.size() == 0 ) {
+//         return np::array(boost::python::list(), dt);
+//     }
+    
+//     size_t totalsize = 1;
+//     FOREACH(it,dims) {
+//         totalsize *= *it;
+//     }
+//     if( totalsize == 0 ) {
+//         return np::array(boost::python::list(), dt);
+//     }
+//     PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_FLOAT);
+//     if( pvalues != NULL ) {
+//         memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(float));
+//     }
+//     return static_cast<bpndarray>(handle<>(pyvalues));
+// }
 
-inline bpndarray toPyArrayN(const double* pvalues, size_t N)
-{
-    if( N == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
-    }
-    npy_intp dims[] = {npy_intp(N)};
-    PyObject *pyvalues = PyArray_SimpleNew(1,dims, PyArray_DOUBLE);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(double));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
-}
+// inline bpndarray toPyArrayN(const double* pvalues, size_t N)
+// {
+//     if( N == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
+//     }
+//     npy_intp dims[] = {npy_intp(N)};
+//     PyObject *pyvalues = PyArray_SimpleNew(1,dims, PyArray_DOUBLE);
+//     if( pvalues != NULL ) {
+//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(double));
+//     }
+//     return static_cast<bpndarray>(handle<>(pyvalues));
+// }
 
-inline bpndarray toPyArrayN(const double* pvalues, std::vector<npy_intp>& dims)
-{
-    if( dims.size() == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
-    }
-    size_t totalsize = 1;
-    FOREACH(it,dims) {
-        totalsize *= *it;
-    }
-    if( totalsize == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
-    }
-    PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_DOUBLE);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(double));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
-}
+// inline bpndarray toPyArrayN(const double* pvalues, std::vector<npy_intp>& dims)
+// {
+//     if( dims.size() == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
+//     }
+//     size_t totalsize = 1;
+//     FOREACH(it,dims) {
+//         totalsize *= *it;
+//     }
+//     if( totalsize == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
+//     }
+//     PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_DOUBLE);
+//     if( pvalues != NULL ) {
+//         memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(double));
+//     }
+//     return static_cast<bpndarray>(handle<>(pyvalues));
+// }
 
-inline bpndarray toPyArrayN(const uint8_t* pvalues, std::vector<npy_intp>& dims)
-{
-    if( dims.size() == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
-    }
-    size_t totalsize = 1;
-    for(size_t i = 0; i < dims.size(); ++i) {
-        totalsize *= dims[i];
-    }
-    if( totalsize == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
-    }
-    PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_UINT8);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(uint8_t));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
-}
+// inline bpndarray toPyArrayN(const uint8_t* pvalues, size_t N)
+// {
+//     if( N == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
+//     }
+//     npy_intp dims[] = {npy_intp(N)};
+//     PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_UINT8);
+//     if( pvalues != NULL ) {
+//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(uint8_t));
+//     }
+//     return static_cast<bpndarray>(handle<>(pyvalues));
+// }
 
-inline bpndarray toPyArrayN(const uint8_t* pvalues, size_t N)
-{
-    if( N == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
-    }
-    npy_intp dims[] = {npy_intp(N)};
-    PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_UINT8);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(uint8_t));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
-}
+// inline bpndarray toPyArrayN(const uint8_t* pvalues, std::vector<npy_intp>& dims)
+// {
+//     if( dims.size() == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
+//     }
+//     size_t totalsize = 1;
+//     for(size_t i = 0; i < dims.size(); ++i) {
+//         totalsize *= dims[i];
+//     }
+//     if( totalsize == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
+//     }
+//     PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_UINT8);
+//     if( pvalues != NULL ) {
+//         memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(uint8_t));
+//     }
+//     return static_cast<bpndarray>(handle<>(pyvalues));
+// }
 
-inline bpndarray toPyArrayN(const int* pvalues, size_t N)
-{
-    if( N == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("i4"));
-    }
-    npy_intp dims[] = {npy_intp(N)};
-    PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_INT32);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(int));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
-}
+// inline bpndarray toPyArrayN(const int* pvalues, size_t N)
+// {
+//     if( N == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("i4"));
+//     }
+//     npy_intp dims[] = {npy_intp(N)};
+//     PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_INT32);
+//     if( pvalues != NULL ) {
+//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(int));
+//     }
+//     return static_cast<bpndarray>(handle<>(pyvalues));
+// }
 
-inline bpndarray toPyArrayN(const uint32_t* pvalues, size_t N)
-{
-    if( N == 0 ) {
-        return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u4"));
-    }
-    npy_intp dims[] = {npy_intp(N)};
-    PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_UINT32);
-    if( pvalues != NULL ) {
-        memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(uint32_t));
-    }
-    return static_cast<bpndarray>(handle<>(pyvalues));
-}
+// inline bpndarray toPyArrayN(const uint32_t* pvalues, size_t N)
+// {
+//     if( N == 0 ) {
+//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u4"));
+//     }
+//     npy_intp dims[] = {npy_intp(N)};
+//     PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_UINT32);
+//     if( pvalues != NULL ) {
+//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(uint32_t));
+//     }
+//     return static_cast<bpndarray>(handle<>(pyvalues));
+// }
 
 template <typename T>
 inline object toPyList(const std::vector<T>& v)
@@ -518,8 +472,8 @@ inline bpndarray toPyArray(const boost::array<T,N>& v)
     return toPyArrayN(&v[0],v.size());
 }
 
-#endif
+#endif // OPENRAVE_BININGS_PYARRAY
 
-}
+} // openravepy
 
-#endif
+#endif // OPENRAVE_BOOST_PYTHON_BINDINGS

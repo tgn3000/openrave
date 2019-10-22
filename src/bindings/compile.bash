@@ -1,0 +1,1 @@
+clc && g++ -I./include -I/home/mujin/python3/lib/python3.7/site-packages/numpy/core/include -DOPENRAVE_BININGS_PYARRAY -L/home/mujin/python3/lib -L./lib -lboost_python -ldl -pthread -lutil -lpython3.7m bindings.cpp 
