@@ -40,7 +40,7 @@ class PyPlannerStatus
 public:
     PyPlannerStatus() {
         statusCode = 0;
-        jointValues = numeric::array(boost::python::list());
+        jointValues = bpndarray(boost::python::list());
     }
 
     PyPlannerStatus(const PlannerStatus& status) {

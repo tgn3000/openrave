@@ -223,14 +223,14 @@ public:
             *pvdata++ = itv->y;
             *pvdata++ = itv->z;
         }
-        vertices = static_cast<numeric::array>(handle<>(pyvertices));
+        vertices = static_cast<bpndarray>(handle<>(pyvertices));
 
         dims[0] = mesh.indices.size()/3;
         dims[1] = 3;
         PyObject *pyindices = PyArray_SimpleNew(2,dims, PyArray_INT32);
         int32_t* pidata = reinterpret_cast<int32_t*>PyArray_DATA(pyindices);
         std::memcpy(pidata, mesh.indices.data(), mesh.indices.size() * sizeof(int32_t));
-        indices = static_cast<numeric::array>(handle<>(pyindices));
+        indices = static_cast<bpndarray>(handle<>(pyindices));
     }
 
     void GetTriMesh(TriMesh& mesh) {
@@ -984,7 +984,7 @@ object poseFromMatrices(object otransforms)
 {
     int N = len(otransforms);
     if( N == 0 ) {
-        return static_cast<numeric::array>(handle<>());
+        return static_cast<bpndarray>(handle<>());
     }
     npy_intp dims[] = { N,7};
     PyObject *pyvalues = PyArray_SimpleNew(2,dims, sizeof(dReal)==8 ? PyArray_DOUBLE : PyArray_FLOAT);
@@ -1003,14 +1003,14 @@ object poseFromMatrices(object otransforms)
         pvalues[4] = tpose.trans.x; pvalues[5] = tpose.trans.y; pvalues[6] = tpose.trans.z;
         pvalues += 7;
     }
-    return static_cast<numeric::array>(handle<>(pyvalues));
+    return static_cast<bpndarray>(handle<>(pyvalues));
 }
 
 object InvertPoses(object o)
 {
     int N = len(o);
     if( N == 0 ) {
-        return numeric::array(boost::python::list());
+        return bpndarray(boost::python::list());
     }
     npy_intp dims[] = { N,7};
     PyObject *pytrans = PyArray_SimpleNew(2,dims, sizeof(dReal)==8 ? PyArray_DOUBLE : PyArray_FLOAT);
@@ -1022,7 +1022,7 @@ object InvertPoses(object o)
         ptrans[0] = t.rot.x; ptrans[1] = t.rot.y; ptrans[2] = t.rot.z; ptrans[3] = t.rot.w;
         ptrans[4] = t.trans.x; ptrans[5] = t.trans.y; ptrans[6] = t.trans.z;
     }
-    return static_cast<numeric::array>(handle<>(pytrans));
+    return static_cast<bpndarray>(handle<>(pytrans));
 }
 
 object InvertPose(object opose)
@@ -1080,7 +1080,7 @@ object poseTransformPoints(object opose, object opoints)
         Vector newpoint = t*ExtractVector3(opoints[i]);
         ptrans[0] = newpoint.x; ptrans[1] = newpoint.y; ptrans[2] = newpoint.z;
     }
-    return static_cast<numeric::array>(handle<>(pytrans));
+    return static_cast<bpndarray>(handle<>(pytrans));
 }
 
 object TransformLookat(object olookat, object ocamerapos, object ocameraup)

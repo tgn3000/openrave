@@ -101,7 +101,7 @@ object computeConvexDecomposition(const boost::multi_array<float, 2>& vertices, 
         PyObject *pyindices = PyArray_SimpleNew(2,dims, PyArray_INT);
         std::copy(&result.mIndices[0],&result.mIndices[3*result.mTcount],(int*)PyArray_DATA(pyindices));
 
-        hulls.append(boost::python::make_tuple(static_cast<numeric::array>(handle<>(pyvertices)), static_cast<numeric::array>(handle<>(pyindices))));
+        hulls.append(boost::python::make_tuple(static_cast<bpndarray>(handle<>(pyvertices)), static_cast<bpndarray>(handle<>(pyindices))));
     }
 
     return hulls;
@@ -112,7 +112,7 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(computeConvexDecomposition_overloads, computeCon
 BOOST_PYTHON_MODULE(convexdecompositionpy)
 {
     import_array();
-    numeric::array::set_module_and_type("numpy", "ndarray");
+    bpndarray::set_module_and_type("numpy", "ndarray");
     int_from_number<int>();
     float_from_number<float>();
     float_from_number<double>();

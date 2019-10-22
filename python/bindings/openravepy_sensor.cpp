@@ -24,7 +24,7 @@ class PyCameraIntrinsics
 public:
     PyCameraIntrinsics(const geometry::RaveCameraIntrinsics<float>& intrinsics = geometry::RaveCameraIntrinsics<float>())
     {
-        numeric::array arr(boost::python::make_tuple(intrinsics.fx,0,intrinsics.cx,0,intrinsics.fy,intrinsics.cy,0,0,1));
+        bpndarray arr(boost::python::make_tuple(intrinsics.fx,0,intrinsics.cx,0,intrinsics.fy,intrinsics.cy,0,0,1));
         arr.resize(3,3);
         K = arr;
         distortion_model = intrinsics.distortion_model;
@@ -33,7 +33,7 @@ public:
     }
     PyCameraIntrinsics(const geometry::RaveCameraIntrinsics<double>& intrinsics)
     {
-        numeric::array arr(boost::python::make_tuple(intrinsics.fx,0,intrinsics.cx,0,intrinsics.fy,intrinsics.cy,0,0,1));
+        bpndarray arr(boost::python::make_tuple(intrinsics.fx,0,intrinsics.cx,0,intrinsics.fy,intrinsics.cy,0,0,1));
         arr.resize(3,3);
         K = arr;
         distortion_model = intrinsics.distortion_model;
@@ -375,7 +375,7 @@ public:
                 if( pdata->vimagedata.size() > 0 ) {
                     memcpy(PyArray_DATA(pyvalues),&pdata->vimagedata[0],pdata->vimagedata.size());
                 }
-                imagedata = static_cast<numeric::array>(handle<>(pyvalues));
+                imagedata = static_cast<bpndarray>(handle<>(pyvalues));
             }
         }
         PyCameraSensorData(boost::shared_ptr<SensorBase::CameraGeomData const> pgeom) : PySensorData(SensorBase::ST_Camera), intrinsics(pgeom->intrinsics)
@@ -384,10 +384,10 @@ public:
                 npy_intp dims[] = { pgeom->height,pgeom->width,3};
                 PyObject *pyvalues = PyArray_SimpleNew(3,dims, PyArray_UINT8);
                 memset(PyArray_DATA(pyvalues),0,pgeom->height*pgeom->width*3);
-                imagedata = static_cast<numeric::array>(handle<>(pyvalues));
+                imagedata = static_cast<bpndarray>(handle<>(pyvalues));
             }
             {
-                numeric::array arr(boost::python::make_tuple(pgeom->intrinsics.fx,0,pgeom->intrinsics.cx,0,pgeom->intrinsics.fy,pgeom->intrinsics.cy,0,0,1));
+                bpndarray arr(boost::python::make_tuple(pgeom->intrinsics.fx,0,pgeom->intrinsics.cx,0,pgeom->intrinsics.fy,pgeom->intrinsics.cy,0,0,1));
                 arr.resize(3,3);
                 KK = arr;
             }
@@ -441,7 +441,7 @@ public:
             rotation = toPyVector4(pdata->rotation);
             angular_velocity = toPyVector3(pdata->angular_velocity);
             linear_acceleration = toPyVector3(pdata->linear_acceleration);
-            numeric::array arr = toPyArrayN(&pdata->rotation_covariance[0],pdata->rotation_covariance.size());
+            bpndarray arr = toPyArrayN(&pdata->rotation_covariance[0],pdata->rotation_covariance.size());
             arr.resize(3,3);
             rotation_covariance = arr;
             arr = toPyArrayN(&pdata->angular_velocity_covariance[0],pdata->angular_velocity_covariance.size());
@@ -467,7 +467,7 @@ public:
             pose = toPyArray(pdata->pose);
             linear_velocity = toPyVector3(pdata->linear_velocity);
             angular_velocity = toPyVector3(pdata->angular_velocity);
-            numeric::array arr = toPyArrayN(&pdata->pose_covariance[0],pdata->pose_covariance.size());
+            bpndarray arr = toPyArrayN(&pdata->pose_covariance[0],pdata->pose_covariance.size());
             arr.resize(3,3);
             pose_covariance = arr;
             arr = toPyArrayN(&pdata->velocity_covariance[0],pdata->velocity_covariance.size());
@@ -492,7 +492,7 @@ public:
         PyTactileSensorData(boost::shared_ptr<SensorBase::TactileGeomData const> pgeom, boost::shared_ptr<SensorBase::TactileSensorData> pdata) : PySensorData(pdata)
         {
             forces = toPyArray3(pdata->forces);
-            numeric::array arr = toPyArrayN(&pdata->force_covariance[0],pdata->force_covariance.size());
+            bpndarray arr = toPyArrayN(&pdata->force_covariance[0],pdata->force_covariance.size());
             arr.resize(3,3);
             force_covariance = arr;
             positions = toPyArray3(pgeom->positions);
