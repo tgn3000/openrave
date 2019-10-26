@@ -22,7 +22,7 @@ __builtins__.__openravepy_version__ = '@OPENRAVE_SOVERSION@'
 try:
     import openravepy
 except ImportError:
-    print "openravepy is not set into PYTHONPATH env variable, attempting to add"
+    print("openravepy is not set into PYTHONPATH env variable, attempting to add")
     # use openrave-config to get the correct install path
     from subprocess import Popen, PIPE
     try:
@@ -47,7 +47,7 @@ from openravepy import *
 if __name__ == "__main__":
     parser = OptionParser(usage='usage: %prog pluginname [options] ', description='Sets up a project directory and initial files for creating OpenRAVE plugins and executables.')
     parser.add_option('--usecore', action='store_true',dest='usecore',default=False, help='If set, will create an executable that links to the core instead of creating a plugin.')
-    for type in InterfaceType.values.values():
+    for type in list(InterfaceType.values.values()):
         name = str(type).lower()
         parser.add_option('--'+name, action='append',type='string',dest=name,default=[], help='create a %s interface'%name)
     (options, args) = parser.parse_args()
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     interface_tests_py = ''
     CreateInterfaceValidated = ''
     GetPluginAttributesValidated = ''
-    for type in InterfaceType.values.values():
+    for type in list(InterfaceType.values.values()):
         name = str(type).lower()
         typename = interface_classmapping[type][0]
         classname = interface_classmapping[type][1]
