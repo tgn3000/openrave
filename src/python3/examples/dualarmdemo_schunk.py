@@ -21,7 +21,7 @@
 
 .. examplepost-block:: dualarmdemo_schunk
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Achint Aggarwal'
 
 import time
@@ -106,29 +106,29 @@ class Schunkplanner:
         self.probsmanip.SendCommand('movebothhandsstraight direction1 %lf ' %(ThandL[0,3]-ThandR[0,3]) +'%lf '%(ThandL[1,3]-ThandR[1,3]) +'%lf'%(ThandL[2,3]-ThandR[2,3]) +' direction0 %lf ' %(ThandR[0,3]-ThandL[0,3]) +'%lf '%(ThandR[1,3]-ThandL[1,3]) +'%lf'%(ThandR[2,3]-ThandL[2,3]) +' maxsteps 100')
 
     def graspAndMoveObject(self,jointvalues,obj):
-        print ('Moving to Grasping position for object: %s'%(obj))
+        print(('Moving to Grasping position for object: %s'%(obj)))
         self.planDualPath(obj)
         self.WaitForController()
 
-        print ('Grasping body %s'%(obj))
+        print(('Grasping body %s'%(obj)))
         self.graspObject()
         self.WaitForController()
         
-        print ('Grabbing body %s'%(obj))
+        print(('Grabbing body %s'%(obj)))
         with self.env:
             self.robot.Grab(obj,self.rightArm.GetEndEffector())
 
-        print ('Moving body %s out of the shelf'%(obj))
+        print(('Moving body %s out of the shelf'%(obj)))
         self.moveObject(obj, delta=array([.2,0.0,0.0]))
         self.WaitForController()
 
-        print ('Moving body %s to final position'%(obj))
+        print(('Moving body %s to final position'%(obj)))
         #change delta to give a new position
         self.moveObject(obj,delta=array([-.20,-0.0,0]))
         self.WaitForController()
 
         with self.env:
-            print ('Releasing body %s'%(obj))
+            print(('Releasing body %s'%(obj)))
             self.robot.ReleaseAllGrabbed()
         self.releaseObject()
         self.WaitForController()
@@ -137,7 +137,7 @@ class Schunkplanner:
         self.MoveArmsToJointPosition(jointvalues)
         self.WaitForController()
 
-        print ('Body %s successfully manipulated'%(obj))
+        print(('Body %s successfully manipulated'%(obj)))
 
 def main(env,options):
     "Main example code."
@@ -162,7 +162,7 @@ def main(env,options):
         try:
             schunk.graspAndMoveObject(jointvalues,obj)
             schunk.WaitForController()
-            print "Path Planning complete...."
+            print("Path Planning complete....")
         except planning_error:
             pass
 

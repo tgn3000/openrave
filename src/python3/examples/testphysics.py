@@ -72,7 +72,7 @@ Take a look at the **share/openrave/data/testphysics.env.xml** for a working exa
 
 .. examplepost-block:: testphysics
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time
@@ -109,7 +109,7 @@ def main(env,options):
         time.sleep(0.4)
         simtime = env.GetSimulationTime()*1e-6
         realtime = time.time()-starttime
-        print 'sim time: %fs, real time: %fs, diff = %fs'%(simtime,realtime,simtime-realtime)
+        print('sim time: %fs, real time: %fs, diff = %fs'%(simtime,realtime,simtime-realtime))
 
 from optparse import OptionParser
 from openravepy.misc import OpenRAVEGlobalArguments

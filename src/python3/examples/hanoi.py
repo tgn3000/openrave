@@ -27,7 +27,7 @@ easily change it to a different planner by changing the arguments to the BaseMan
 .. examplepost-block:: hanoi
 
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time
@@ -49,8 +49,8 @@ class HanoiPuzzle:
             self.lmodel.autogenerate()
         self.lmodel.setRobotWeights()
         self.lmodel.setRobotResolutions(xyzdelta=0.002) # the pegs are really thin
-        print 'robot resolutions: ',robot.GetDOFResolutions()
-        print 'robot weights: ',robot.GetDOFWeights()
+        print('robot resolutions: ',robot.GetDOFResolutions())
+        print('robot weights: ',robot.GetDOFWeights())
         with self.env: # lock the environment
             self.basemanip = interfaces.BaseManipulation(self.robot,plannername=plannername)
             self.taskmanip = interfaces.TaskManipulation(self.robot,plannername=plannername)
@@ -139,7 +139,7 @@ class HanoiPuzzle:
                 raveLogInfo('move to dest peg')
                 self.waitrobot() # wait for robot to complete all trajectories
                 return True
-            except planning_error, e:
+            except planning_error as e:
                 raveLogWarn(str(e))
         raise planning_error('failed to put block')
 
@@ -181,7 +181,7 @@ class HanoiPuzzle:
                         self.waitrobot()
                         raveLogInfo('done with one disk')
                         return True
-                    except planning_error,e:
+                    except planning_error as e:
                         raveLogWarn(str(e))
                         with self.env:
                             self.robot.ReleaseAllGrabbed()
@@ -195,7 +195,7 @@ class HanoiPuzzle:
         if n == 1:
             # move the disk
             disk = pegfrom.disks[-1]
-            print('hanoimove %s from %s to %s'%(disk.GetName(), pegfrom.GetName(), pegto.GetName()))
+            print(('hanoimove %s from %s to %s'%(disk.GetName(), pegfrom.GetName(), pegto.GetName())))
             if not self.hanoimove(disk, pegfrom, pegto, self.heights[len(pegto.disks)]):
                 raise ValueError('failed to solve hanoi')
             # add the disk onto the correct peg list

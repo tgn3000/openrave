@@ -18,10 +18,10 @@
 
 .. examplepost-block:: tutorial_iklookat_multiple
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
-from itertools import izip
+
 import time
 import random as stdrandom
 import openravepy
@@ -64,13 +64,13 @@ def main(env,options):
                 for ikmodel2 in ikmodels:
                     ikmodel2.robot.Enable(True)
                 if len(robotsolutions) == len(robots):
-                    print 'found solutions for all manipulators, search for a joint collision-free one'
+                    print('found solutions for all manipulators, search for a joint collision-free one')
                     goodsolutions = []
                     # permute randomly to get more interesting solutions
                     allsols = [sols for sols in sequence_cross_product(*robotsolutions)]
                     stdrandom.shuffle(allsols)
                     for sols in allsols:
-                        for ikmodel,sol in izip(ikmodels,sols):
+                        for ikmodel,sol in zip(ikmodels,sols):
                             ikmodel.robot.SetDOFValues(sol,ikmodel.manip.GetArmIndices())
                         if not any([ikmodel.robot.CheckSelfCollision() or env.CheckCollision(ikmodel.robot) for ikmodel in ikmodels]):
                             goodsolutions.append(sols)
@@ -83,7 +83,7 @@ def main(env,options):
         for sols in goodsolutions:
             handlerays = []
             with env:
-                for ikmodel,sol in izip(ikmodels,sols):
+                for ikmodel,sol in zip(ikmodels,sols):
                     ikmodel.robot.SetDOFValues(sol,ikmodel.manip.GetArmIndices())
                     T = ikmodel.manip.GetTransform()
                     globaldir = numpy.dot(T[0:3,0:3],ikmodel.manip.GetDirection())

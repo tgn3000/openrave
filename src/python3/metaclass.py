@@ -15,8 +15,7 @@ class MetaInstanceTracker(type):
         cls.__instance_refs__ = validrefs
         return instances
 
-class InstanceTracker(object):
-    __metaclass__ = MetaInstanceTracker
+class InstanceTracker(object, metaclass=MetaInstanceTracker):
     def __new__(*args, **kwargs):
         cls = args[0]
         # deprecation due to python 2.6 cannot specifying arguments
@@ -48,7 +47,6 @@ class MetaAutoReloader(MetaInstanceTracker):
                     subcls.__bases__ = tuple(newbases)
                 break
 
-class AutoReloader(InstanceTracker):
-    __metaclass__ = MetaAutoReloader
+class AutoReloader(InstanceTracker, metaclass=MetaAutoReloader):
     def change_class(self, new_class):
         self.__class__ = new_class

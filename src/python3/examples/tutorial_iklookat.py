@@ -18,7 +18,7 @@
 
 .. examplepost-block:: tutorial_iklookat
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time

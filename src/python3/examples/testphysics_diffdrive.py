@@ -19,7 +19,7 @@
 
 .. examplepost-block:: testphysics_diffdrive
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time
@@ -39,14 +39,14 @@ def main(env,options):
     with env:
         env.GetPhysicsEngine().SetGravity(array((0,0,-9.8)))
         robot = env.GetRobots()[0]
-        robot.SetController(RaveCreateController(env,'odevelocity'),range(robot.GetDOF()),0)
+        robot.SetController(RaveCreateController(env,'odevelocity'),list(range(robot.GetDOF())),0)
         env.StopSimulation()
         env.StartSimulation(timestep=0.001)
 
     starttime = time.time()
     while True:
         velocities = 4*(random.rand(robot.GetDOF())-0.5)
-        print 'velocities: ',velocities
+        print('velocities: ',velocities)
         robot.GetController().SendCommand('setvelocity '+' '.join(str(f) for f in velocities))
         time.sleep(2)
 

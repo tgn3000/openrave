@@ -119,7 +119,7 @@ Related Functions
 
 .. examplepost-block:: tutorial_grasptransform
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Huan Liu'
 
 import openravepy
@@ -176,19 +176,19 @@ def main(env,options):
     robot.SetDOFValues([pi/2,-pi/2,0.31,0.54],dofs)
     gt = GraspTransform(env,target)
     handles = []
-    raw_input('This demo shows how to find the transform that moves the hand to the target.\npress ENTER to continue...')
-    print 'showing robot transform in global frame O_T_R'
+    input('This demo shows how to find the transform that moves the hand to the target.\npress ENTER to continue...')
+    print('showing robot transform in global frame O_T_R')
     handles = gt.drawTransform(gt.robot.GetTransform())
-    raw_input('press ENTER to continue...')
-    print 'showing target transform in global frame O_T_Target'
+    input('press ENTER to continue...')
+    print('showing target transform in global frame O_T_Target')
     handles = gt.drawTransform(gt.target.GetTransform())
-    raw_input('press ENTER to continue...')
-    print 'showing grasping frame in global frame O_T_G'
+    input('press ENTER to continue...')
+    print('showing grasping frame in global frame O_T_G')
     handles = gt.drawTransform(gt.robot.GetActiveManipulator().GetTransform())
-    raw_input('press ENTER to continue...')
-    raw_input('Guess what the robot will look like when the hand is on the target?\npress ENTER to continue...')
+    input('press ENTER to continue...')
+    input('Guess what the robot will look like when the hand is on the target?\npress ENTER to continue...')
     gt.showGrasp(target.GetTransform())
-    raw_input('press ENTER to exit')
+    input('press ENTER to exit')
 
 from optparse import OptionParser
 from openravepy.misc import OpenRAVEGlobalArguments

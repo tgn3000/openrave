@@ -58,7 +58,7 @@ In order to render the ik solutions, create a new robot for every solution and m
 
 .. examplepost-block:: tutorial_iksolutions
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time
@@ -100,13 +100,13 @@ def main(env,options):
                     if solutions is not None and len(solutions) > 0: # if found, then break
                         break
             
-            print 'found %d solutions, rendering solutions:'%len(solutions)
+            print('found %d solutions, rendering solutions:'%len(solutions))
             if len(solutions) < options.maxnumber:
-                inds = range(len(solutions))
+                inds = list(range(len(solutions)))
             else:
                 inds = array(linspace(0,len(solutions)-1,options.maxnumber),int)
             for i,ind in enumerate(inds):
-                print ind
+                print(ind)
                 newrobot = newrobots[i]
                 env.Add(newrobot,True)
                 newrobot.SetTransform(robot.GetTransform())

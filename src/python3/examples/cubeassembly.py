@@ -28,7 +28,7 @@ Description
 .. examplepost-block:: cubeassembly
 
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time
@@ -59,8 +59,8 @@ class CubeAssembly(object):
         if self.lmodel.load():
             self.lmodel.setRobotWeights()
             self.lmodel.setRobotResolutions(xyzdelta=0.005)
-            print 'robot resolutions: ',robot.GetDOFResolutions()
-            print 'robot weights: ',robot.GetDOFWeights()
+            print('robot resolutions: ',robot.GetDOFResolutions())
+            print('robot weights: ',robot.GetDOFWeights())
 
         self.basemanip = interfaces.BaseManipulation(self.robot)
         self.taskmanip = interfaces.TaskManipulation(self.robot)
@@ -82,7 +82,7 @@ class CubeAssembly(object):
                       [[-1,-1,2],[0,-1,2],[-1,0,2],[-1,1,2]]
                       ]
             for iblock,block in enumerate(blocks):
-                print 'creating block %d/%d, grasp set generation could take a couple of minutes...'%(iblock,len(blocks))
+                print('creating block %d/%d, grasp set generation could take a couple of minutes...'%(iblock,len(blocks)))
                 color = volumecolors[mod(iblock,len(volumecolors))]
                 boxes = []
                 for geom in block:
@@ -112,7 +112,7 @@ class CubeAssembly(object):
                 for gmodel in self.gmodels:
                     savers.append(KinBody.KinBodyStateSaver(gmodel.target))
                     gmodel.target.SetTransform(Tgoal)
-            raw_input('press any key')
+            input('press any key')
         finally:
             for saver in savers:
                 saver.Restore()
@@ -120,7 +120,7 @@ class CubeAssembly(object):
     def SetGoal(self,Tgoal,randomize=True):
         """sets the goal of all the target bodies and randomizes the obstacles across the plane
         """
-        print 'randomizing blocks, might take a couple of seconds...'
+        print('randomizing blocks, might take a couple of seconds...')
         if not randomize:
             self.Tgoal = Tgoal
             return
@@ -144,7 +144,7 @@ class CubeAssembly(object):
                         target.SetTransform(T)
                         validgrasps,validindices=gmodel.computeValidGrasps(returnnum=1)
                         if len(validgrasps) == 0:
-                            print 'no valid goal grasp for target %s'%gmodel.target
+                            print('no valid goal grasp for target %s'%gmodel.target)
                             invalidgrasp = True
                             break
 
@@ -170,10 +170,10 @@ class CubeAssembly(object):
     def Plan(self):
         if self.Tgoal is None:
             raise ValueError('need to set goal with SetGoal()')
-        print 'planning...'
+        print('planning...')
         planner=graspplanning.GraspPlanning(self.robot,randomize=False,dests=None,nodestinations=True)
         for gmodel in self.gmodels:
-            print 'grasping %s'%gmodel.target
+            print('grasping %s'%gmodel.target)
             success=-1
             while success < 0:
                 success = planner.graspAndPlaceObject(gmodel,dests=[self.Tgoal],movehanddown=False)
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     run()
 
 def test():
-    import cubeassembly
+    from . import cubeassembly
     from openravepy.examples import graspplanning
     env.Load('data/hironxtable.env.xml')
     robot=env.GetRobots()[0]

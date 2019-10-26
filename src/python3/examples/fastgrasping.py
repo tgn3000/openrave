@@ -23,10 +23,10 @@ This type of example is suited for object geometries that are dynamically create
 
 .. examplepost-block:: fastgrasping
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
-from itertools import izip
+
 import openravepy
 if not __openravepy_build_doc__:
     from openravepy import *
@@ -72,7 +72,7 @@ class FastGrasping:
             self.gmodel.disableallbodies=False
             self.gmodel.generate(preshapes=preshapes,standoffs=standoffs,rolls=rolls,approachrays=approachrays,checkgraspfn=self.checkgraspfn,graspingnoise=0.01)
             return None,None # did not find anything
-        except self.GraspingException, e:
+        except self.GraspingException as e:
             return e.args
 
 def main(env,options):
@@ -87,10 +87,10 @@ def main(env,options):
         self = FastGrasping(robot,target=body)
         grasp,jointvalues = self.computeGrasp()
         if grasp is not None:
-            print 'grasp is found!'
+            print('grasp is found!')
             self.gmodel.showgrasp(grasp)
             self.robot.SetDOFValues(jointvalues)
-            raw_input('press any key')
+            input('press any key')
 
 from optparse import OptionParser
 from openravepy.misc import OpenRAVEGlobalArguments

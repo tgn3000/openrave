@@ -8,7 +8,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 __copyright__ = 'Copyright (C) 2009-2011 Rosen Diankov <rosen.diankov@gmail.com>'
 __license__ = 'Apache License, Version 2.0'
@@ -31,9 +31,9 @@ class BaseManipulation:
         self.robot = robot
         self.args = self.robot.GetName()
         if plannername is not None:
-            self.args += u' planner ' + plannername
+            self.args += ' planner ' + plannername
         if maxvelmult is not None:
-            self.args += u' maxvelmult %.15e '%maxvelmult
+            self.args += ' maxvelmult %.15e '%maxvelmult
         env.Add(self.prob,True,self.args)
     def  __del__(self):
         # need to lock the environment since Remove locks it
@@ -61,7 +61,7 @@ class BaseManipulation:
     def SetRobot(self,robot):
         """See :ref:`module-basemanipulation-setrobot`
         """
-        success = self.prob.SendCommand(u'setrobot '+robot.GetName())
+        success = self.prob.SendCommand('setrobot '+robot.GetName())
         if success is not None:
             self.robot = robot
             return True
@@ -78,7 +78,7 @@ class BaseManipulation:
         cmd = 'VerifyTrajectory stream ' + data + ' resettrans %d resettiming %d '%(resettrans,resettiming)
         if samplingstep is not None:
             cmd += 'samplingstep %.15e '%samplingstep
-        print cmd
+        print(cmd)
         return self.prob.SendCommand(cmd)
 
     def MoveHandStraight(self,direction,minsteps=None,maxsteps=None,stepsize=None,ignorefirstcollision=None,starteematrix=None,greedysearch=None,execute=None,outputtraj=None,maxdeviationangle=None,steplength=None,planner=None,outputtrajobj=None):

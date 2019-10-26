@@ -13,14 +13,14 @@
 # limitations under the License. 
 """Misc openravepy functions. Need to explicitly import to use them.
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 from . import openravepy_int, openravepy_ext
 import os.path
 from sys import platform as sysplatformname
 from sys import stdout
 import numpy
 try:
-    from itertools import izip
+    
 except ImportError:
     pass
 
@@ -113,7 +113,7 @@ def SetViewerUserThread(env,viewername,userfn):
     userthread = Thread(target=localuserfn,args=(userfn,viewer))
     userthread.start()
     sig_thread_id = 0
-    for tid, tobj in threading._active.items():
+    for tid, tobj in list(threading._active.items()):
         if tobj is userthread:
             sig_thread_id = tid
             break
@@ -144,7 +144,7 @@ class OpenRAVEGlobalArguments:
         ogroup.add_option('--module', action="append",type='string',dest='_modules',default=[],nargs=2,
                           help='module to load, can specify multiple modules. Two arguments are required: "name" "args".')
         ogroup.add_option('--level','-l','--log_level', action="store",type='string',dest='_level',default=None,
-                          help='Debug level, one of (%s)'%(','.join(str(debugname).lower() for debuglevel,debugname in openravepy_int.DebugLevel.values.iteritems())))
+                          help='Debug level, one of (%s)'%(','.join(str(debugname).lower() for debuglevel,debugname in openravepy_int.DebugLevel.values.items())))
         if testmode:
             ogroup.add_option('--testmode', action="store_true",dest='testmode',default=False,
                               help='if set, will run the program in a finite amount of time and spend computation time validating results. Used for testing')
@@ -153,7 +153,7 @@ class OpenRAVEGlobalArguments:
     def parseGlobal(options,**kwargs):
         """Parses all global options independent of the environment"""
         if options._level is not None:
-            for debuglevel,debugname in openravepy_int.DebugLevel.values.iteritems():
+            for debuglevel,debugname in openravepy_int.DebugLevel.values.items():
                 if (not options._level.isdigit() and options._level.lower() == debugname.name.lower()) or (options._level.isdigit() and int(options._level) == int(debuglevel)):
                     openravepy_int.RaveSetDebugLevel(debugname)
                     break
@@ -168,28 +168,28 @@ class OpenRAVEGlobalArguments:
                 cc = openravepy_int.RaveCreateCollisionChecker(env,options._collision)
                 if cc is not None:
                     env.SetCollisionChecker(cc)
-        except openravepy_ext.openrave_exception, e:
+        except openravepy_ext.openrave_exception as e:
             log.warn(e)
         try:
             if options._physics:
                 ph = openravepy_int.RaveCreatePhysicsEngine(env,options._physics)
                 if ph is not None:
                     env.SetPhysicsEngine(ph)
-        except openravepy_ext.openrave_exception, e:
+        except openravepy_ext.openrave_exception as e:
             log.warn(e)
         try:
             if options._server:
                 sr = openravepy_int.RaveCreateModule(env,options._server)
                 if sr is not None:
                     env.Add(sr,True,'%d'%options._serverport)
-        except openravepy_ext.openrave_exception, e:
+        except openravepy_ext.openrave_exception as e:
             log.warn(e)
         for name,args in options._modules:
             try:
                 module = openravepy_int.RaveCreateModule(env,name)
                 if module is not None:
                     env.Add(module,True,args)
-            except openravepy_ext.openrave_exception, e:
+            except openravepy_ext.openrave_exception as e:
                 log.warn(e)
         try:
             viewername=None
@@ -203,7 +203,7 @@ class OpenRAVEGlobalArguments:
                 return viewername
             elif viewername is not None:
                 env.SetViewer(viewername)
-        except openravepy_ext.openrave_exception, e:
+        except openravepy_ext.openrave_exception as e:
             log.warn(e)
             
     @staticmethod
@@ -290,7 +290,7 @@ def DrawAxes(env,target,dist=1.0,linewidth=1,colormode='rgb',coloradd=None):
     :param colormode: optionally override default color mode of rgb to cmy
     :param coloradd: an optional 3-element vector for 
     """
-    if isinstance(target,basestring):
+    if isinstance(target,str):
         T = env.GetKinBody(target).GetTransform()
     elif hasattr(target,'GetTransform'):
         T = target.GetTransform()
@@ -468,17 +468,17 @@ def TSP(solutions,distfn=None):
 def sequence_cross_product(*sequences):
     """iterates through the cross product of all items in the sequences"""
     # visualize an odometer, with "wheels" displaying "digits"...:
-    wheels = map(iter, sequences)
-    digits = [it.next( ) for it in wheels]
+    wheels = list(map(iter, sequences))
+    digits = [next(it) for it in wheels]
     while True:
         yield tuple(digits)
         for i in range(len(digits)-1, -1, -1):
             try:
-                digits[i] = wheels[i].next( )
+                digits[i] = next(wheels[i])
                 break
             except StopIteration:
                 wheels[i] = iter(sequences[i])
-                digits[i] = wheels[i].next( )
+                digits[i] = next(wheels[i])
         else:
             break
 
@@ -531,18 +531,18 @@ class MultiManipIKSolver:
                 curvalues = [self.robot.GetDOFValues(manip.GetArmIndices()) for main in self.manips]
                 distancesolutions = []
                 for sols in sequence_cross_product(*alljointvalues):
-                    dist = numpy.sum([numpy.sum(numpy.abs(sol0-sol1)) for sol0,sol1 in izip(sols,curvalues)])
+                    dist = numpy.sum([numpy.sum(numpy.abs(sol0-sol1)) for sol0,sol1 in zip(sols,curvalues)])
                     distancesolutions.append([dist, sols])
                 distancesolutions.sort(lambda x,y: int(x[0]-y[0]))
                 for dist,sols in distancesolutions:
-                    for sol,manip in izip(sols,self.manips):
+                    for sol,manip in zip(sols,self.manips):
                         self.robot.SetDOFValues(sol,manip.GetArmIndices()) 
                     if not self.robot.CheckSelfCollision():
                         if not (filteroptions&openravepy_int.IkFilterOptions.CheckEnvCollisions) or not self.robot.GetEnv().CheckCollision(self.robot):
                             return sols
             else:
                 for sols in sequence_cross_product(*alljointvalues):
-                    for sol,manip in izip(sols,self.manips):
+                    for sol,manip in zip(sols,self.manips):
                         self.robot.SetDOFValues(sol,manip.GetArmIndices()) 
                     if not self.robot.CheckSelfCollision():
                         if not (filteroptions&openravepy_int.IkFilterOptions.CheckEnvCollisions) or not self.robot.GetEnv().CheckCollision(self.robot):
@@ -720,7 +720,7 @@ def CompareBodies(body0,body1,comparegeometries=True,comparesensors=True,compare
     """
     def transdist(list0,list1):
         assert(len(list0)==len(list1))
-        return numpy.sum([numpy.sum(abs(item0-item1)) for item0, item1 in izip(list0,list1)])
+        return numpy.sum([numpy.sum(abs(item0-item1)) for item0, item1 in zip(list0,list1)])
     
     assert(body0.IsRobot() == body1.IsRobot())
     assert(len(body0.GetJoints())==len(body1.GetJoints()))
@@ -795,7 +795,7 @@ def CompareBodies(body0,body1,comparegeometries=True,comparesensors=True,compare
             assert( link0.IsEnabled() == link1.IsEnabled() )
             #assert( link0.IsStatic() == link1.IsStatic() )
             assert( len(link0.GetParentLinks()) == len(link1.GetParentLinks()) )
-            assert( all([lp0.GetName()==lp1.GetName() for lp0, lp1 in izip(link0.GetParentLinks(),link1.GetParentLinks())]) )
+            assert( all([lp0.GetName()==lp1.GetName() for lp0, lp1 in zip(link0.GetParentLinks(),link1.GetParentLinks())]) )
             if comparephysics:
                 assert(abs(link0.GetMass()-link1.GetMass()) <= epsilon)
                 assert(transdist(link0.GetLocalMassFrame(),link1.GetLocalMassFrame()) <= epsilon)
@@ -854,7 +854,7 @@ def CompareEnvironments(env,env2,options=openravepy_int.CloningOptions.Bodies,ep
     if options & openravepy_int.CloningOptions.Bodies:
         def transdist(list0,list1):
             assert(len(list0)==len(list1))
-            return numpy.sum([numpy.sum(abs(item0-item1)) for item0, item1 in izip(list0,list1)])
+            return numpy.sum([numpy.sum(abs(item0-item1)) for item0, item1 in zip(list0,list1)])
         
         bodies=env.GetBodies()
         bodies2=env2.GetBodies()

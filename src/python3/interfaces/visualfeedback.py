@@ -8,7 +8,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 __copyright__ = 'Copyright (C) 2009-2011 Rosen Diankov <rosen.diankov@gmail.com>'
 __license__ = 'Apache License, Version 2.0'
@@ -58,13 +58,13 @@ class VisualFeedback:
     def SetCameraAndTarget(self,sensorindex=None,sensorname=None,manipname=None,convexdata=None,sensorrobot=None,targetlink=None,targetgeomname=None, raydensity=None):
         """See :ref:`module-visualfeedback-setcameraandtarget`
         """
-        cmd = u'SetCameraAndTarget '
+        cmd = 'SetCameraAndTarget '
         if targetlink is not None:
-            cmd += u'targetlink %s %s '%(targetlink.GetParent().GetName(), targetlink.GetName())
+            cmd += 'targetlink %s %s '%(targetlink.GetParent().GetName(), targetlink.GetName())
         if targetgeomname is not None and len(targetgeomname) > 0:
-            cmd += u'targetgeomname %s '%targetgeomname
+            cmd += 'targetgeomname %s '%targetgeomname
         if sensorrobot is not None:
-            cmd += u'sensorrobot %s '%sensorrobot.GetName()
+            cmd += 'sensorrobot %s '%sensorrobot.GetName()
         if sensorindex is not None:
             cmd += 'sensorindex %d '%sensorindex
         if sensorname is not None:

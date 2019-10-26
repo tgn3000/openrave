@@ -18,14 +18,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """generates C++ code from the IKFastSolver AST.
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 
 from sympy import __version__ as sympy_version
 if sympy_version < '0.7.0':
     raise ImportError('ikfast needs sympy 0.7.x or greater')
 
 import sys, copy, time, datetime
-import cStringIO
+import io
 try:
     from openravepy.metaclass import AutoReloader
 except:
@@ -63,12 +63,12 @@ except ImportError:
     pass
 
 try:
-    from itertools import izip, combinations
+    from itertools import combinations
 except ImportError:
     def combinations(items,n):
         if n == 0: yield[]
         else:
-            for  i in xrange(len(items)):
+            for  i in range(len(items)):
                 for cc in combinations(items[i+1:],n-1):
                     yield [items[i]]+cc
 
@@ -726,7 +726,7 @@ int main(int argc, char** argv)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -778,7 +778,7 @@ int main(int argc, char** argv)
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -842,7 +842,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -893,7 +893,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -946,7 +946,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -1009,7 +1009,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -1061,7 +1061,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n\n"
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -1119,7 +1119,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.iteritems():
+        for name,functioncode in self.functions.items():
             code += functioncode
         code += "};\n"
         return code
@@ -1130,9 +1130,9 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         """writes the solution of one variable
         :param declarearray: if False, will return the equations to be written without evaluating them. Used for conditioned solutions.
         """
-        code = cStringIO.StringIO()
+        code = io.StringIO()
         numsolutions = 0
-        eqcode = cStringIO.StringIO()
+        eqcode = io.StringIO()
         name = node.jointname
         self._solutioncounter += 1
         log.info('c=%d var=%s', self._solutioncounter, name)
@@ -1453,7 +1453,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
             fnname=self.using_solvedialyticpoly8qep()
         else:
             fnname = 'unknownfn'
-        code = cStringIO.StringIO()
+        code = io.StringIO()
         code.write('IkReal op[%d], zeror[%d];\nint numroots;\n'%(len(node.exportcoeffeqs),node.rootmaxdim*len(node.jointnames)))
 #         for var,value in node.dictequations:
 #             code.write('IkReal %s,'%var)
@@ -1576,7 +1576,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
     def generateBranchConds(self, node):
         #log.info('generateBranchConds(%d)', len(node.jointbranches))
         origequations = self.copyequations()
-        code = cStringIO.StringIO()
+        code = io.StringIO()
         code.write('{\n')
         numevals = None
         for checkzeroequations, branch, dictequations in node.jointbranches:
@@ -1627,7 +1627,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
     def generateCheckZeros(self, node):
         origequations = self.copyequations()
         name = node.jointname if node.jointname is not None else 'dummy'
-        code = cStringIO.StringIO()
+        code = io.StringIO()
         code.write('{\n')
         code.write('IkReal %seval[%d];\n'%(name,len(node.jointcheckeqs)))
 #         for var,value in node.dictequations:
@@ -1724,7 +1724,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
     def generateStoreSolution(self, node):
         self._solutioncounter += 1
         log.info('c=%d, store solution', self._solutioncounter)
-        code = cStringIO.StringIO()
+        code = io.StringIO()
         if node.checkgreaterzero is not None and len(node.checkgreaterzero) > 0:
             origequations = self.copyequations()
             code.write('IkReal soleval[%d];\n'%(len(node.checkgreaterzero)))
@@ -1783,7 +1783,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         If first parameter is not a symbol or in self._globalvariables, will skip the equation
         """
         if code is None:
-            code = cStringIO.StringIO()
+            code = io.StringIO()
         if len(dictequations) == 0:
             return code
         
@@ -1807,7 +1807,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         :param dictequations: list of (var,eq) pairs
         """
         if code is None:
-            code = cStringIO.StringIO()
+            code = io.StringIO()
         exprs = [expr for var, expr in dictequations]
         replacements,reduced_exprs = customcse(exprs,symbols=self.symbolgen)
         N = len(self.dictequations[0])
@@ -1846,13 +1846,13 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         return code
     
     def writeEquations(self, varnamefn, allexprs):
-        code = cStringIO.StringIO()
+        code = io.StringIO()
         self.WriteEquations2(varnamefn, allexprs, code)
         return code.getvalue()
     
     def WriteEquations2(self, varnamefn, allexprs, code=None):
         if code is None:
-            code = cStringIO.StringIO()
+            code = io.StringIO()
             
         if not hasattr(allexprs,'__iter__') and not hasattr(allexprs,'__array__'):
             allexprs = [allexprs]
@@ -1880,9 +1880,9 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         return code
     
     def _writeGinacEquations(self, varnamefn, allexprs):
-        allcode = cStringIO.StringIO()
+        allcode = io.StringIO()
         for i,expr in enumerate(allexprs):
-            print '%d/%d'%(i,len(allexprs))
+            print('%d/%d'%(i,len(allexprs)))
             code,sepcodelist = self._WriteGinacExprCode(expr)
             for sepcode in sepcodelist:
                 allcode.write(sepcode)
@@ -1894,7 +1894,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
     
     def _WriteEquations(self, varnamefn, exprs, ioffset, code=None):
         if code is None:
-            code = cStringIO.StringIO()
+            code = io.StringIO()
         replacements,reduced_exprs = customcse(exprs,symbols=self.symbolgen)
         #for greaterzerocheck in greaterzerochecks:
         #    code.write('if((%s) < -0.00001)\ncontinue;\n'%exprbase)
@@ -1934,7 +1934,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
     def _WriteExprCode(self, expr, code=None):
         # go through all arguments and chop them
         if code is None:
-            code = cStringIO.StringIO()
+            code = io.StringIO()
         if expr.is_Function:
             if expr.func == Abs:
                 code.write('IKabs(')
@@ -1987,9 +1987,9 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
                 # check for divides by 0 in arguments, this could give two possible solutions?!?
                 # if common arguments is nan! solution is lost!
                 # use IKatan2WithCheck in order to make it robust against NaNs
-                iktansymbol = self.symbolgen.next()
+                iktansymbol = next(self.symbolgen)
                 
-                code2 = cStringIO.StringIO()
+                code2 = io.StringIO()
                 code2.write('CheckValue<IkReal> %s = IKatan2WithCheck(IkReal('%iktansymbol)
                 code3,sepcodelist = self._WriteExprCode(expr.args[0], code2)
                 code2.write('),IkReal(')
@@ -2066,8 +2066,8 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
                         return code, []
                     else:
                         # need to create a new symbol
-                        ikpowsymbol = self.symbolgen.next()
-                        code2 = cStringIO.StringIO()
+                        ikpowsymbol = next(self.symbolgen)
+                        code2 = io.StringIO()
                         code2.write('IkReal ')
                         code2.write(str(ikpowsymbol))
                         code2.write('=')
@@ -2081,8 +2081,8 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
                         return code,sepcodelist
                 elif expr.exp.is_integer:
                     # use IKPowWithIntegerCheck in order to make it robust
-                    ikpowsymbol = self.symbolgen.next()
-                    code2 = cStringIO.StringIO()
+                    ikpowsymbol = next(self.symbolgen)
+                    code2 = io.StringIO()
                     code2.write('CheckValue<IkReal> %s=IKPowWithIntegerCheck('%ikpowsymbol)
                     code3,sepcodelist = self._WriteExprCode(expr.base, code2)
                     code2.write(',')
@@ -2107,8 +2107,8 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
                 elif expr.exp < 0:
                     # use IKPowWithIntegerCheck in order to make it robust
                     # check if exprbase is 0
-                    ikpowsymbol = self.symbolgen.next()
-                    code2 = cStringIO.StringIO()
+                    ikpowsymbol = next(self.symbolgen)
+                    code2 = io.StringIO()
                     code2.write('IkReal %s = '%ikpowsymbol)
                     code3,sepcodelist = self._WriteExprCode(expr.base, code2)
                     code2.write(';\nif(IKabs(%s)==0){\ncontinue;\n}\n'%ikpowsymbol)
@@ -2165,7 +2165,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         """
         # go through all arguments and chop them
         if code is None:
-            code = cStringIO.StringIO()
+            code = io.StringIO()
         if isinstance(expr, swiginac.numeric):
             code.write('IkReal(')
             code.write(self.strprinter.doprint(expr.evalf()))

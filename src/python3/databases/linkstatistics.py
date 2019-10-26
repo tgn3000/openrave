@@ -55,7 +55,7 @@ Class Definitions
 -----------------
 
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 __copyright__ = 'Copyright (C) 2009-2010 Rosen Diankov (rosen.diankov@gmail.com)'
 __license__ = 'Apache License, Version 2.0'
@@ -70,12 +70,12 @@ from ..openravepy_ext import transformPoints, openrave_exception
 from ..openravepy_int import RaveFindDatabaseFile, RaveDestroy, Environment, KinBody, rotationMatrixFromQuat, quatRotateDirection, rotationMatrixFromAxisAngle, RaveGetDefaultViewerType
 from . import DatabaseGenerator
 from .. import pyANN
-import convexdecomposition
+from . import convexdecomposition
 from ..misc import ComputeGeodesicSphereMesh, ComputeBoxMesh, ComputeCylinderYMesh, SpaceSamplerExtra
 import time
 import os.path
 from optparse import OptionParser
-from itertools import izip
+
 from os import makedirs
 
 import logging
@@ -113,8 +113,8 @@ class LinkStatisticsModel(DatabaseGenerator):
     def LoadPickle(self):
         try:
             params = DatabaseGenerator.load(self)
-        except Exception, e:
-            log.warn(u'failed to load linkstatistics: %s', e)
+        except Exception as e:
+            log.warn('failed to load linkstatistics: %s', e)
             return False
         
         if params is None:

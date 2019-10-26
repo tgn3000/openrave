@@ -34,7 +34,7 @@ just insert them in the "Arguments for Example" box with space seperation.
 """
 
 
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Daniel Kappler'
 __copyright__ = '2011 Daniel Kappler (daniel.kappler@gmail.com)'
 

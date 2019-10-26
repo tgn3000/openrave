@@ -33,7 +33,7 @@ Can also change the inverse kinematics type to use by:
 
 .. examplepost-block:: inversekinematicspick
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import threading
@@ -47,7 +47,7 @@ def main(env,options):
     "Main example code."
     if options.iktype is not None:
         # cannot use .names due to python 2.5 (or is it boost version?)
-        for value,type in IkParameterization.Type.values.iteritems():
+        for value,type in IkParameterization.Type.values.items():
             if type.name.lower() == options.iktype.lower():
                 iktype = type
                 break
@@ -60,7 +60,7 @@ def main(env,options):
         ikmodels = []
         for robot in env.GetRobots():
             for manip in robot.GetManipulators():
-                print manip
+                print(manip)
                 try:
                     robot.SetActiveManipulator(manip)
                     ikmodel = databases.inversekinematics.InverseKinematicsModel(robot, iktype=iktype)
@@ -69,8 +69,8 @@ def main(env,options):
                         if not ikmodel.has():
                             continue
                     ikmodels.append(ikmodel)
-                except Exception, e:
-                    print 'failed manip %s'%manip, e
+                except Exception as e:
+                    print('failed manip %s'%manip, e)
                 
         if len(ikmodels) == 0:
             raveLogWarn('no manipulators found that can be loaded with iktype %s'%str(iktype))
@@ -162,7 +162,7 @@ def run(args=None):
     parser.add_option('--scene',action="store",type='string',dest='scene',default='data/lab1.env.xml',
                       help='Scene file to load (default=%default)')
     parser.add_option('--iktype', action='store',type='string',dest='iktype',default=None,
-                      help='The ik type to build the solver current types are: %s'%(', '.join(iktype.name for iktype in IkParameterization.Type.values.values())))
+                      help='The ik type to build the solver current types are: %s'%(', '.join(iktype.name for iktype in list(IkParameterization.Type.values.values()))))
     (options, leftargs) = parser.parse_args(args=args)
     OpenRAVEGlobalArguments.parseAndCreateThreadedUser(options,main,defaultviewer=True)
 

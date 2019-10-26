@@ -24,7 +24,7 @@ Shows how to instantiate a planner in python and pass in a workspace trajectory.
 .. examplepost-block:: pr2turnlever
 
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__= 'Rosen Diankov'
 
 import time
@@ -102,7 +102,7 @@ def main(env,options):
 
     with env:
         robot.Grab(target)
-        print 'planning for turning lever'
+        print('planning for turning lever')
         planner = RaveCreatePlanner(env,'workspacetrajectorytracker')
         params = Planner.PlannerParameters()
         params.SetRobotActiveJoints(robot)

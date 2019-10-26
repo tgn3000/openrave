@@ -8,7 +8,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 __copyright__ = 'Copyright (C) 2009-2011 Rosen Diankov <rosen.diankov@gmail.com>'
 __license__ = 'Apache License, Version 2.0'
@@ -18,7 +18,7 @@ from .. import PlanningError
 
 from numpy import *
 from copy import copy as shallowcopy
-import cStringIO
+import io
 
 import logging
 log = logging.getLogger('openravepy.interfaces.TaskManipulation')
@@ -63,7 +63,7 @@ class TaskManipulation:
     
     def SetRobot(self, robot):
         self.robot = robot
-        return self.prob.SendCommand(u'setrobot '+robot.GetName())
+        return self.prob.SendCommand('setrobot '+robot.GetName())
     
     def GraspPlanning(self,graspindices=None,grasps=None,target=None,approachoffset=0,destposes=None,seedgrasps=None,seeddests=None,seedik=None,maxiter=None,randomgrasps=None,randomdests=None, execute=None,outputtraj=None,grasptranslationstepmult=None,graspfinestep=None,outputtrajobj=None,gmodel=None,paddedgeometryinfo=None,steplength=None,releasegil=False):
         """See :ref:`module-taskmanipulation-graspplanning`
@@ -82,11 +82,11 @@ class TaskManipulation:
                 grasptranslationstepmult=gmodel.translationstepmult
             if graspfinestep is None:
                 graspfinestep=gmodel.finestep
-        cmd = cStringIO.StringIO()
+        cmd = io.StringIO()
         cmd.write('graspplanning target %s approachoffset %.15e grasps %d %d '%(target.GetName(),approachoffset, grasps.shape[0],grasps.shape[1]))
         for f in grasps.flat:
             cmd.write('%.15e '%f)
-        for name,valuerange in graspindices.iteritems():
+        for name,valuerange in graspindices.items():
             if name[0] == 'i' and len(valuerange) > 0 or name == 'grasptrans_nocol':
                 cmd.write(name)
                 cmd.write(' ')

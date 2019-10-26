@@ -47,7 +47,7 @@ Class Definitions
 -----------------
 
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 __copyright__ = 'Copyright (C) 2009-2010 Rosen Diankov (rosen.diankov@gmail.com)'
 __license__ = 'Apache License, Version 2.0'
@@ -93,7 +93,7 @@ class ReachabilityModel(DatabaseGenerator):
             """returns distance squared"""
             poses[:,4:] *= self.transmult
 #            neighs,dists = self.nnposes.kSearch(poses,k,eps)
-            neighs,dists = zip(*[self.nnposes.kSearch(pose,k,eps) for pose in poses])
+            neighs,dists = list(zip(*[self.nnposes.kSearch(pose,k,eps) for pose in poses]))
             neighs[neighs>=self.numposes] -= self.numposes
             poses[:,4:] *= self.itransmult
             return neighs,dists
@@ -152,7 +152,7 @@ class ReachabilityModel(DatabaseGenerator):
             except ImportError:
                 log.warn('python h5py library not found, will not be able to speedup database access')
                 return self.LoadPickle()
-        except Exception, e:
+        except Exception as e:
             log.warn(e)
             return False
 
@@ -169,7 +169,7 @@ class ReachabilityModel(DatabaseGenerator):
     def SaveHDF5(self):
         import h5py
         filename=self.getfilename(False)
-        log.info(u'saving model to %s',filename)
+        log.info('saving model to %s',filename)
         try:
             makedirs(os.path.split(filename)[0])
         except OSError:
@@ -210,7 +210,7 @@ class ReachabilityModel(DatabaseGenerator):
             f = None
             return self.has()
         
-        except Exception,e:
+        except Exception as e:
             log.debug('LoadHDF5 for %s: ',filename,e)
             return False
         finally:

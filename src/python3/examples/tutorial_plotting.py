@@ -18,7 +18,7 @@
 
 .. examplepost-block:: tutorial_plotting
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time, threading
@@ -79,7 +79,7 @@ def main(env,options):
         Tcamera = eye(4)
         Tcamera[0:3,3] = [-0.37, 0.26, 3.3]
         env.GetViewer().SetCamera(Tcamera)
-        raw_input('Enter any key to quit. ')
+        input('Enter any key to quit. ')
         handles = None
     finally:
         if spinner is not None:

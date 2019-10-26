@@ -18,7 +18,7 @@
 
 .. examplepost-block:: testphysics_controller
 """
-from __future__ import with_statement # for python 2.5
+ # for python 2.5
 __author__ = 'Rosen Diankov'
 
 import time
@@ -39,7 +39,7 @@ def main(env,options):
     with env:
         robot = env.GetRobots()[0]
         robot.GetLinks()[0].SetStatic(True)
-        robot.SetController(RaveCreateController(env,'odevelocity'),range(robot.GetDOF()),0)
+        robot.SetController(RaveCreateController(env,'odevelocity'),list(range(robot.GetDOF())),0)
         env.StopSimulation()
         env.StartSimulation(timestep=0.001)
 
