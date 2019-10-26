@@ -1,4 +1,3 @@
-add_subdirectory(bindings)
 set(HAVE_ALL_PYTHON_HEADERS ${HAVE_ALL_PYTHON_HEADERS} PARENT_SCOPE)
 
 if( OPT_BUILD_PACKAGE_DEFAULT )
@@ -14,7 +13,7 @@ if( OPT_BUILD_PACKAGE_DEFAULT )
   set(CPACK_COMPONENT_OPENRAVE-PYTHON-MINIMAL_DEPENDS openrave-minimal PARENT_SCOPE)
 endif()
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../src/cppexamples/FindOpenRAVE.cmake" FindOpenRAVE)
+# file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../src/cppexamples/FindOpenRAVE.cmake" FindOpenRAVE)
 
 # python executables need renaming
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/openrave.py.in" "${CMAKE_CURRENT_BINARY_DIR}/openrave${OPENRAVE_BIN_SUFFIX}.py" IMMEDIATE @ONLY)

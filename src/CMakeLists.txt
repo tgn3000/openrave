@@ -15,7 +15,7 @@ endif()
 if(NOT DEFINED CMAKE_INSTALL_PREFIX OR CMAKE_INSTALL_PREFIX STREQUAL "")
 	if(APPLE)
 		set(CMAKE_MACOSX_RPATH 1)
-		set(CMAKE_INSTALL_PREFIX $ENV{HOME}/mujin)
+		set(CMAKE_INSTALL_PREFIX $ENV{HOME}/Projects/openrave3/install)
 	else()
 		set(CMAKE_INSTALL_PREFIX $ENV{MUJIN_INSTALL_DIR})
 	endif()
@@ -223,8 +223,9 @@ install(FILES
 # endif()
 
 add_subdirectory(plugins)
-# add_subdirectory(bindings-simple)
+add_subdirectory(bindings-simple)
 add_subdirectory(bindings)
+add_subdirectory(python3)
 
 # ========== MY PHONY COMMANDS ==========
 add_custom_target(distclean
