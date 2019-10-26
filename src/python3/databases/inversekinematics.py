@@ -161,10 +161,7 @@ from distutils import ccompiler
 from optparse import OptionParser
 import importlib
 
-try:
-    import pickle as pickle
-except:
-    import pickle
+
 
 import logging
 log = logging.getLogger('openravepy.'+__name__.split('.',2)[-1])

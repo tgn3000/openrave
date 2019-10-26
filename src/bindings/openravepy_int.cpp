@@ -2232,7 +2232,7 @@ std::string get_std_runtime_error_repr(std::runtime_error* p)
 
 } // namespace openravepy
 
-BOOST_PYTHON_MODULE(openravepy)
+BOOST_PYTHON_MODULE(openravepy_int)
 {
     using namespace openravepy;
 #if BOOST_VERSION >= 103500

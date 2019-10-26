@@ -14,10 +14,7 @@
  # for python 2.5
 import openravepy_int
 import numpy
-try:
-    import pickle as pickle
-except:
-    import pickle
+
 
 import logging
 log = logging.getLogger('openravepy')

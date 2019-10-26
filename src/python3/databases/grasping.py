@@ -156,10 +156,7 @@ __license__ = 'Apache License, Version 2.0'
 from traceback import print_exc
 import time
 import os.path
-try:
-    import pickle as pickle
-except:
-    import pickle
+
 
 if not __openravepy_build_doc__:
     from numpy import *

@@ -23,10 +23,7 @@ the target object hash.
 """
  # for python 2.5
 
-try:
-    import pickle as pickle
-except:
-    import pickle
+
 
 from .. import openravepy_int, openrave_exception
 from .. import metaclass

@@ -20,13 +20,13 @@ __license__ = 'Apache License, Version 2.0'
 import sys,time
 from types import ModuleType
 from numpy import *
-from OpenGL import GL
+# from OpenGL import GL
 from optparse import OptionParser
 
 __builtins__.__openravepy_version__ = '@OPENRAVE_SOVERSION@'
 
 try:
-    import openravepy
+    import openravepy_int
 except ImportError:
     print("openravepy is not set into PYTHONPATH env variable, attempting to add")
     # use openrave-config to get the correct install path
@@ -49,8 +49,8 @@ except ImportError:
                 sys.path.append(get_python_lib(1,prefix=possibledirs[0]))
     import openravepy
 
-from openravepy import *
-from openravepy.misc import OpenRAVEGlobalArguments
+from openravepy_int import *
+from misc import OpenRAVEGlobalArguments
 
 def vararg_callback(option, opt_str, value, parser):
     assert value is None
@@ -59,7 +59,7 @@ def vararg_callback(option, opt_str, value, parser):
     setattr(parser.values, option.dest, value)
 
 if __name__ == "__main__":
-    parser = OptionParser(description='OpenRAVE %s'%openravepy.__version__,version=openravepy.__version__,
+    parser = OptionParser(description='OpenRAVE %s' % openravepy_int.__version__, version = openravepy_int.__version__,
                           usage='%prog [options] [loadable openrave xml/robot files...]')
     OpenRAVEGlobalArguments.addOptions(parser,testmode=False)
     parser.add_option('--database', action="callback",callback=vararg_callback, dest='database',default=None,

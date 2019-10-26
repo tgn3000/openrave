@@ -14,15 +14,12 @@
 """Misc openravepy functions. Need to explicitly import to use them.
 """
  # for python 2.5
-from . import openravepy_int, openravepy_ext
+import openravepy_int
+from openravepy_ext import openrave_exception, quatRotateArrayT, RobotStateSaver
 import os.path
 from sys import platform as sysplatformname
 from sys import stdout
 import numpy
-try:
-    
-except ImportError:
-    pass
 
 try:
     from threading import Thread
