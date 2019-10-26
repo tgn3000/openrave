@@ -10,8 +10,8 @@ endif()
 
 file(GLOB ik_files "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../python) # for ikfast.h
-add_library(ikfastsolvers SHARED ikfastsolvers.cpp ikfastmodule.cpp ikfastsolver.cpp plugindefs.h ${CMAKE_CURRENT_SOURCE_DIR}/../../python/ikfast.h ${ik_files})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../python3) # for ikfast.h
+add_library(ikfastsolvers SHARED ikfastsolvers.cpp ikfastmodule.cpp ikfastsolver.cpp ${ik_files})
 if( Boost_IOSTREAMS_FOUND )
   target_link_libraries(ikfastsolvers PUBLIC openrave ${Boost_IOSTREAMS_LIBRARY} ${LAPACK_LIBRARIES} ) # PRIVATE boost_assertion_failed)
 else()
