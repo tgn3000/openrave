@@ -248,14 +248,18 @@ TransformMatrix ExtractTransformMatrix(const object& oraw)
 
 object toPyArray(const TransformMatrix& t)
 {
-    npy_intp dims[] = { 4,4};
-    PyObject *pyvalues = PyArray_SimpleNew(2,dims, sizeof(dReal)==8 ? PyArray_DOUBLE : PyArray_FLOAT);
-    dReal* pdata = (dReal*)PyArray_DATA(pyvalues);
-    pdata[0] = t.m[0]; pdata[1] = t.m[1]; pdata[2] = t.m[2]; pdata[3] = t.trans.x;
-    pdata[4] = t.m[4]; pdata[5] = t.m[5]; pdata[6] = t.m[6]; pdata[7] = t.trans.y;
-    pdata[8] = t.m[8]; pdata[9] = t.m[9]; pdata[10] = t.m[10]; pdata[11] = t.trans.z;
-    pdata[12] = 0; pdata[13] = 0; pdata[14] = 0; pdata[15] = 1;
-    return toPyArrayN(pdata, 16);
+    boost::python::tuple shapeA = boost::python::make_tuple(4, 4);
+    np::dtype dt = sizeof(dReal)==8 ? np::dtype::get_builtin<double>() : np::dtype::get_builtin<float>();
+    np::ndarray A = np::zeros(shapeA, dt);
+    for(int i = 0; i < 3; ++i) {
+        for(int j = 0; j < 3; ++j) {
+            A[i][j] = t.m[4*i+j];
+        }
+        A[i][3] = t.trans[i];
+    }
+    A[3][0] = A[3][1] = A[3][2] = 0;
+    A[3][3] = 1;
+    return A;
 }
 
 
