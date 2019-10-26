@@ -333,7 +333,7 @@ inline object toPyArrayRotation(const TransformMatrix& t)
             A[i][j] = t.m[4*i+j];
         }
     }
-    return A;
+    return std::move(A);
 }
 
 inline object toPyArray3(const std::vector<RaveVector<float> >& v)

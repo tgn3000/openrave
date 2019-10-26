@@ -549,7 +549,7 @@ inline object toPyList(const std::vector<T>& v)
     FOREACHC(it,v) {
         lvalues.append(object(*it));
     }
-    return lvalues;
+    return std::move(lvalues);
 }
 
 template <typename T>

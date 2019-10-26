@@ -827,7 +827,7 @@ object RaveGetPluginInfo()
     FOREACH(itplugin, listplugins) {
         plugins.append(boost::python::make_tuple(itplugin->first,object(boost::shared_ptr<PyPluginInfo>(new PyPluginInfo(itplugin->second)))));
     }
-    return plugins;
+    return std::move(plugins);
 }
 
 object RaveGetLoadedInterfaces()
@@ -842,7 +842,7 @@ object RaveGetLoadedInterfaces()
         }
         ointerfacenames[it->first] = names;
     }
-    return ointerfacenames;
+    return std::move(ointerfacenames);
 }
 
 PyInterfaceBasePtr pyRaveClone(PyInterfaceBasePtr pyreference, int cloningoptions, PyEnvironmentBasePtr pyenv=PyEnvironmentBasePtr())
@@ -925,7 +925,7 @@ object rotationMatrixFromQArray(object qarray)
     for(int i = 0; i < N; ++i) {
         orots.append(rotationMatrixFromQuat(qarray[i]));
     }
-    return orots;
+    return std::move(orots);
 }
 
 object matrixFromQuat(object oquat)
@@ -965,7 +965,7 @@ object matrixFromPoses(object oposes)
     for(int i = 0; i < N; ++i) {
         omatrices.append(matrixFromPose(oposes[i]));
     }
-    return omatrices;
+    return std::move(omatrices);
 }
 
 object poseFromMatrix(object o)

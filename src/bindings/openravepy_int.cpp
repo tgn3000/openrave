@@ -259,7 +259,7 @@ object toPyArray(const TransformMatrix& t)
     }
     A[3][0] = A[3][1] = A[3][2] = 0;
     A[3][3] = 1;
-    return A;
+    return std::move(A);
 }
 
 
@@ -688,7 +688,7 @@ object PyInterfaceBase::GetReadableInterfaces()
     FOREACHC(it,_pbase->GetReadableInterfaces()) {
         ointerfaces[it->first] = toPyXMLReadable(it->second);
     }
-    return ointerfaces;
+    return std::move(ointerfaces);
 }
 
 object PyInterfaceBase::GetReadableInterface(const std::string& xmltag)
@@ -1511,7 +1511,7 @@ public:
         FOREACHC(itprob, listModules) {
             modules.append(openravepy::toPyModule(*itprob,shared_from_this()));
         }
-        return modules;
+        return std::move(modules);
     }
 
     bool SetPhysicsEngine(PyPhysicsEngineBasePtr pengine)
@@ -1905,7 +1905,7 @@ public:
                 bodies.append(openravepy::toPyKinBody(*itbody,shared_from_this()));
             }
         }
-        return bodies;
+        return std::move(bodies);
     }
 
     object GetRobots()
@@ -1916,7 +1916,7 @@ public:
         FOREACHC(itrobot, vrobots) {
             robots.append(openravepy::toPyRobot(*itrobot,shared_from_this()));
         }
-        return robots;
+        return std::move(robots);
     }
 
     object GetSensors()
@@ -1927,7 +1927,7 @@ public:
         FOREACHC(itsensor, vsensors) {
             sensors.append(openravepy::toPySensor(*itsensor,shared_from_this()));
         }
-        return sensors;
+        return std::move(sensors);
     }
 
     void UpdatePublishedBodies()
@@ -1959,7 +1959,7 @@ public:
             ostate["activeManipulatorTransform"] = ReturnTransform(itstate->activeManipulatorTransform);
             ostates.append(ostate);
         }
-        return ostates;
+        return std::move(ostates);
     }
 
     object GetPublishedBody(const string &name, uint64_t timeout = 0)
@@ -1985,7 +1985,7 @@ public:
         ostate["environmentid"] = bodystate.environmentid;
         ostate["activeManipulatorName"] = bodystate.activeManipulatorName;
         ostate["activeManipulatorTransform"] = ReturnTransform(bodystate.activeManipulatorTransform);
-        return ostate;
+        return std::move(ostate);
     }
 
     object GetPublishedBodyJointValues(const string &name, uint64_t timeout=0)
@@ -2006,7 +2006,7 @@ public:
             otransforms[itpair->first] = ReturnTransform(itpair->second);
         }
 
-        return otransforms;
+        return std::move(otransforms);
     }
 
     object Triangulate(PyKinBodyPtr pbody)
@@ -2163,7 +2163,7 @@ object RaveGetEnvironments()
     FOREACH(it,listenvironments) {
         oenvironments.append(PyEnvironmentBasePtr(new PyEnvironmentBase(*it)));
     }
-    return oenvironments;
+    return std::move(oenvironments);
 }
 int RaveGetEnvironmentId(PyEnvironmentBasePtr pyenv)
 {

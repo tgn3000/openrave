@@ -27,7 +27,7 @@ boost::python::object GetCustomParameters(const std::map<std::string, std::vecto
         FOREACHC(it, parameters) {
             oparameters[it->first] = toPyArray(it->second);
         }
-        return oparameters;
+        return std::move(oparameters);
     }
     std::string name = boost::python::extract<std::string>(oname);
     typename std::map<std::string, std::vector<T> >::const_iterator it = parameters.find(name);
@@ -850,7 +850,7 @@ public:
         FOREACHC(itlink, vParentLinks) {
             links.append(PyLinkPtr(new PyLink(*itlink, _pyenv)));
         }
-        return links;
+        return std::move(links);
     }
 
     bool IsParentLink(boost::shared_ptr<PyLink> pylink) const {
@@ -953,7 +953,7 @@ public:
         for(size_t i = 0; i < N; ++i) {
             geoms.append(boost::shared_ptr<PyGeometry>(new PyGeometry(_plink->GetGeometry(i))));
         }
-        return geoms;
+        return std::move(geoms);
     }
 
     void InitGeometries(object ogeometryinfos)
@@ -994,7 +994,7 @@ public:
         FOREACHC(itinfo, _plink->GetGeometriesFromGroup(name)) {
             ogeometryinfos.append(PyGeometryInfoPtr(new PyGeometryInfo(**itinfo)));
         }
-        return ogeometryinfos;
+        return std::move(ogeometryinfos);
     }
 
     void SetGroupGeometries(const std::string& name, object ogeometryinfos)
@@ -1022,7 +1022,7 @@ public:
         FOREACHC(itlink, vattachedlinks) {
             links.append(PyLinkPtr(new PyLink(*itlink, _pyenv)));
         }
-        return links;
+        return std::move(links);
     }
 
     bool IsRigidlyAttached(boost::shared_ptr<PyLink> plink) {
@@ -1066,7 +1066,7 @@ public:
             FOREACHC(it, _plink->GetStringParameters()) {
                 oparameters[it->first] = ConvertStringToUnicode(it->second);
             }
-            return oparameters;
+            return std::move(oparameters);
         }
         std::string name = boost::python::extract<std::string>(oname);
         std::map<std::string, std::string >::const_iterator it = _plink->GetStringParameters().find(name);
@@ -1424,7 +1424,7 @@ public:
             FOREACHC(it, _pjoint->GetStringParameters()) {
                 oparameters[it->first] = ConvertStringToUnicode(it->second);
             }
-            return oparameters;
+            return std::move(oparameters);
         }
         std::string name = boost::python::extract<std::string>(oname);
         std::map<std::string, std::string >::const_iterator it = _pjoint->GetStringParameters().find(name);
@@ -2065,7 +2065,7 @@ object PyKinBody::GetLinks() const
     FOREACHC(itlink, _pbody->GetLinks()) {
         links.append(PyLinkPtr(new PyLink(*itlink, GetEnv())));
     }
-    return links;
+    return std::move(links);
 }
 
 object PyKinBody::GetLinks(object oindices) const
@@ -2078,7 +2078,7 @@ object PyKinBody::GetLinks(object oindices) const
     FOREACHC(it, vindices) {
         links.append(PyLinkPtr(new PyLink(_pbody->GetLinks().at(*it),GetEnv())));
     }
-    return links;
+    return std::move(links);
 }
 
 object PyKinBody::GetLink(const std::string& linkname) const
@@ -2093,7 +2093,7 @@ object PyKinBody::GetJoints() const
     FOREACHC(itjoint, _pbody->GetJoints()) {
         joints.append(PyJointPtr(new PyJoint(*itjoint, GetEnv())));
     }
-    return joints;
+    return std::move(joints);
 }
 
 object PyKinBody::GetJoints(object oindices) const
@@ -2106,7 +2106,7 @@ object PyKinBody::GetJoints(object oindices) const
     FOREACHC(it, vindices) {
         joints.append(PyJointPtr(new PyJoint(_pbody->GetJoints().at(*it),GetEnv())));
     }
-    return joints;
+    return std::move(joints);
 }
 
 object PyKinBody::GetPassiveJoints()
@@ -2115,7 +2115,7 @@ object PyKinBody::GetPassiveJoints()
     FOREACHC(itjoint, _pbody->GetPassiveJoints()) {
         joints.append(PyJointPtr(new PyJoint(*itjoint, GetEnv())));
     }
-    return joints;
+    return std::move(joints);
 }
 
 object PyKinBody::GetDependencyOrderedJoints()
@@ -2124,7 +2124,7 @@ object PyKinBody::GetDependencyOrderedJoints()
     FOREACHC(itjoint, _pbody->GetDependencyOrderedJoints()) {
         joints.append(PyJointPtr(new PyJoint(*itjoint, GetEnv())));
     }
-    return joints;
+    return std::move(joints);
 }
 
 object PyKinBody::GetClosedLoops()
@@ -2137,7 +2137,7 @@ object PyKinBody::GetClosedLoops()
         }
         loops.append(loop);
     }
-    return loops;
+    return std::move(loops);
 }
 
 object PyKinBody::GetRigidlyAttachedLinks(int linkindex) const
@@ -2149,7 +2149,7 @@ object PyKinBody::GetRigidlyAttachedLinks(int linkindex) const
     FOREACHC(itlink, vattachedlinks) {
         links.append(PyLinkPtr(new PyLink(*itlink, GetEnv())));
     }
-    return links;
+    return std::move(links);
 }
 
 object PyKinBody::GetChain(int linkindex1, int linkindex2,bool returnjoints) const
@@ -2169,7 +2169,7 @@ object PyKinBody::GetChain(int linkindex1, int linkindex2,bool returnjoints) con
             chain.append(PyLinkPtr(new PyLink(*itlink, GetEnv())));
         }
     }
-    return chain;
+    return std::move(chain);
 }
 
 bool PyKinBody::IsDOFInChain(int linkindex1, int linkindex2, int dofindex) const
@@ -2214,7 +2214,7 @@ object PyKinBody::GetLinkTransformations(bool returndoflastvlaues) const
     if( returndoflastvlaues ) {
         return boost::python::make_tuple(otransforms, toPyArray(vdoflastsetvalues));
     }
-    return otransforms;
+    return std::move(otransforms);
 }
 
 void PyKinBody::SetLinkTransformations(object transforms, object odoflastvalues)
@@ -2751,7 +2751,7 @@ object PyKinBody::GetAttached() const
     _pbody->GetAttached(vattached);
     FOREACHC(it,vattached)
     attached.append(PyKinBodyPtr(new PyKinBody(*it,_pyenv)));
-    return attached;
+    return std::move(attached);
 }
 
 void PyKinBody::SetZeroConfiguration()
@@ -2836,7 +2836,7 @@ object PyKinBody::GetGrabbed() const
     FOREACH(itbody, vbodies) {
         bodies.append(PyKinBodyPtr(new PyKinBody(*itbody,_pyenv)));
     }
-    return bodies;
+    return std::move(bodies);
 }
 
 object PyKinBody::GetGrabbedInfo() const
@@ -2847,7 +2847,7 @@ object PyKinBody::GetGrabbedInfo() const
     FOREACH(itgrabbed, vgrabbedinfo) {
         ograbbed.append(PyGrabbedInfoPtr(new PyGrabbedInfo(**itgrabbed)));
     }
-    return ograbbed;
+    return std::move(ograbbed);
 }
 
 void PyKinBody::ResetGrabbed(object ograbbedinfos)
@@ -2894,7 +2894,7 @@ object PyKinBody::GetNonAdjacentLinks() const
     FOREACHC(it,nonadjacent) {
         ononadjacent.append(boost::python::make_tuple((int)(*it)&0xffff,(int)(*it)>>16));
     }
-    return ononadjacent;
+    return std::move(ononadjacent);
 }
 object PyKinBody::GetNonAdjacentLinks(int adjacentoptions) const
 {
@@ -2903,7 +2903,7 @@ object PyKinBody::GetNonAdjacentLinks(int adjacentoptions) const
     FOREACHC(it,nonadjacent) {
         ononadjacent.append(boost::python::make_tuple((int)(*it)&0xffff,(int)(*it)>>16));
     }
-    return ononadjacent;
+    return std::move(ononadjacent);
 }
 
 void PyKinBody::SetAdjacentLinks(int linkindex0, int linkindex1)
@@ -2916,7 +2916,7 @@ object PyKinBody::GetAdjacentLinks() const
     boost::python::list adjacent;
     FOREACHC(it,_pbody->GetAdjacentLinks())
     adjacent.append(boost::python::make_tuple((int)(*it)&0xffff,(int)(*it)>>16));
-    return adjacent;
+    return std::move(adjacent);
 }
 
 object PyKinBody::GetManageData() const
