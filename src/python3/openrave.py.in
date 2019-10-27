@@ -210,13 +210,6 @@ if __name__ == "__main__":
                         if api_version == '0.10':
                             ipshell = IPython.Shell.IPShellEmbed(argv='',banner = 'OpenRAVE %s dropping into IPython, variables: env, robot, body'%openravepy.__version__,exit_msg = 'Leaving Interpreter and closing program.')
                             ipshell(local_ns=locals())
-#                             from IPython.config.loader import Config
-#                             cfg = Config()
-#                             cfg.InteractiveShellEmbed.local_ns = locals()
-#                             cfg.InteractiveShellEmbed.global_ns = globals()
-#                             #IPython.embed(config=cfg, banner2 = 'OpenRAVE %s dropping into IPython, variables: env, robot, body'%openravepy.__version__)
-#                             from IPython.frontend.terminal.embed import InteractiveShellEmbed
-#                             ipshell = InteractiveShellEmbed(config=cfg)
                         elif api_version == '0.12' or api_version == '0.13':
                             from IPython import embed
                             embed()

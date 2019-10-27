@@ -726,7 +726,7 @@ int main(int argc, char** argv)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -778,7 +778,7 @@ int main(int argc, char** argv)
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -842,7 +842,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -893,7 +893,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -946,7 +946,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -1009,7 +1009,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -1061,7 +1061,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         fcode += self.generateTree(node.jointtree)
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n\n"
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -1119,7 +1119,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
         code += fcode + "}\nreturn solutions.GetNumSolutions()>0;\n}\n"
 
         # write other functions
-        for name,functioncode in self.functions.items():
+        for name,functioncode in list(self.functions.items()):
             code += functioncode
         code += "};\n"
         return code
@@ -1882,7 +1882,7 @@ IkReal r00 = 0, r11 = 0, r22 = 0;
     def _writeGinacEquations(self, varnamefn, allexprs):
         allcode = io.StringIO()
         for i,expr in enumerate(allexprs):
-            print('%d/%d'%(i,len(allexprs)))
+            print(('%d/%d'%(i,len(allexprs))))
             code,sepcodelist = self._WriteGinacExprCode(expr)
             for sepcode in sepcodelist:
                 allcode.write(sepcode)

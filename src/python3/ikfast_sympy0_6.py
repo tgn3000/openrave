@@ -2966,11 +2966,11 @@ class IKFastSolver(AutoReloader):
                     # not enough equations?
                     continue
 
-                if solution is not None and all([self.isValidSolution(value.subs(localsymbols)) for key,value in solution.items()]):
+                if solution is not None and all([self.isValidSolution(value.subs(localsymbols)) for key,value in list(solution.items())]):
                     # substitute 
                     solsubs = []
                     allvalid = True
-                    for key,value in solution.items():
+                    for key,value in list(solution.items()):
                         valuesub = value.subs(localsymbols)
                         solsubs.append((key,valuesub))
                         reducedeqs.append([key.subs(localsymbols),valuesub])
@@ -5768,9 +5768,9 @@ python ikfast.py --robot=robots/barrettwam.robot.xml --baselink=0 --eelink=7 --s
     parser.add_option('--freeindex', action='append', type='int', dest='freeindices',default=[],
                       help='Optional joint index specifying a free parameter of the manipulator. If not specified, assumes all joints not solving for are free parameters. Can be specified multiple times for multiple free parameters.')
     parser.add_option('--iktype', action='store', dest='iktype',default='transform6d',
-                      help='The iktype to generate the ik for. Possible values are: %s'%(', '.join(name for name,fn in IKFastSolver.GetSolvers().items())))
+                      help='The iktype to generate the ik for. Possible values are: %s'%(', '.join(name for name,fn in list(IKFastSolver.GetSolvers().items()))))
     parser.add_option('--lang', action='store',type='string',dest='lang',default='cpp',
-                      help='The language to generate the code in (default=%default), available=('+','.join(name for name,value in CodeGenerators.items())+')')
+                      help='The language to generate the code in (default=%default), available=('+','.join(name for name,value in list(CodeGenerators.items()))+')')
     parser.add_option('--debug','-d', action='store', type='int',dest='debug',default=logging.INFO,
                       help='Debug level for python nose (smaller values allow more text).')
     
