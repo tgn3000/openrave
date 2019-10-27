@@ -272,7 +272,7 @@ public:
             return toPyArray(_pmanip->GetArmIndices());
         }
         object GetArmIndices() {
-            return toPyArray(_pmanip->GetArmIndices());
+            return toPyList(_pmanip->GetArmIndices());
         }
         object GetArmDOFValues()
         {

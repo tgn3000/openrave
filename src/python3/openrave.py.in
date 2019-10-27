@@ -23,34 +23,12 @@ from numpy import *
 # from OpenGL import GL
 from optparse import OptionParser
 
+# openrave3
+from openravepy import *
+from openravepy.openravepy_int import *
+from openravepy.misc import OpenRAVEGlobalArguments
+
 __builtins__.__openravepy_version__ = '@OPENRAVE_SOVERSION@'
-
-try:
-    import openravepy_int
-except ImportError:
-    print("openravepy is not set into PYTHONPATH env variable, attempting to add")
-    # use openrave-config to get the correct install path
-    from subprocess import Popen, PIPE
-    try:
-        openrave_config = Popen(['openrave-config','--python-dir'],stdout=PIPE)
-        openravepy_path = openrave_config.communicate()
-        if openrave_config.returncode != 0:
-            raise OSError('bad args')
-            
-        sys.path.append(openravepy_path[0].strip())
-    except OSError:
-        import os, platform
-        from distutils.sysconfig import get_python_lib
-        if sys.platform.startswith('win') or platform.system().lower() == 'windows':
-            # in windows so add the default openravepy installation
-            allnames = os.listdir('C:\\Program Files')
-            possibledirs = [os.path.join('C:\\Program Files',name) for name in allnames if name.startswith('openrave')]
-            if len(possibledirs) > 0:
-                sys.path.append(get_python_lib(1,prefix=possibledirs[0]))
-    import openravepy
-
-from openravepy_int import *
-from misc import OpenRAVEGlobalArguments
 
 def vararg_callback(option, opt_str, value, parser):
     assert value is None
