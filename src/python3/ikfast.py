@@ -282,7 +282,7 @@ CodeGenerators = {}
 # except ImportError:
 #     pass
 try:
-    import ikfast_generator_cpp
+    from . import ikfast_generator_cpp
     CodeGenerators['cpp'] = ikfast_generator_cpp.CodeGenerator
     IkType = ikfast_generator_cpp.IkType
 except ImportError:
@@ -1804,10 +1804,10 @@ class IKFastSolver(AutoReloader):
                 for subeq in eq.args:
                     neweq += self.SimplifyAtan2(subeq)
                 # call simplify in order to take in common terms
-                if self.codeComplexity(neweq) > 80:
+                if neweq.count_ops() > 80:
                     neweq2 = neweq
                 else:
-                    #log.info('complexity: %d', self.codeComplexity(neweq))
+                    #log.info('complexity: %d', neweq.count_ops())
                     neweq2 = simplify(neweq)
                 if neweq2 != neweq:
                     neweq = self.SimplifyAtan2(neweq2)
@@ -1898,30 +1898,13 @@ class IKFastSolver(AutoReloader):
         elif not processed and incos:
             return cos(neweq)
         return neweq
-
-    @staticmethod
-    def codeComplexity(expr):
-        complexity = 1
-        if expr.is_Add:
-            for term in expr.args:
-                complexity += IKFastSolver.codeComplexity(term)
-        elif expr.is_Mul:
-            for term in expr.args:
-                complexity += IKFastSolver.codeComplexity(term)
-        elif expr.is_Pow:
-            complexity += IKFastSolver.codeComplexity(expr.base)+IKFastSolver.codeComplexity(expr.exp)
-        elif expr.is_Function:
-            complexity += 1
-            for term in expr.args:
-                complexity += IKFastSolver.codeComplexity(term)
-        return complexity
     
     def ComputePolyComplexity(self, peq):
         """peq is a polynomial
         """
         complexity = 0
         for monoms,coeff in peq.terms():
-            coeffcomplexity = self.codeComplexity(coeff)
+            coeffcomplexity = coeff.count_ops()
             for m in monoms:
                 if m > 1:
                     complexity += 2
@@ -1931,7 +1914,7 @@ class IKFastSolver(AutoReloader):
         return complexity
     
     def sortComplexity(self,exprs):
-        exprs.sort(lambda x, y: self.codeComplexity(x)-self.codeComplexity(y))
+        exprs.sort(key=lambda x: x.count_ops())
         return exprs
 
     def checkForDivideByZero(self,eq):
@@ -1948,7 +1931,7 @@ class IKFastSolver(AutoReloader):
                     substitutedargs = []
                     for argeq in eq.args:
                         argeq2 = self._SubstituteGlobalSymbols(argeq)
-                        if self.codeComplexity(argeq2) < 200:
+                        if argeq2.count_ops() < 200:
                             substitutedargs.append(self.SimplifyAtan2(argeq2))
                         else:
                             substitutedargs.append(argeq2)
@@ -1957,12 +1940,12 @@ class IKFastSolver(AutoReloader):
                         if not substitutedargs[0].is_number or substitutedargs[0] == S.Zero:
                             if not substitutedargs[1].is_number or substitutedargs[1] == S.Zero:
                                 sumeq = substitutedargs[0]**2+substitutedargs[1]**2
-                                if self.codeComplexity(sumeq) < 400:
+                                if sumeq.count_ops() < 400:
                                     testeq = self.SimplifyAtan2((substitutedargs[0]**2+substitutedargs[1]**2).expand())
                                 else:
                                     testeq = sumeq
                                 testeq2 = abs(substitutedargs[0])+abs(substitutedargs[1])
-                                if self.codeComplexity(testeq) < self.codeComplexity(testeq2):
+                                if testeq.count_ops() < testeq2.count_ops():
                                     testeqmin = testeq
                                 else:
                                     testeqmin = testeq2
@@ -1997,8 +1980,8 @@ class IKFastSolver(AutoReloader):
                     eqtemp = eqtemp.args[0]
                 while eqtemp.is_Pow:
                     eqtemp = eqtemp.base
-                #self.codeComplexity(eqtemp)
-                if self.codeComplexity(eqtemp) < 500:
+                #eqtemp.count_ops()
+                if eqtemp.count_ops() < 500:
                     checkeq = self.removecommonexprs(eqtemp,onlygcd=False,onlynumbers=True)
                     if self.CheckExpressionUnique(newcheckforzeros,checkeq):
                         newcheckforzeros.append(checkeq)
@@ -2020,17 +2003,17 @@ class IKFastSolver(AutoReloader):
             # multiby by 400 in order to prioritize equations with less solutions
             if hasattr(sol,'jointeval') and sol.jointeval is not None:
                 for s in sol.jointeval:
-                    sol.score += self.codeComplexity(s)
+                    sol.score += s.count_ops()
                     sol.checkforzeros += self.checkForDivideByZero(s.subs(sol.dictequations))
                 subexprs = sol.jointeval
             elif hasattr(sol,'jointevalsin') and sol.jointevalsin is not None:
                 for s in sol.jointevalsin:
-                    sol.score += self.codeComplexity(s)
+                    sol.score += s.count_ops()
                     sol.checkforzeros += self.checkForDivideByZero(s.subs(sol.dictequations))
                 subexprs = sol.jointevalsin
             elif hasattr(sol,'jointevalcos') and sol.jointevalcos is not None:
                 for s in sol.jointevalcos:
-                    sol.score += self.codeComplexity(s)
+                    sol.score += s.count_ops()
                     sol.checkforzeros += self.checkForDivideByZero(s.subs(sol.dictequations))
                 subexprs = sol.jointevalcos
             else:
@@ -2038,7 +2021,7 @@ class IKFastSolver(AutoReloader):
 
             # have to also check solution dictionary
             for s,v in sol.dictequations:
-                sol.score += self.codeComplexity(v)
+                sol.score += v.count_ops()
                 sol.checkforzeros += self.checkForDivideByZero(v.subs(sol.dictequations))
             
             def checkpow(expr,sexprs):
@@ -2084,7 +2067,7 @@ class IKFastSolver(AutoReloader):
 
         newcheckforzeros = []
         for eqtemp in sol.checkforzeros:
-            if self.codeComplexity(eqtemp) < 1000:
+            if eqtemp.count_ops() < 1000:
                 # if there's a sign, there's an infinite recursion?
                 if len(eqtemp.find(sign)) > 0:
                     newcheckforzeros.append(eqtemp)
@@ -3273,13 +3256,13 @@ class IKFastSolver(AutoReloader):
             
             for complexity, splitindex in sortedindices:
                 for peqs in rawpolyeqs2[splitindex]:
-                    c = sum([self.codeComplexity(eq) for eq in peqs[0].coeffs()])
+                    c = sum([eq.count_ops() for eq in peqs[0].coeffs()])
                     if c < 5000:
                         peqs[0] = self.SimplifyTransformPoly (peqs[0])
                     else:
                         log.info('skipping simplification since complexity is %d...', c)
                     #self.codeComplexity(poly0.as_expr()) < 2000:
-                    c = sum([self.codeComplexity(eq) for eq in peqs[1].coeffs()])
+                    c = sum([eq.count_ops() for eq in peqs[1].coeffs()])
                     if c < 5000:
                         peqs[1] = self.SimplifyTransformPoly (peqs[1])
                     else:
@@ -3348,7 +3331,7 @@ class IKFastSolver(AutoReloader):
         iktype = None
         if rawglobalnormaldir is not None:
             globalnormaldir = Matrix(3,1,[Float(x,30) for x in rawglobalnormaldir])
-            binormaldir = globalnormaldir.cross(globaldir).transpose()
+            binormaldir = globalnormaldir.cross(globaldir)
             if globaldir[0] == S.One and globalnormaldir[2] == S.One:
                 if ignoreaxis == 2:
                     iktype = IkType.TranslationXYOrientation3D
@@ -3577,7 +3560,7 @@ class IKFastSolver(AutoReloader):
 
                 newreducedeqs = []
                 for peq in rawpolyeqs:
-                    maxdenom = [0]*(len(polyvars)/2)
+                    maxdenom = [0]*(len(polyvars)//2)
                     for monoms in peq.monoms():
                         for i in range(len(maxdenom)):
                             maxdenom[i] = max(maxdenom[i],monoms[2*i]+monoms[2*i+1])
@@ -3594,7 +3577,7 @@ class IKFastSolver(AutoReloader):
                         eqnew += term
                     newreducedeqs.append(Poly(eqnew,*dummys))
 
-                newreducedeqs.sort(cmp=lambda x,y: len(x.monoms()) - len(y.monoms()))
+                newreducedeqs.sort(key=lambda x: len(x.monoms()))
                 ileftvar = 0
                 leftvar = dummys[ileftvar]
                 exportcoeffeqs=None
@@ -3648,7 +3631,7 @@ class IKFastSolver(AutoReloader):
         for i in range(len(leftside)):
             for j in range(leftside[i].shape[0]):
                 e = self.trigsimp(leftside[i][j] - rightside[i][j],usedvars)
-                if self.codeComplexity(e) < 1500:
+                if e.count_ops() < 1500:
                     e = self.SimplifyTransform(e)
                 if self.CheckExpressionUnique(AllEquations,e):
                     AllEquations.append(e)
@@ -3658,13 +3641,13 @@ class IKFastSolver(AutoReloader):
                 for j in range(leftside[i].shape[0]):
                     p2 += leftside[i][j]**2
                     pe2 += rightside[i][j]**2
-                if self.codeComplexity(p2) < 1200 and self.codeComplexity(pe2) < 1200:
+                if p2.count_ops() < 1200 and pe2.count_ops() < 1200:
                     # sympy's trigsimp/customtrigsimp give up too easily
                     e = self.SimplifyTransform(self.trigsimp(p2,usedvars)-self.trigsimp(pe2,usedvars))
                     if self.CheckExpressionUnique(AllEquations,e):
                         AllEquations.append(e.expand())
                 else:
-                    log.info('length equations too big, skipping %d,%d',self.codeComplexity(p2),self.codeComplexity(pe2))
+                    log.info('length equations too big, skipping %d,%d',p2.count_ops(),pe2.count_ops())
         self.sortComplexity(AllEquations)
         return AllEquations
         
@@ -5119,7 +5102,7 @@ class IKFastSolver(AutoReloader):
         
         if haszeroequations:
             log.info('special structure in equations detected, try to solve through elimination')
-            AllEquations = [eq.subs(self.invsubs) for eq in reducedeqs if self.codeComplexity(eq) < 2000]
+            AllEquations = [eq.subs(self.invsubs) for eq in reducedeqs if eq.count_ops() < 2000]
             for curvar in usedvars[:-1]:
                 try:
                     unknownvars = usedvars[:]
@@ -5237,7 +5220,7 @@ class IKFastSolver(AutoReloader):
         hassinglevariable = False
         for eq in reducedeqs:
             self._CheckPreemptFn(progress=0.10)
-            complexity = self.codeComplexity(eq)
+            complexity = eq.count_ops()
             if complexity > 1500:
                 log.warn('equation way too complex (%d), looking for another solution', complexity)
                 continue
@@ -5510,7 +5493,7 @@ class IKFastSolver(AutoReloader):
                                 # actually both A and B can evaluate to zero, in which case we have to use a different method to solve them
                                 AllEquations = []
                                 for eq in reducedeqs:
-                                    if self.codeComplexity(eq) > 500:
+                                    if eq.count_ops() > 500:
                                         continue
                                     peq = Poly(eq, tvar)
                                     if sum(peq.degree_list()) == 0:
@@ -5524,7 +5507,7 @@ class IKFastSolver(AutoReloader):
                                         for monoms,c in peq.terms():
                                             neweq0 += c*(svar**monoms[0])*((1+cvar)**(peq.degree(0)-monoms[0]))
                                             neweq1 += c*((1-cvar)**monoms[0])*(svar**(peq.degree(0)-monoms[0]))
-                                        if self.codeComplexity(neweq0) > 1000 or self.codeComplexity(neweq1) > 1000:
+                                        if neweq0.count_ops() > 1000 or neweq1.count_ops() > 1000:
                                             break
                                         AllEquations.append(neweq0.subs(self.invsubs).expand())
                                         AllEquations.append(neweq1.subs(self.invsubs).expand())
@@ -5537,7 +5520,7 @@ class IKFastSolver(AutoReloader):
                                     curvars.remove(solvevar)
                                     unusedvars = [solvejointvar for solvejointvar in solvejointvars if not solvejointvar in usedvars]
                                     solutiontree = self.SolveAllEquations(AllEquations+AllEquationsExtra,curvars=curvars+unusedvars,othersolvedvars=self.freejointvars[:]+[solvevar],solsubs=self.freevarsubs[:]+self.Variable(solvevar).subs,endbranchtree=endbranchtree, canguessvars=False, currentcases=currentcases, currentcasesubs=currentcasesubs)
-                                    #secondSolutionComplexity = self.codeComplexity(B) + self.codeComplexity(A)
+                                    #secondSolutionComplexity = B.count_ops() + A.count_ops()
                                     #if secondSolutionComplexity > 500:
                                     #    log.info('solution for %s is too complex, so delaying its solving')
                                     #solutiontree = self.SolveAllEquations(AllEquations,curvars=curvars,othersolvedvars=self.freejointvars[:]+[solvevar],solsubs=self.freevarsubs[:]+self.Variable(solvevar).subs,endbranchtree=endbranchtree)
@@ -6227,7 +6210,7 @@ class IKFastSolver(AutoReloader):
         if len(allmonoms)<2*len(dialyticeqs):
             log.warn('solveDialytically equations %d > %d, should be equal...', 2*len(dialyticeqs),len(allmonoms))
             # TODO not sure how to select the equations
-            N = len(allmonoms)/2
+            N = len(allmonoms)//2
             dialyticeqs = dialyticeqs[:N]
         if len(allmonoms) == 0 or len(allmonoms)>2*len(dialyticeqs):
             raise self.CannotSolveError('solveDialytically: more unknowns than equations %d>%d'%(len(allmonoms), 2*len(dialyticeqs)))
@@ -6508,7 +6491,7 @@ class IKFastSolver(AutoReloader):
         for group in groups:
             try:
                 # not sure about this thresh
-                if self.codeComplexity(eq) > 300:
+                if eq.count_ops() > 300:
                     log.warn('equation too complex to simplify for rot norm: %s', eq)
                     continue
                 
@@ -6715,7 +6698,7 @@ class IKFastSolver(AutoReloader):
                                     # equation is only degree 1 in the variable, and doesn't have any solvevars multiplied with it
                                     newsolution = solve(peq,constantSymbol)[0]
                                     if constantSymbol in newsubsdict:
-                                        if self.codeComplexity(newsolution) < self.codeComplexity(newsubsdict[constantSymbol]):
+                                        if newsolution.count_ops() < self.codeComplexity(newsubsdict[constantSymbol]):
                                             newsubsdict[constantSymbol] = newsolution
                                     else:
                                         newsubsdict[constantSymbol] = newsolution
@@ -6740,9 +6723,9 @@ class IKFastSolver(AutoReloader):
                 if neweq != S.Zero:
                     # don't expand here since otherSubstitutions could make it very complicated
                     neweq2 = neweq.subs(otherSubstitutions)
-                    if self.codeComplexity(neweq2) < self.codeComplexity(neweq)*2:
+                    if neweq2.count_ops() < neweq.count_ops()*2:
                         neweq2 = neweq2.expand()
-                        if self.codeComplexity(neweq2) < self.codeComplexity(neweq) and neweq2 != S.Zero:
+                        if neweq2.count_ops() < neweq.count_ops() and neweq2 != S.Zero:
                             NewEquations.append(neweq2)
                         else:
                             NewEquations.append(neweq)
@@ -6811,10 +6794,10 @@ class IKFastSolver(AutoReloader):
                     eq = e.subs(self.freevarsubs+solsubs)
                     if self.CheckExpressionUnique(raweqns,eq):
                         raweqns.append(eq)
-                        complexity += self.codeComplexity(eq)
+                        complexity += eq.count_ops()
             if len(raweqns) > 1:
                 curvarsubssol.append((var0,var1,raweqns,complexity))
-        curvarsubssol.sort(lambda x, y: x[3]-y[3])
+        curvarsubssol.sort(key = lambda x: x[3])
         
         if len(curvars) == 2 and self.IsHinge(curvars[0].name) and self.IsHinge(curvars[1].name) and len(curvarsubssol) > 0:
             # there's only two variables left, it might be the case that the axes are aligning and the two variables are dependent on each other
@@ -7018,7 +7001,7 @@ class IKFastSolver(AutoReloader):
         
         if unknownvars is None:
             unknownvars = []
-        solutions.sort(lambda x, y: x[0].score-y[0].score)
+        solutions.sort(key = lambda x: x[0].score)
         hasonesolution = False
         for solution in solutions:
             checkforzeros = solution[0].checkforzeros
@@ -7101,7 +7084,7 @@ class IKFastSolver(AutoReloader):
                     continue
                 
                 # bother trying to extract something if too complex (takes a lot of computation time to check and most likely nothing will be extracted). 100 is an arbitrary value
-                checkzeroComplexity = self.codeComplexity(checkzero)
+                checkzeroComplexity = checkzero.count_ops()
                 if checkzeroComplexity > 120: 
                     log.warn('checkforzero too big (%d): %s', checkzeroComplexity, checkzero)
                     # don't even add it if it is too big
@@ -7109,12 +7092,12 @@ class IKFastSolver(AutoReloader):
                         checkforzeros.append(checkzero)#self.removecommonexprs(checkzero.evalf(),onlygcd=False,onlynumbers=True))
                 else:
                     checkzero2 = self._SubstituteGlobalSymbols(checkzero, originalGlobalSymbols)
-                    checkzero2Complexity = self.codeComplexity(checkzero2)
+                    checkzero2Complexity = checkzero2.count_ops()
                     if checkzero2Complexity < 2*checkzeroComplexity: # check that with substitutions, things don't get too big
                         checkzero = checkzero2
                         # fractions could get big, so evaluate directly
                         checkzeroeval = checkzero.evalf()
-                        if checkzero2Complexity < self.codeComplexity(checkzeroeval):
+                        if checkzero2Complexity < checkzeroeval.count_ops():
                             checkforzeros.append(checkzero)
                         else:
                             checkforzeros.append(checkzero.evalf())#self.removecommonexprs(checkzero.evalf(),onlygcd=False,onlynumbers=True)
@@ -7179,7 +7162,7 @@ class IKFastSolver(AutoReloader):
                                             eq = self._SubstituteGlobalSymbols(eq, originalGlobalSymbols)
                                             # why checking for just number? ok to check if solution doesn't contain any other variableS?
                                             # if the equation is non-numerical, make sure it isn't deep in the degenerate cases
-                                            if eq.is_number or (len(currentcases) <= 1 and not eq.has(*allothersolvedvars) and self.codeComplexity(eq) < 100):
+                                            if eq.is_number or (len(currentcases) <= 1 and not eq.has(*allothersolvedvars) and eq.count_ops() < 100):
                                                 isimaginary = self.AreAllImaginaryByEval(eq) or  eq.evalf().has(I)
                                                 # TODO should use the fact that eq is imaginary
                                                 if isimaginary:
@@ -7210,7 +7193,7 @@ class IKFastSolver(AutoReloader):
                                     elif s.jointevalsin is not None:
                                         for eq in s.jointevalsin:
                                             eq = self.SimplifyAtan2(self._SubstituteGlobalSymbols(eq, originalGlobalSymbols))
-                                            if eq.is_number or (len(currentcases) <= 1 and not eq.has(*allothersolvedvars) and self.codeComplexity(eq) < 100):
+                                            if eq.is_number or (len(currentcases) <= 1 and not eq.has(*allothersolvedvars) and eq.count_ops() < 100):
                                                 dictequations = []
                                                 # test when cos(othervar) > 0
                                                 # don't use asin(eq)!! since eq = (-pz**2/py**2)**(1/2), which would produce imaginary numbers
@@ -7255,7 +7238,7 @@ class IKFastSolver(AutoReloader):
                                     elif s.jointevalcos is not None:
                                         for eq in s.jointevalcos:
                                             eq = self.SimplifyAtan2(self._SubstituteGlobalSymbols(eq, originalGlobalSymbols))
-                                            if eq.is_number or (len(currentcases) <= 1 and not eq.has(*allothersolvedvars) and self.codeComplexity(eq) < 100):
+                                            if eq.is_number or (len(currentcases) <= 1 and not eq.has(*allothersolvedvars) and eq.count_ops() < 100):
                                                 dictequations = []
                                                 # test when sin(othervar) > 0
                                                 # don't use acos(eq)!! since eq = (-pz**2/px**2)**(1/2), which would produce imaginary numbers
@@ -7355,7 +7338,7 @@ class IKFastSolver(AutoReloader):
                         continue
                     
                     # don't bother trying to extract something if too complex (takes a lot of computation time to check and most likely nothing will be extracted). 120 is an arbitrary value
-                    if self.codeComplexity(checkzero) > 120:
+                    if checkzero.count_ops() > 120:
                         continue
                     
                     possiblesubs = []
@@ -7828,7 +7811,7 @@ class IKFastSolver(AutoReloader):
                             log.warn('failed to compute determinant: %s', e)
                             continue
                         
-                        complexity = self.codeComplexity(Malldet)
+                        complexity = Malldet.count_ops()
                         if complexity > 1200:
                             log.warn('determinant complexity is too big %d', complexity)
                             continue
@@ -7965,13 +7948,13 @@ class IKFastSolver(AutoReloader):
                         log.info('attempting to simplify determinant...')
                         newdet = Poly(S.Zero,leftvar)
                         for m,c in det.terms():
-                            origComplexity = self.codeComplexity(c)
+                            origComplexity = c.count_ops()
                             # 100 is a guess
                             if origComplexity < 100:
                                 neweq = c.subs(dictequations)
-                                if self.codeComplexity(neweq) < 100:
+                                if neweq.count_ops() < 100:
                                     neweq = self._SubstituteGlobalSymbols(neweq).expand()
-                                    newComplexity = self.codeComplexity(neweq)
+                                    newComplexity = neweq.count_ops()
                                     if newComplexity < origComplexity:
                                         c = neweq
                             newdet += c*leftvar**m[0]
@@ -8119,7 +8102,7 @@ class IKFastSolver(AutoReloader):
             M = M.subs(othervarsubs).expand()
             partialsolution = [-M[1,1]*M[0,2]+M[0,1]*M[1,2],M[1,0]*M[0,2]-M[0,0]*M[1,2],M[0,0]*M[1,1]-M[0,1]*M[1,0]]
             partialsolution = [eq.expand().subs(othervarsubs).expand() for eq in partialsolution]
-            rank = [self.codeComplexity(eq) for eq in partialsolution]
+            rank = [eq.count_ops() for eq in partialsolution]
             partialsolutions.append([rank,partialsolution])
             # cos(A)**2 + sin(A)**2 - 1 = 0, useful equation but the squares introduce wrong solutions
             #neweqs.append(partialsolution[0]**2+partialsolution[1]**2-partialsolution[2]**2)
@@ -8358,7 +8341,7 @@ class IKFastSolver(AutoReloader):
                         continue
                 except PolynomialError:
                     continue
-                rank = self.codeComplexity(enew)
+                rank = enew.count_ops()
                 for s in symbols:
                     rank += self.codeComplexity(s[1])
                 neweqns.append((rank,enew))
@@ -8397,7 +8380,7 @@ class IKFastSolver(AutoReloader):
                     for svarsol,cvarsol in sollist:
                         # solutions cannot be trivial
                         soldiff = (svarsol-cvarsol).subs(listsymbols)
-                        soldiffComplexity = self.codeComplexity(soldiff)
+                        soldiffComplexity = soldiff.count_ops()
                         if soldiffComplexity < 1000 and soldiff.expand() == S.Zero:
                             break
                         svarComplexity = self.codeComplexity(svarsol.subs(listsymbols))
@@ -8469,8 +8452,8 @@ class IKFastSolver(AutoReloader):
                                 if Abs(svarsolsimp**2+cvarsolsimp**2-S.One).evalf() > 1e-10:
                                     log.debug('%s solution: atan2(%s,%s), sin/cos not on circle so ignoring',var.name,svarsolsimp,cvarsolsimp)
                                     continue
-                            svarsolsimpcomplexity = self.codeComplexity(svarsolsimp)
-                            cvarsolsimpcomplexity = self.codeComplexity(cvarsolsimp)
+                            svarsolsimpcomplexity = svarsolsimp.count_ops()
+                            cvarsolsimpcomplexity = cvarsolsimp.count_ops()
                             if svarsolsimpcomplexity > 3000 or cvarsolsimpcomplexity > 3000:
                                 log.warn('new substituted solutions too complex: %d, %d', svarsolsimpcomplexity, cvarsolsimpcomplexity)
                                 continue
@@ -8605,7 +8588,7 @@ class IKFastSolver(AutoReloader):
                     jointsolutions = []
                     for s in tempsolutions:
                         eqsub = s.subs(symbols)
-                        if self.codeComplexity(eqsub) < 2000:
+                        if eqsub.count_ops() < 2000:
                             eqsub = self.SimplifyTransform(self.trigsimp(eqsub,othersolvedvars))
                         jointsolutions.append(eqsub)
                     if all([self.isValidSolution(s) and s != S.Zero for s in jointsolutions]) and len(jointsolutions) > 0:
@@ -8709,7 +8692,7 @@ class IKFastSolver(AutoReloader):
         for eq in eqns:
             eqnew, symbols = self.groupTerms(eq, unknownvars, symbolgen)
             allsymbols += symbols
-            orgeqns.append([self.codeComplexity(eq),Poly(eqnew,*unknownvars)])
+            orgeqns.append([eq.count_ops(),Poly(eqnew,*unknownvars)])
         orgeqns.sort(lambda x, y: x[0]-y[0])
         neweqns = orgeqns[:]
         
@@ -8736,14 +8719,14 @@ class IKFastSolver(AutoReloader):
                 eq1value = eq1dict.get(tuple(monom),S.Zero)
                 if eq0value != 0 and eq1value != 0:
                     tempeq = (eq0.as_expr()*eq1value-eq0value*eq1.as_expr()).subs(allsymbols+pairwiseinvsubs).expand()
-                    if self.codeComplexity(tempeq) > 200:
+                    if tempeq.count_ops() > 200:
                         continue
                     eq = simplify(tempeq)
                     if eq == S.Zero:
                         continue
                     
                     peq = Poly(eq,*pairwisevars)
-                    if max(peq.degree_list()) > 0 and self.codeComplexity(eq) > maxcomplexity:
+                    if max(peq.degree_list()) > 0 and eq.count_ops() > maxcomplexity:
                         # don't need such complex equations
                         continue
                     
@@ -8754,7 +8737,7 @@ class IKFastSolver(AutoReloader):
                         eqns.append(eq)
                         eqnew, symbols = self.groupTerms(eq, unknownvars, symbolgen)
                         allsymbols += symbols
-                        neweqns.append([self.codeComplexity(eq),Poly(eqnew,*unknownvars)])
+                        neweqns.append([eq.count_ops(),Poly(eqnew,*unknownvars)])
 
         orgeqns = neweqns[:]
         # try to solve for all pairwise variables
@@ -8789,7 +8772,7 @@ class IKFastSolver(AutoReloader):
                         eq = (pairwisesubs[i][0]*det - X[i]).subs(allsymbols)
                         eqnew, symbols = self.groupTerms(eq, unknownvars, symbolgen)
                         allsymbols += symbols
-                        singleeqs.append([self.codeComplexity(eq),Poly(eqnew,*unknownvars)])
+                        singleeqs.append([eq.count_ops(),Poly(eqnew,*unknownvars)])
                     break
             if singleeqs is not None:
                 neweqns += singleeqs
@@ -8824,14 +8807,14 @@ class IKFastSolver(AutoReloader):
                         pbasedict = pbase.as_dict()
                         for i in range(len(polyunknown)):
                             eq = (polyunknown[i]*pbasedict.get(monom,S.Zero)-pbase*polyunknown[i].as_dict().get(monom,S.Zero)).as_expr().subs(allsymbols)
-                            if self.codeComplexity(eq) > 4000:
+                            if eq.count_ops() > 4000:
                                 # .. way too complex
                                 continue
                             eq = eq.expand()
-                            if self.codeComplexity(eq) > 10000:
+                            if eq.count_ops() > 10000:
                                 # .. way too complex
                                 continue
-                            if len(addedeqs) > 10 and self.codeComplexity(eq) > 2000:
+                            if len(addedeqs) > 10 and eq.count_ops() > 2000:
                                 # .. already have enough...
                                 continue
                             if eq != S.Zero and self.CheckExpressionUnique(addedeqs,eq):
@@ -8840,7 +8823,7 @@ class IKFastSolver(AutoReloader):
                                 p = Poly(eqnew,*pbase.gens)
                                 if p.as_dict().get((1,1),S.Zero) != S.Zero and curiter == 0:
                                     monomtoremove[1][0].insert(0,p)
-                                polyeqs.append([self.codeComplexity(eqnew),Poly(eqnew,*unknownvars)])
+                                polyeqs.append([eqnew.count_ops(),Poly(eqnew,*unknownvars)])
                                 addedeqs.append(eq)
             neweqns += polyeqs
         neweqns.sort(lambda x,y: x[0]-y[0])
@@ -8957,8 +8940,8 @@ class IKFastSolver(AutoReloader):
                             ssol = eq1dict.get((1,0),S.Zero) * othereq0 - eq0dict.get((1,0),S.Zero) * othereq1
                             polysymbols = paireq0[1-ivar].gens
                             totaleq = (csol**2+ssol**2-disc**2).subs(allsymbols).expand()
-                            if self.codeComplexity(totaleq) < 4000:
-                                log.info('simplifying final equation to %d',self.codeComplexity(totaleq))
+                            if totaleq.count_ops() < 4000:
+                                log.info('simplifying final equation to %d',totaleq.count_ops())
                                 totaleq = simplify(totaleq)
                             ptotal_cos = Poly(Poly(totaleq,*polysymbols).subs(polysymbols[0]**2,1-polysymbols[1]**2).subs(polysymbols[1]**2,1-polysymbols[0]**2),*polysymbols)
                             ptotal_sin = Poly(S.Zero,*polysymbols)
@@ -9060,7 +9043,7 @@ class IKFastSolver(AutoReloader):
             return self.SolvePairVariablesHalfAngle(raweqns,var0,var1,othersolvedvars)
 
         try:
-            if self.codeComplexity(finaleq) > 100000:
+            if finaleq.count_ops() > 100000:
                 return self.SolvePairVariablesHalfAngle(raweqns,var0,var1,othersolvedvars)
             
         except self.CannotSolveError:
@@ -9084,8 +9067,8 @@ class IKFastSolver(AutoReloader):
             for s in solutions:
                 processedsolution = s.subs(allsymbols+varsubsinv).subs(varsubs)
                 # trigsimp probably won't work on long solutions
-                if self.codeComplexity(processedsolution) < 2000: # complexity of 2032 for pi robot freezes
-                    log.info('solution complexity: %d', self.codeComplexity(processedsolution))
+                if processedsolution.count_ops() < 2000: # complexity of 2032 for pi robot freezes
+                    log.info('solution complexity: %d', processedsolution.count_ops())
                     processedsolution = self.SimplifyTransform(self.trigsimp(processedsolution,othersolvedvars))
                 processedsolutions.append(processedsolution.subs(varsubs))
             if (varindex%2)==0:
