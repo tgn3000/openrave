@@ -26,27 +26,22 @@ try:
 except NameError:
     __builtins__['__openravepy_build_doc__'] = False
 
-from .openravepy_int import *
-from .openravepy_int import _openrave_exception_, _std_runtime_error_, _boost_bad_function_call_
-from .openravepy_int import __version__
-from .openravepy_int import __author__
-from .openravepy_int import __copyright__
+from . import openravepy_int
 __license__ = 'core: Lesser GPL, examples: Apache License, Version 2.0'
 __docformat__ = 'restructuredtext'
 
-from .openravepy_ext import *
+from . import openravepy_ext
 
 from . import metaclass
 from . import interfaces
 from . import databases
 
 OpenRAVEModel = databases.DatabaseGenerator # for backwards compatibility
-_openrave_exception_.py_err_class = openrave_exception
-_std_runtime_error_.py_err_class = runtime_error
-_boost_bad_function_call_.py_err_class = runtime_error
+openravepy_int._openrave_exception_.py_err_class = openravepy_ext.openrave_exception
+openravepy_int._std_runtime_error_.py_err_class = openravepy_ext.runtime_error
+openravepy_int._boost_bad_function_call_.py_err_class = openravepy_ext.runtime_error
 
 # deprecated
-Problem = Module
-
+# Problem = Module
 # would "from openravepy import *" be slower if this is enabled?
 #__all__ = ["interfaces", "databases", "metaclass", "openravepy_int"]

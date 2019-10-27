@@ -23,9 +23,7 @@ the target object hash.
 """
  # for python 2.5
 
-
-
-from .. import openravepy_int, openrave_exception
+from .. import openravepy_int
 from .. import metaclass
 from ..misc import OpenRAVEGlobalArguments
 import os.path

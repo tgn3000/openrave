@@ -93,11 +93,6 @@ except:
 import logging
 log = logging.getLogger('openravepy.'+__name__.split('.',2)[-1])
 
-try:
-    from .. import convexdecompositionpy
-except Exception as e:
-    print('failed to import convexdecompositionpy', e)
-
 class ConvexDecompositionError(Exception):
     def __init__(self,msg=''):
         self.msg = msg
@@ -222,9 +217,8 @@ class ConvexDecompositionModel(DatabaseGenerator):
                     ghulls = glinkhulls['hulls']
                     geometryhulls = []
                     for j, ghull in ghulls.items():
-                        if 'vertices' in ghull and len(ghull['vertices'].shape) == 2 and 'indices' in ghull and len(ghull['indices'].shape\
-) == 2 and 'planes' in ghull and len(ghull['planes'].shape) == 2:
-			    hull = [ghull['vertices'].value, ghull['indices'].value, ghull['planes'].value]
+                        if 'vertices' in ghull and len(ghull['vertices'].shape) == 2 and 'indices' in ghull and len(ghull['indices'].shape) == 2 and 'planes' in ghull and len(ghull['planes'].shape) == 2:
+                            hull = [ghull['vertices'].value, ghull['indices'].value, ghull['planes'].value]
                             geometryhulls.append(hull)
                         else:
                             log.warn('could not open link %s geometry %s hull %s: %r', ilink, ig, j, ghull)

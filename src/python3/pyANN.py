@@ -13,8 +13,7 @@
 # limitations under the License. 
 """Imports ANN extentions
 """
-from pyANN_int import *
-from pyANN_int import _pyann_exception_
+from . import pyANN_int
 
 class pyann_exception(Exception):
     """wrap up the C++ pyann_exception"""
@@ -30,4 +29,4 @@ class pyann_exception(Exception):
         except AttributeError:
             return super(pyann_exception,self).__getattribute__(attr)
 
-_pyann_exception_.py_err_class = pyann_exception
+pyANN_int._pyann_exception_.py_err_class = pyann_exception

@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License. 
  # for python 2.5
-import openravepy_int
+from . import openravepy_int
 import numpy
-
-
 import logging
 log = logging.getLogger('openravepy')
 

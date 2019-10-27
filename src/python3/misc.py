@@ -14,8 +14,7 @@
 """Misc openravepy functions. Need to explicitly import to use them.
 """
  # for python 2.5
-import openravepy_int
-from openravepy_ext import openrave_exception, quatRotateArrayT, RobotStateSaver
+from . import openravepy_int, openravepy_ext
 import os.path
 from sys import platform as sysplatformname
 from sys import stdout
