@@ -50,7 +50,7 @@ public:
         FOREACHC(it,_ret._mapdata) {
             odata[it->first] = toPyArray(it->second);
         }
-        return odata;
+        return std::move(odata);
     }
 
     void SetUserData(PyUserData pdata) {
@@ -158,7 +158,7 @@ public:
         FOREACH(itikreturn,vikreturns) {
             pyreturns.append(object(PyIkReturnPtr(new PyIkReturn(*itikreturn))));
         }
-        return pyreturns;
+        return std::move(pyreturns);
     }
 
     PyIkReturnPtr Solve(object oparam, object oq0, object oFreeParameters, int filteroptions)
@@ -196,7 +196,7 @@ public:
         FOREACH(itikreturn,vikreturns) {
             pyreturns.append(object(PyIkReturnPtr(new PyIkReturn(*itikreturn))));
         }
-        return pyreturns;
+        return std::move(pyreturns);
     }
 
     PyIkReturnPtr CallFilters(object oparam)

@@ -262,7 +262,7 @@ public:
         FOREACHC(it, _param.GetCustomDataMap()) {
             odata[it->first] = toPyArray(it->second);
         }
-        return odata;
+        return std::move(odata);
     }
 
     size_t ClearCustomValues(const std::string& name=std::string())

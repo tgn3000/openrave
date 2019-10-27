@@ -191,7 +191,7 @@ public:
             ofilterreturn["fTimeWhenInvalid"] = pfilterreturn->_fTimeWhenInvalid;
             ofilterreturn["returncode"] = pfilterreturn->_returncode;
             ofilterreturn["reportstr"] = pfilterreturn->_report.__str__();
-            return ofilterreturn;
+            return std::move(ofilterreturn);
         }
         else {
             return object(_pconstraints->Check(q0, q1, dq0, dq1, timeelapsed, interval, options));
@@ -396,7 +396,7 @@ public:
         FOREACH(it,listreturns) {
             oreturns.append(openravepy::toPyIkReturn(**it));
         }
-        return oreturns;
+        return std::move(oreturns);
     }
 
     int GetIkParameterizationIndex(int index)

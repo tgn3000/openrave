@@ -488,7 +488,7 @@ public:
                 FOREACH(it,vikreturns) {
                     oikreturns.append(openravepy::toPyIkReturn(**it));
                 }
-                return oikreturns;
+                return std::move(oikreturns);
             }
             else {
                 std::vector<std::vector<dReal> > vsolutions;
@@ -535,7 +535,7 @@ public:
                 FOREACH(it,vikreturns) {
                     oikreturns.append(openravepy::toPyIkReturn(**it));
                 }
-                return oikreturns;
+                return std::move(oikreturns);
             }
             else {
                 std::vector<std::vector<dReal> > vsolutions;
@@ -578,7 +578,7 @@ public:
             FOREACH(itjoint,vjoints) {
                 joints.append(toPyKinBodyJoint(*itjoint,_pyenv));
             }
-            return joints;
+            return std::move(joints);
         }
         object GetChildDOFIndices() {
             std::vector<int> vdofindices;
@@ -587,7 +587,7 @@ public:
             FOREACH(itindex,vdofindices) {
                 dofindices.append(*itindex);
             }
-            return dofindices;
+            return std::move(dofindices);
         }
 
         object GetChildLinks() {
@@ -597,7 +597,7 @@ public:
             FOREACH(itlink,vlinks) {
                 links.append(toPyKinBodyLink(*itlink,_pyenv));
             }
-            return links;
+            return std::move(links);
         }
 
         bool IsChildLink(object pylink)
@@ -613,7 +613,7 @@ public:
             FOREACH(itlink,vlinks) {
                 links.append(toPyKinBodyLink(*itlink,_pyenv));
             }
-            return links;
+            return std::move(links);
         }
 
         object GetArmConfigurationSpecification(const std::string& interpolation="") const {
@@ -889,7 +889,7 @@ public:
             FOREACH(itlink, vlinks) {
                 olinks.append(toPyLink(*itlink,_pyenv));
             }
-            return olinks;
+            return std::move(olinks);
         }
 
         object GetResolvedJoints()
@@ -900,7 +900,7 @@ public:
             FOREACH(itjoint, vjoints) {
                 ojoints.append(toPyJoint(*itjoint, _pyenv));
             }
-            return ojoints;
+            return std::move(ojoints);
         }
 
         object GetResolvedManipulators()
@@ -911,7 +911,7 @@ public:
             FOREACH(itmanip, vmanips) {
                 omanips.append(toPyRobotManipulator(*itmanip, _pyenv));
             }
-            return omanips;
+            return std::move(omanips);
         }
 
         string __repr__() {
@@ -1036,7 +1036,7 @@ public:
         FOREACH(it, _probot->GetManipulators()) {
             manips.append(_GetManipulator(*it));
         }
-        return manips;
+        return std::move(manips);
     }
 
     object GetManipulators(const string& manipname)
@@ -1047,7 +1047,7 @@ public:
                 manips.append(_GetManipulator(*it));
             }
         }
-        return manips;
+        return std::move(manips);
     }
     PyManipulatorPtr GetManipulator(const string& manipname)
     {
@@ -1097,7 +1097,7 @@ public:
         FOREACH(itsensor, _probot->GetAttachedSensors()) {
             sensors.append(boost::shared_ptr<PyAttachedSensor>(new PyAttachedSensor(*itsensor,_pyenv)));
         }
-        return sensors;
+        return std::move(sensors);
     }
     boost::shared_ptr<PyAttachedSensor> GetSensor(const string& sensorname)
     {
@@ -1124,7 +1124,7 @@ public:
         FOREACH(itbody, _probot->GetConnectedBodies()) {
             bodies.append(boost::shared_ptr<PyConnectedBody>(new PyConnectedBody(*itbody, _pyenv)));
         }
-        return bodies;
+        return std::move(bodies);
     }
 
     PyConnectedBodyPtr GetConnectedBody(const string& bodyname)

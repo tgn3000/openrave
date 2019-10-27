@@ -193,7 +193,7 @@ public:
                 ofilterreturn["fTimeWhenInvalid"] = pfilterreturn->_fTimeWhenInvalid;
                 ofilterreturn["returncode"] = pfilterreturn->_returncode;
                 ofilterreturn["reportstr"] = pfilterreturn->_report.__str__();
-                return ofilterreturn;
+                return std::move(ofilterreturn);
             }
             return object(ret);
         }
