@@ -274,13 +274,6 @@ except ImportError:
     using_swiginac = False
 
 CodeGenerators = {}
-# try:
-#     import ikfast_generator_vb
-#     CodeGenerators['vb'] = ikfast_generator_vb.CodeGenerator
-#     CodeGenerators['vb6'] = ikfast_generator_vb.CodeGeneratorVB6
-#     CodeGenerators['vb6special'] = ikfast_generator_vb.CodeGeneratorVB6Special
-# except ImportError:
-#     pass
 try:
     from . import ikfast_generator_cpp
     CodeGenerators['cpp'] = ikfast_generator_cpp.CodeGenerator
@@ -299,10 +292,6 @@ def Pow_eval_subs(self, old, new):
         coeff1, terms1 = self.exp.as_coeff_mul()
         coeff2, terms2 = old.exp.as_coeff_mul()
         if terms1==terms2:
-#             pow = coeff1/coeff2
-#             if pow.is_Integer or self.base.is_commutative:
-#                 return Pow(new, pow) # (x**(2*y)).subs(x**(3*y),z) -> z**(2/3)
-            # only divide if coeff2 is a divisor of coeff1
             if coeff1.is_integer and coeff2.is_integer and (coeff1/coeff2).is_integer:
                 return new ** (coeff1/coeff2) # (x**(2*y)).subs(x**(3*y),z) -> z**(2/3*y)
             
@@ -335,110 +324,6 @@ def trigsimp_custom(self, **args):
 
 if not sympy_smaller_073:
     trigsimp = trigsimp_custom
-
-# def custom_trigsimp_nonrecursive(expr, deep=False):
-#     """
-#     A nonrecursive trig simplifier, used from trigsimp.
-# 
-#     == Usage ==
-#         trigsimp_nonrecursive(expr) -> reduces expression by using known trig
-#                                        identities
-# 
-#     == Notes ==
-# 
-#     deep ........ apply trigsimp inside functions
-# 
-#     == Examples ==
-#         >>> from sympy import cos, sin, log
-#         >>> from sympy.simplify.simplify import trigsimp, trigsimp_nonrecursive
-#         >>> from sympy.abc import x, y
-#         >>> e = 2*sin(x)**2 + 2*cos(x)**2
-#         >>> trigsimp(e)
-#         2
-#         >>> trigsimp_nonrecursive(log(e))
-#         log(2*cos(x)**2 + 2*sin(x)**2)
-#         >>> trigsimp_nonrecursive(log(e), deep=True)
-#         log(2)
-# 
-#     """
-#     from sympy.core.basic import S
-#     sin, cos, tan, cot = C.sin, C.cos, C.tan, C.cot
-# 
-#     if expr.is_Function:
-#         if deep:
-#             return expr.func(trigsimp_nonrecursive(expr.args[0], deep))
-#     elif expr.is_Mul:
-#         ret = S.One
-#         for x in expr.args:
-#             ret *= trigsimp_nonrecursive(x, deep)
-# 
-#         return ret
-#     elif expr.is_Pow:
-#         return Pow(trigsimp_nonrecursive(expr.base, deep),
-#                 trigsimp_nonrecursive(expr.exp, deep))
-#     elif expr.is_Add:
-#         # TODO this needs to be faster
-# 
-#         # The types of trig functions we are looking for
-#         a,b,c = map(Wild, 'abc')
-#         matchers = (
-#             (a*sin(b)**2, a - a*cos(b)**2),
-#             (a*tan(b)**2, a*(1/cos(b))**2 - a),
-#             (a*cot(b)**2, a*(1/sin(b))**2 - a)
-#         )
-# 
-#         # Scan for the terms we need
-#         ret = S.Zero
-#         for term in expr.args:
-#             term = trigsimp_nonrecursive(term, deep)
-#             res = None
-#             for pattern, result in matchers:
-#                 res = term.match(pattern)
-#                 if res is not None:
-#                     ret += result.subs(res)
-#                     break
-#             if res is None:
-#                 ret += term
-# 
-#         # Reduce any lingering artifacts, such as sin(x)**2 changing
-#         # to 1-cos(x)**2 when sin(x)**2 was "simpler"
-#         artifacts = (
-#             (a - a*cos(b)**2 + c, a*sin(b)**2 + c, cos),
-#             (a - a*(1/cos(b))**2 + c, -a*tan(b)**2 + c, cos),
-#             (a - a*(1/sin(b))**2 + c, -a*cot(b)**2 + c, sin)
-#         )
-# 
-#         expr = ret
-#         for pattern, result, ex in artifacts:
-#             # Substitute a new wild that excludes some function(s)
-#             # to help influence a better match. This is because
-#             # sometimes, for example, 'a' would match sec(x)**2
-#             a_t = Wild('a', exclude=[ex])
-#             pattern = pattern.subs(a, a_t)
-#             result = result.subs(a, a_t)
-#             if expr.is_number:
-#                 continue
-#             try:
-#                 m = expr.match(pattern)
-#             except (TypeError):
-#                 break
-# 
-#             while m is not None:
-#                 if m[a_t] == 0 or -m[a_t] in m[c].args or m[a_t] + m[c] == 0:
-#                     break
-#                 expr = result.subs(m)
-#                 if expr.is_number:
-#                     continue
-#                 try:
-#                     m = expr.match(pattern)
-#                 except (TypeError):
-#                     break
-# 
-# 
-#         return expr
-#     return expr
-# 
-# simplify.simplify.trigsimp_nonrecursive = custom_trigsimp_nonrecursive
 
 class AST:
     """Abstarct Syntax Tree class definitions specific for evaluating complex math equations.
@@ -2279,28 +2164,6 @@ class IKFastSolver(AutoReloader):
         self.globalsymbols = []
         self._scopecounter = 0
 
-        # before passing to the solver, set big numbers to constant variables, this will greatly reduce computation times
-#         numbersubs = []
-#         LinksRaw2 = []
-#         for Torig in LinksRaw:
-#             T = Matrix(Torig)
-#             #print axisAngleFromRotationMatrix(numpy.array(numpy.array(T[0:3,0:3]),numpy.float64))
-#             for i in range(12):
-#                 ti = T[i]
-#                 if ti.is_number and len(str(ti)) > 30:
-#                     matchnumber = self.MatchSimilarFraction(ti,numbersubs)
-#                     if matchnumber is None:
-#                         sym = self.gsymbolgen.next()
-#                         log.info('adding global symbol %s=%s'%(sym,ti))
-#                         numbersubs.append((sym,ti))
-#                         T[i] = sym
-#                     else:
-#                         T[i] = matchnumber
-#             LinksRaw2.append(T)
-#         if len(numbersubs) > 10:
-#             log.info('substituting %d global symbols',len(numbersubs))
-#             LinksRaw = LinksRaw2
-#             self.globalsymbols += numbersubs
         self.Teeleftmult = self.multiplyMatrix(LinksLeft) # the raw ee passed to the ik solver function
         self._CheckPreemptFn(progress=0.01)
         chaintree = solvefn(self, LinksRaw, jointvars, isolvejointvars)
@@ -2660,27 +2523,6 @@ class IKFastSolver(AutoReloader):
         
         endbranchtree = [AST.SolverStoreSolution (jointvars,isHinge=[self.IsHinge(var.name) for var in jointvars])]
         numzeros = int(manipdir[0]==S.Zero) + int(manipdir[1]==S.Zero) + int(manipdir[2]==S.Zero)
-#         if numzeros < 2:
-#             try:
-#                 log.info('try to rotate the last joint so that numzeros increases')
-#                 assert(not self.has(Links[-1],*solvejointvars))
-#                 localdir = Links[-1][0:3,0:3]*manipdir
-#                 localpos = Links[-1][0:3,0:3]*manippos+Links[-1][0:3,3]
-#                 AllEquations = Links[-2][0:3,0:3]*localdir
-#                 tree=self.SolveAllEquations(AllEquations,curvars=solvejointvars[-1:],othersolvedvars = [],solsubs = [],endbranchtree=[])
-#                 offset = tree[0].jointeval[0]
-#                 endbranchtree[0].offsetvalues = [S.Zero]*len(solvejointvars)
-#                 endbranchtree[0].offsetvalues[-1] = offset
-#                 Toffset = Links[-2].subs(solvejointvars[-1],offset).evalf()
-#                 localdir2 = Toffset[0:3,0:3]*localdir
-#                 localpos2 = Toffset[0:3,0:3]*localpos+Toffset[0:3,3]
-#                 Links[-1]=eye(4)
-#                 for i in range(3):
-#                     manipdir[i] = self.convertRealToRational(localdir2[i])
-#                 manipdir /= sqrt(manipdir[0]*manipdir[0]+manipdir[1]*manipdir[1]+manipdir[2]*manipdir[2]) # unfortunately have to do it again...
-#                 manippos = Matrix(3,1,[self.convertRealToRational(x) for x in localpos2])
-#             except Exception, e:
-#                 print 'failed to rotate joint correctly',e
 
         LinksInv = [self.affineInverse(link) for link in Links]
         T = self.multiplyMatrix(Links)
@@ -2882,12 +2724,6 @@ class IKFastSolver(AutoReloader):
                 Tgripper[i,j] = self.convertRealToRational(Tmanipraw[i,j])
         Tfirstright = LinksRaw[-1]*Tgripper
         Links = LinksRaw[:-1]
-#         if Links[0][0:3,0:3] == eye(3):
-#             # first axis is prismatic, so zero out self.Tee
-#             for i in range(3):
-#                 if Links[0][i,3] != S.Zero:
-#                     self.Tee[i,3] = S.Zero
-#             self.Teeinv = self.affineInverse(self.Tee)
         
         LinksInv = [self.affineInverse(link) for link in Links]
         self.Tfinal = self.multiplyMatrix(Links)
@@ -3702,15 +3538,6 @@ class IKFastSolver(AutoReloader):
                     for eq in Reqs[i]:
                         AllEquations.append(eq)
                 numvarsdone += 1
-                # take dot products (equations become unnecessarily complex)
-#                 eqdots = [S.Zero, S.Zero, S.Zero]
-#                 for i in range(3):
-#                     eqdots[0] += Reqs[0][i] * Reqs[1][i]
-#                     eqdots[1] += Reqs[1][i] * Reqs[2][i]
-#                     eqdots[2] += Reqs[2][i] * Reqs[0][i]
-#                 for i in range(3):
-#                     AllEquations.append(self.trigsimp(eqdots[i].expand(),othersolvedvars+rotvars))
-                #AllEquations.append((eqs[0]*eqs[0]+eqs[1]*eqs[1]+eqs[2]*eqs[2]-S.One).expand())
         self.sortComplexity(AllEquations)
         return AllEquations
 
@@ -4007,75 +3834,6 @@ class IKFastSolver(AutoReloader):
                     neweq -= c
             reducedeqs.append([S.Zero,neweq])
         return reducedeqs, [solution]
-
-#                 Adj=M[:,:-1].adjugate()
-#                 #D=M[:,:-1].det()
-#                 D=M[:,:-1].det()
-#                 sols=-Adj*M[:,-1]
-#                 solsubs = []
-#                 for i,v in enumerate(newunknowns):
-#                     newsol=sols[i].subs(localsymbols)
-#                     solsubs.append((v,newsol))
-#                     reducedeqs.append([v.subs(localsymbols)*D,newsol])
-#                 othereqindices = set(range(len(newleftsideeqs))).difference(set(eqindices))
-#                 for i in othereqindices:
-#                     # have to multiply just the constant by the determinant
-#                     newpoly = S.Zero
-#                     for c,m in newleftsideeqs[i].terms():
-#                         monomindices = [index for index in range(len(newunknowns)) if m[index]>0]
-#                         if len(monomindices) == 0:
-#                             newpoly += c.subs(localsymbols)*D
-#                         else:
-#                             assert(len(monomindices)==1)
-#                             newpoly += c.subs(localsymbols)*solsubs[monomindices[0]][1]
-#                     reducedeqs.append([S.Zero,newpoly])
-#                 break
-
-#                 # there are too many symbols, so have to resolve to a little more involved method
-#                 P,L,DD,U= M[:,:-1].LUdecompositionFF(*self.pvars)
-#                 finalnums = S.One
-#                 finaldenoms = S.One
-#                 for i in range(len(newunknowns)):
-#                     n,d = self.recursiveFraction(L[i,i]*U[i,i]/DD[i,i])
-#                     finalnums *= n
-#                     finaldenoms *= d
-#                     n,d = self.recursiveFraction(DD[i,i])
-#                     q,r = div(n,d,*pvars)
-#                     DD[i,i] = q
-#                     assert(r==S.Zero)
-#                 det,r = div(finalnums,finaldenoms,*pvars)
-#                 assert(r==S.Zero)
-#                 b = -P*M[:,-1]
-#                 y = [[b[0],L[0,0]]]
-#                 for i in range(1,L.shape[0]):
-#                     commondenom=y[0][1]
-#                     for j in range(1,i):
-#                         commondenom=lcm(commondenom,y[j][1],*pvars)
-#                     accum = S.Zero
-#                     for j in range(i):
-#                         accum += L[i,j]*y[j][0]*(commondenom/y[j][1])
-#                     res = (commondenom*b[i]-accum)/(commondenom*L[i,i])
-#                     y.append(self.recursiveFraction(res))
-# 
-#                 ynew = []
-#                 for i in range(L.shape[0]):
-#                     q,r=div(y[i][0]*DD[i,i],y[i][1],*pvars)
-#                     print 'remainder: ',r
-#                     ynew.append(q)
-#                 
-#                 x = [[ynew[-1],U[-1,-1]]]
-#                 for i in range(U.shape[0]-2,-1,-1):
-#                     commondenom=x[0][1]
-#                     for j in range(i+1,U.shape[0]):
-#                         commondenom=lcm(commondenom,x[j][1],*pvars)
-#                     accum = S.Zero
-#                     for j in range(i+1,U.shape[0]):
-#                         accum += U[i,j]*x[j][0]*(commondenom/x[j][1])
-#                     res = (commondenom*b[i]-accum)/(commondenom*U[i,i])
-#                     x.append(self.recursiveFraction(res))
-#                 
-#                 print 'ignoring num symbols: ',numsymbols
-#                 continue
 
     def reduceBothSidesSymbolically(self,*args,**kwargs):
         numsymbolcoeffs, _computereducedequations = self.reduceBothSidesSymbolicallyDelayed(*args,**kwargs)
@@ -4566,61 +4324,6 @@ class IKFastSolver(AutoReloader):
                                     peq2[1] = peq2[1]*denom2 - num2*monomvalue
                                 hasreducedeqs = True
                                 break
-            # see if there's two equations with two similar monomials on the left-hand side
-            # observed problem: coefficients become extremely huge (100+ digits), need a way to simplify them
-#             for ipeq,peq in enumerate(neweqs):
-#                 peq0monoms = peq[0].monoms()
-#                 if peq[0] != S.Zero and len(peq0monoms) == 2:
-#                     for ipeq2, peq2 in enumerate(neweqs):
-#                         if ipeq2 == ipeq:
-#                             continue
-#                         if peq0monoms == peq2[0].monoms():
-#                             peqdict = peq[0].as_dict()
-#                             peq2dict = peq2[0].as_dict()
-#                             monom0num, monom0denom = fraction(cancel(peqdict[peq0monoms[0]]/peq2dict[peq0monoms[0]]))
-#                             peqdiff = peq2[0]*monom0num - peq[0]*monom0denom
-#                             #peqdiff = peq2[0]*peqdict[peq0monoms[0]] - peq[0]*peq2dict[peq0monoms[0]]
-#                             if peqdiff != S.Zero:
-#                                 # there's one monomial left
-#                                 peqright = (peq2[1]*monom0num - peq[1]*monom0denom)
-#                                 if peqdiff.LC() != S.Zero:
-#                                     # check if peqdiff.LC() divides everything cleanly
-#                                     q0, r0 = div(peqright, peqdiff.LC())
-#                                     if r0 == S.Zero:
-#                                         q1, r1 = div(peqdiff, peqdiff.LC())
-#                                         if r1 == S.Zero:
-#                                             peqright = Poly(q0, *peqright.gens)
-#                                             peqdiff = Poly(q1, *peqdiff.gens)
-#                                 # now solve for the other variable
-#                                 monom1num, monom1denom = fraction(cancel(peqdict[peq0monoms[1]]/peq2dict[peq0monoms[1]]))
-#                                 peq2diff = peq2[0]*monom1num - peq[0]*monom1denom
-#                                 peq2right = (peq2[1]*monom1num - peq[1]*monom1denom)
-#                                 if peq2diff.LC() != S.Zero:
-#                                     # check if peqdiff.LC() divides everything cleanly
-#                                     q0, r0 = div(peq2right, peq2diff.LC())
-#                                     if r0 == S.Zero:
-#                                         q1, r1 = div(peq2diff, peq2diff.LC())
-#                                         if r1 == S.Zero:
-#                                             peq2right = Poly(q0, *peq2right.gens)
-#                                             peq2diff = Poly(q1, *peq2diff.gens)
-#                                 eqdiff, eqdiffcommon = self.removecommonexprs(peqdiff.as_expr(),returncommon=True, onlygcd=False)
-#                                 eqright, eqrightcommon = self.removecommonexprs(peqright.as_expr(),returncommon=True, onlygcd=False)
-#                                 eqdiffmult = cancel(eqdiffcommon/eqrightcommon)
-#                                 peq[0] = Poly(eqdiff*eqdiffmult, *peqdiff.gens)
-#                                 peq[1] = Poly(eqright, *peqright.gens)
-#                                 
-#                                 eq2diff, eq2diffcommon = self.removecommonexprs(peq2diff.as_expr(),returncommon=True, onlygcd=False)
-#                                 eq2right, eq2rightcommon = self.removecommonexprs(peq2right.as_expr(),returncommon=True, onlygcd=False)
-#                                 eq2diffmult = cancel(eq2diffcommon/eq2rightcommon)
-#                                 peq2[0] = Poly(eq2diff*eq2diffmult, *peq2diff.gens)
-#                                 peq2[1] = Poly(eq2right, *peq2right.gens)
-#                                 hasreducedeqs = True
-#                                 break
-#                             else:
-#                                 # overwrite peq2 in case there are others
-#                                 peq2[0] = peqdiff
-#                                 peq2[1] = peq2[1]*monom0num - peq[1]*monom0denom
-#                                 hasreducedeqs = True
 
         neweqs_full = []
         reducedeqs = []
@@ -4933,9 +4636,6 @@ class IKFastSolver(AutoReloader):
                             sym = next(self.gsymbolgen)
                             dictequations.append((sym, q / extranumerator))
                             q = sym
-                            #div(q.subs(htvarsubsinv).expand(), extranumerator.subs(htvarsubsinv).expand(), *self.freevars)
-                            #newsubs=[(Symbol('htj4'), sin(self.freejointvars[0])/(1+cos(self.freejointvars[0])))]
-                            #div(q.extranumerator
 
                         AUadjugate[i,j] = self.trigsimp(q.subs(self.freevarsubsinv),self.freejointvars).subs(self.freevarsubs)
                 checkforzeros.append(self.removecommonexprs(AUdet,onlygcd=False,onlynumbers=True))
