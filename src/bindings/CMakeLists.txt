@@ -66,17 +66,20 @@ if( HAVE_ALL_PYTHON_HEADERS )
     set_target_properties(${OPENRAVE_PYTHON_BINDING_NAME} PROPERTIES SUFFIX ".so")
   endif()
   install(TARGETS ${OPENRAVE_PYTHON_BINDING_NAME}
-    DESTINATION ${Python3_SITELIB}
+    DESTINATION ${Python3_SITELIB}/openravepy
     COMPONENT ${COMPONENT_PREFIX}python
   )
 
   ## ann bindings
   if( ANN_FOUND )
     add_library(pyANN_int SHARED pyann.cpp bindings.cpp bindings.h)
-    include_directories(${ANN_INCLUDE_DIR})
+    include_directories(${CMAKE_SOURCE_DIR}/3rdparty/ann/include)
+    # include_directories(${ANN_INCLUDE_DIR})
     # stdc++ has to be included before opengl libraries due to some ATI bug (http://wiki.fifengine.de/  Segfault_in_cxa_allocate_exception#Workaround)
     target_link_libraries(pyANN_int 
-      PUBLIC ${STDC_LIBRARY} ANN ${Python3_LIBRARY} ${Boost_PYTHON_LIBRARY} ${Boost_THREAD_LIBRARY} ${extralibs}
+      PUBLIC ANN ${STDC_LIBRARY} openrave openrave_core
+      boost_python3${Python3_MINOR_VERSION} boost_numpy3${Python3_MINOR_VERSION} 
+      dl util ${Python3_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}
     ) # PRIVATE boost_assertion_failed)
     set_target_properties(pyANN_int 
       PROPERTIES PREFIX "" COMPILE_FLAGS "${ANN_CFLAGS}"

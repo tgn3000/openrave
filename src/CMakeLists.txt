@@ -143,9 +143,10 @@ set(OPENRAVE_PYTHON_INSTALL_ABSOLUTE_DIR "${CMAKE_INSTALL_PREFIX}/${OPENRAVE_PYT
 	CACHE PATH "Absolute dir for python on target OS path, used to write to header file")
 set(OPENRAVE_LOCALE_INSTALL_ABSOLUTE_DIR "${CMAKE_INSTALL_PREFIX}/${OPENRAVE_LOCALE_INSTALL_DIR}"
 	CACHE PATH "Absolute dir for translation files on target OS path, used to write to header file")
+
 # set(OPENRAVEPY_INSTALL_DIR "${OPENRAVE_PYTHON_INSTALL_ABSOLUTE_DIR}/openravepy" CACHE PATH "OpenRAVE Python bindings (openravepy) installation directory")
 # set(OPENRAVEPY_VER_NAME "_openravepy_${OPENRAVE_VERSION_MAJOR}_${OPENRAVE_VERSION_MINOR}")
-set(OPENRAVEPY_VER_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}") 
+set(OPENRAVEPY_VER_INSTALL_DIR ${Python3_SITELIB}/openravepy) 
 
 message(STATUS "OPENRAVEPY_VER_INSTALL_DIR = ${OPENRAVEPY_VER_INSTALL_DIR}")
 

@@ -9,3 +9,5 @@ add_library(ANN STATIC ${ann_files} include/ANN/ANN.h include/ANN/ANNx.h)
 set_target_properties(ANN PROPERTIES COMPILE_FLAGS "${EXTRA_COMPILE_FLAGS}")
 
 install(TARGETS ANN DESTINATION lib)
+
+set(ANN_FOUND ON CACHE BOOL PARENT_SCOPE)

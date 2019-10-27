@@ -12,5 +12,8 @@ add_subdirectory(crlibm)
 add_subdirectory(ivcon)
 add_subdirectory(qhull)
 
+if( ANN_FOUND )
+	set(ANN_FOUND ON CACHE BOOL PARENT_SCOPE)
+endif()
 # after openrave
 # add_subdirectory(collada)
