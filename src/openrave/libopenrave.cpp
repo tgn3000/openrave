@@ -25,7 +25,7 @@
 #ifndef _WIN32
 #include <sys/stat.h>
 #include <sys/types.h>
-// #include <libintl.h>
+#include <libintl.h>
 #endif
 
 #include <locale>
@@ -249,11 +249,7 @@ dReal RaveCeil(dReal f) {
 
 #else // use all standard libm
 
-#ifndef OPENRAVE_PRECISION
-#define OPENRAVE_PRECISION 1 // double, double-precision
-#endif OPENRAVE_PRECISION
-
-#if OPENRAVE_PRECISION == 0 // float, single-precision
+#if OPENRAVE_PRECISION == 0 // floating-point
 dReal RaveExp(dReal f) {
     return expf(f);
 }
@@ -1360,7 +1356,16 @@ std::string RaveGetDefaultViewerType()
 
 const char *RaveGetLocalizedTextForDomain(const std::string& domainname, const char *msgid)
 {
+#ifndef _WIN32
+    if (_gettextDomainsInitialized.find(domainname) == _gettextDomainsInitialized.end())
+    {
+        bindtextdomain(domainname.c_str(), OPENRAVE_LOCALE_INSTALL_DIR);
+        _gettextDomainsInitialized.insert(domainname);
+    }
+    return dgettext(domainname.c_str(), msgid);
+#else
     return msgid;
+#endif
 }
 
 const std::map<IkParameterizationType,std::string>& IkParameterization::GetIkParameterizationMap(int alllowercase)
@@ -1927,11 +1932,25 @@ std::string CollisionReport::__str__() const
     else {
         s << "(";
         if( !!plink1 ) {
-            s << plink1->GetParent()->GetName() << ":" << plink1->GetName();
+            KinBodyPtr parent = plink1->GetParent(true);
+            if( !!parent ) {
+                s << plink1->GetParent()->GetName() << ":" << plink1->GetName();
+            }
+            else {
+                RAVELOG_WARN_FORMAT("could not get parent for link name %s when printing collision report", plink1->GetName());
+                s << "[deleted]:" << plink1->GetName();
+            }
         }
         s << ")x(";
         if( !!plink2 ) {
-            s << plink2->GetParent()->GetName() << ":" << plink2->GetName();
+            KinBodyPtr parent = plink2->GetParent(true);
+            if( !!parent ) {
+                s << plink2->GetParent()->GetName() << ":" << plink2->GetName();
+            }
+            else {
+                RAVELOG_WARN_FORMAT("could not get parent for link name %s when printing collision report", plink2->GetName());
+                s << "[deleted]:" << plink2->GetName();
+            }
         }
         s << ")";
     }

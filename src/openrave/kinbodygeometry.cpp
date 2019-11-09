@@ -431,7 +431,6 @@ bool KinBody::GeometryInfo::ComputeInnerEmptyVolume(Transform& tInnerEmptyVolume
     }
 }
 
-#ifdef OPENRAVE_RAPIDJSON
 void RaveSerializeJSON(rapidjson::Value &rSideWall, rapidjson::Document::AllocatorType& allocator, const KinBody::GeometryInfo::SideWall& sidewall)
 {
     RAVE_SERIALIZEJSON_ENSURE_OBJECT(rSideWall);
@@ -607,7 +606,6 @@ void KinBody::GeometryInfo::DeserializeJSON(const rapidjson::Value &value, const
     RAVE_DESERIALIZEJSON_REQUIRED(value, "ambientColor", _vAmbientColor);
     RAVE_DESERIALIZEJSON_REQUIRED(value, "modifiable", _bModifiable);
 }
-#endif // OPENRAVE_RAPIDJSON
 
 AABB KinBody::GeometryInfo::ComputeAABB(const Transform& tGeometryWorld) const
 {
@@ -825,6 +823,20 @@ void KinBody::Link::Geometry::serialize(std::ostream& o, int options) const
     }
     else {
         SerializeRound3(o,_info._vGeomData);
+        if( _info._type == GT_Cage ) {
+            SerializeRound3(o,_info._vGeomData2);
+            for (size_t iwall = 0; iwall < _info._vSideWalls.size(); ++iwall) {
+                const GeometryInfo::SideWall &s = _info._vSideWalls[iwall];
+                SerializeRound(o,s.transf);
+                SerializeRound3(o,s.vExtents);
+                o << (uint32_t)s.type;
+            }
+        }
+        else if( _info._type == GT_Container ) {
+            SerializeRound3(o,_info._vGeomData2);
+            SerializeRound3(o,_info._vGeomData3);
+            SerializeRound3(o,_info._vGeomData4);
+        }
     }
 }
 
