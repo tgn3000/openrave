@@ -159,7 +159,9 @@ public:
                 }
 
                 if( pfnCreateNew == NULL ) {
-#ifdef _MSC_VER
+#if defined(__APPLE_CC__)
+                    pfnCreate = (PluginExportFn_CreateInterface)_SysLoadSym(plibrary, "_Z23OpenRAVECreateInterfaceN8OpenRAVE13InterfaceTypeERKNSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEEPKcSB_N5boost10shared_ptrINS_15EnvironmentBaseEEE");
+#elif defined(_MSC_VER)
                     pfnCreate = (PluginExportFn_CreateInterface)_SysLoadSym(plibrary, "?CreateInterface@@YA?AV?$shared_ptr@VInterfaceBase@OpenRAVE@@@boost@@W4InterfaceType@OpenRAVE@@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PBDV?$shared_ptr@VEnvironmentBase@OpenRAVE@@@2@@Z");
 #else
                     pfnCreate = (PluginExportFn_CreateInterface)_SysLoadSym(plibrary, "_Z15CreateInterfaceN8OpenRAVE10InterfaceTypeERKSsPKcN5boost10shared_ptrINS_15EnvironmentBaseEEE");

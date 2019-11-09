@@ -5,13 +5,16 @@ if(APPLE)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -undefined dynamic_lookup")
 endif(APPLE)
 
-find_package(OpenGL)
+find_package(OpenGL REQUIRED)
 if(NOT OPENGL_FOUND)
   message(STATUS "WARNING: OpenGL not found")
 endif()
 
 #include(${CMAKE_SOURCE_DIR}/modules-cmake/FindOSG.cmake)
-find_package(OpenSceneGraph 3.4 COMPONENTS osgDB osgGA osgFX osgText osgViewer osgManipulator)
+find_package(OpenSceneGraph 3.4 REQUIRED COMPONENTS osgDB osgGA osgFX osgText osgViewer osgManipulator)
+
+# Qt 5
+find_package(Qt5 HINTS /usr/local/Cellar/qt/5.13.1 REQUIRED COMPONENTS Gui Core Widgets OpenGL)
 
 if (Qt5Gui_FOUND AND Qt5Core_FOUND AND Qt5Widgets_FOUND AND Qt5OpenGL_FOUND AND OPENGL_FOUND AND OPENSCENEGRAPH_FOUND)
   message(STATUS "Detected Qt/OSG GUI, making plugin")

@@ -59,16 +59,6 @@
 
 #include <iostream>
 #include <iomanip>
-#define _IKFAST_DISPLAY(RUN_CODE_HERE)                                            \
-    {                                                                          \
-        printf(                                                                  \
-            "\n%s:%d, [ %s "                                                       \
-            "]\n-----------------------------------------------------------------" \
-            "--------------\n",                                                    \
-            __FILE__, __LINE__, __func__ /*__PRETTY_FUNCTION__*/);                 \
-        RUN_CODE_HERE                                             \
-        printf("\n"); \
-    }
 
 // apparently there's a problem with higher versions of C++
 #if __cplusplus > 199711L || defined(__GXX_EXPERIMENTAL_CXX0X__)

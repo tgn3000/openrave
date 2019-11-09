@@ -27,6 +27,17 @@
 
 #include <stdint.h>
 
+#define _OPENRAVE_DISPLAY(RUN_CODE_HERE)                                            \
+    {                                                                          \
+        printf(                                                                  \
+            "\n%s:%d, [ %s "                                                       \
+            "]\n-----------------------------------------------------------------" \
+            "--------------\n",                                                    \
+            __FILE__, __LINE__, __func__ /*__PRETTY_FUNCTION__*/);                 \
+        RUN_CODE_HERE                                             \
+        printf("\n"); \
+    }
+
 #ifdef _MSC_VER
 
 #pragma warning(disable:4251) // needs to have dll-interface to be used by clients of class
