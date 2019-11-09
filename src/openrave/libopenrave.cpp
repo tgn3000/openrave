@@ -25,7 +25,7 @@
 #ifndef _WIN32
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <libintl.h>
+// #include <libintl.h>
 #endif
 
 #include <locale>
@@ -249,7 +249,11 @@ dReal RaveCeil(dReal f) {
 
 #else // use all standard libm
 
-#if OPENRAVE_PRECISION == 0 // floating-point
+#ifndef OPENRAVE_PRECISION
+#define OPENRAVE_PRECISION 1 // double, double-precision
+#endif OPENRAVE_PRECISION
+
+#if OPENRAVE_PRECISION == 0 // float, single-precision
 dReal RaveExp(dReal f) {
     return expf(f);
 }
@@ -1356,16 +1360,7 @@ std::string RaveGetDefaultViewerType()
 
 const char *RaveGetLocalizedTextForDomain(const std::string& domainname, const char *msgid)
 {
-#ifndef _WIN32
-    if (_gettextDomainsInitialized.find(domainname) == _gettextDomainsInitialized.end())
-    {
-        bindtextdomain(domainname.c_str(), OPENRAVE_LOCALE_INSTALL_DIR);
-        _gettextDomainsInitialized.insert(domainname);
-    }
-    return dgettext(domainname.c_str(), msgid);
-#else
     return msgid;
-#endif
 }
 
 const std::map<IkParameterizationType,std::string>& IkParameterization::GetIkParameterizationMap(int alllowercase)

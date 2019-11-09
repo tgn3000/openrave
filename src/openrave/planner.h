@@ -496,7 +496,9 @@ public:
     PlannerStatus& SetErrorOrigin(const std::string& errorOrigin);
     PlannerStatus& SetPlannerParameters(PlannerParametersConstPtr parameters);
 
+#ifdef OPENRAVE_RAPIDJSON
     void SaveToJson(rapidjson::Value& rPlannerStatus, rapidjson::Document::AllocatorType& alloc) const;
+#endif // OPENRAVE_RAPIDJSON
 
     inline uint32_t GetStatusCode() const {
         return statusCode;

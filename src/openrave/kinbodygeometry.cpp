@@ -431,6 +431,7 @@ bool KinBody::GeometryInfo::ComputeInnerEmptyVolume(Transform& tInnerEmptyVolume
     }
 }
 
+#ifdef OPENRAVE_RAPIDJSON
 void RaveSerializeJSON(rapidjson::Value &rSideWall, rapidjson::Document::AllocatorType& allocator, const KinBody::GeometryInfo::SideWall& sidewall)
 {
     RAVE_SERIALIZEJSON_ENSURE_OBJECT(rSideWall);
@@ -606,6 +607,7 @@ void KinBody::GeometryInfo::DeserializeJSON(const rapidjson::Value &value, const
     RAVE_DESERIALIZEJSON_REQUIRED(value, "ambientColor", _vAmbientColor);
     RAVE_DESERIALIZEJSON_REQUIRED(value, "modifiable", _bModifiable);
 }
+#endif // OPENRAVE_RAPIDJSON
 
 AABB KinBody::GeometryInfo::ComputeAABB(const Transform& tGeometryWorld) const
 {
