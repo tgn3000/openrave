@@ -346,7 +346,7 @@ void init_python_bindings();
 
 #ifdef OPENRAVE_BININGS_PYARRAY
 template <typename T>
-inline py::array_t<T> toPyArrayN(const T* data, size_t N)
+inline py::array_t<T> toPyArrayN(const T* data, const size_t N)
 {
     return py::array_t<T>({1, N}, data); 
 }
@@ -371,7 +371,7 @@ template <typename T>
 inline py::array_t<T> toPyArray(const std::vector<T>& v)
 {
     if( v.empty() ) {
-        return toPyArrayN((T*)nullptr,0);
+        return toPyArrayN((T*)nullptr, 0);
     }
     return toPyArrayN(v.data(), v.size());
 }
@@ -383,10 +383,11 @@ inline py::array_t<T> toPyArray(const std::vector<T>& v, std::vector<npy_intp>& 
         return toPyArrayN((T*)nullptr, dims);
     }
     size_t totalsize = 1;
-    FOREACH(it,dims)
-    totalsize *= *it;
+    FOREACH(it, dims) {
+        totalsize *= *it;
+    }
     BOOST_ASSERT(totalsize == v.size());
-    return toPyArrayN(v.data(),dims);
+    return toPyArrayN(v.data(), dims);
 }
 
 template <typename T, int N>

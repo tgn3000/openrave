@@ -225,25 +225,25 @@ typedef boost::shared_ptr<PythonThreadSaver> PythonThreadSaverPtr;
 
 inline RaveVector<float> ExtractFloat3(const object& o)
 {
-    return RaveVector<float>(extract<float>(o[0]), extract<float>(o[1]), extract<float>(o[2]));
+    return RaveVector<float>(o[0].cast<float>(), o[1].cast<float>(), o[2].cast<float>());
 }
 
 template <typename T>
 inline RaveVector<T> ExtractVector2Type(const object& o)
 {
-    return RaveVector<T>(extract<T>(o[0]), extract<T>(o[1]),0);
+    return RaveVector<T>(o[0].cast<T>(), o[1].cast<T>(),0);
 }
 
 template <typename T>
 inline RaveVector<T> ExtractVector3Type(const object& o)
 {
-    return RaveVector<T>(extract<T>(o[0]), extract<T>(o[1]), extract<T>(o[2]));
+    return RaveVector<T>(o[0].cast<T>(), o[1].cast<T>(), o[2].cast<T>());
 }
 
 template <typename T>
 inline RaveVector<T> ExtractVector4Type(const object& o)
 {
-    return RaveVector<T>(extract<T>(o[0]), extract<T>(o[1]), extract<T>(o[2]), extract<T>(o[3]));
+    return RaveVector<T>(o[0].cast<T>(), o[1].cast<T>(), o[2].cast<T>(), o[3].cast<T>());
 }
 
 inline Vector ExtractVector2(const object& oraw)
@@ -285,7 +285,7 @@ inline RaveVector<T> ExtractVector(const object& oraw)
     }
     Vector v;
     for(int i = 0; i < n; ++i) {
-        v[i] = (T)extract<T>(oraw[i]);
+        v[i] = (T)oraw[i].cast<T>();
     }
     return v;
 }
@@ -294,15 +294,15 @@ template <typename T>
 inline RaveTransform<T> ExtractTransformType(const object& o)
 {
     if( len(o) == 7 ) {
-        return RaveTransform<T>(RaveVector<T>(extract<T>(o[0]), extract<T>(o[1]), extract<T>(o[2]), extract<T>(o[3])), RaveVector<T>(extract<T>(o[4]), extract<T>(o[5]), extract<T>(o[6])));
+        return RaveTransform<T>(RaveVector<T>(o[0].cast<T>(), o[1].cast<T>(), o[2].cast<T>(), o[3].cast<T>()), RaveVector<T>(o[4].cast<T>(), o[5].cast<T>(), o[6].cast<T>()));
     }
     RaveTransformMatrix<T> t;
     for(int i = 0; i < 3; ++i) {
         object orow = o[i];
-        t.m[4*i+0] = extract<T>(orow[0]);
-        t.m[4*i+1] = extract<T>(orow[1]);
-        t.m[4*i+2] = extract<T>(orow[2]);
-        t.trans[i] = extract<T>(orow[3]);
+        t.m[4*i+0] = orow[0].cast<T>();
+        t.m[4*i+1] = orow[1].cast<T>();
+        t.m[4*i+2] = orow[2].cast<T>();
+        t.trans[i] = orow[3].cast<T>();
     }
     return t;
 }
@@ -311,15 +311,15 @@ template <typename T>
 inline RaveTransformMatrix<T> ExtractTransformMatrixType(const object& o)
 {
     if( len(o) == 7 ) {
-        return RaveTransform<T>(RaveVector<T>(extract<T>(o[0]), extract<T>(o[1]), extract<T>(o[2]), extract<T>(o[3])), RaveVector<T>(extract<T>(o[4]), extract<T>(o[5]), extract<T>(o[6])));
+        return RaveTransform<T>(RaveVector<T>(o[0].cast<T>(), o[1].cast<T>(), o[2].cast<T>(), o[3].cast<T>()), RaveVector<T>(o[4].cast<T>(), o[5].cast<T>(), o[6].cast<T>()));
     }
     RaveTransformMatrix<T> t;
     for(int i = 0; i < 3; ++i) {
         object orow = o[i];
-        t.m[4*i+0] = extract<T>(orow[0]);
-        t.m[4*i+1] = extract<T>(orow[1]);
-        t.m[4*i+2] = extract<T>(orow[2]);
-        t.trans[i] = extract<T>(orow[3]);
+        t.m[4*i+0] = orow[0].cast<T>();
+        t.m[4*i+1] = orow[1].cast<T>();
+        t.m[4*i+2] = orow[2].cast<T>();
+        t.trans[i] = orow[3].cast<T>();
     }
     return t;
 }
