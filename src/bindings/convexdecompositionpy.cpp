@@ -113,9 +113,9 @@ BOOST_PYTHON_MODULE(convexdecompositionpy)
 {
     import_array();
     numeric::array::set_module_and_type("numpy", "ndarray");
-    int_from_number<int>();
-    float_from_number<float>();
-    float_from_number<double>();
+    // int_from_number<int>();
+    // float_from_number<float>();
+    // float_from_number<double>();
 
     typedef return_value_policy< copy_const_reference > return_copy_const_ref;
     class_< cdpy_exception >( "_cdpy_exception_" )
@@ -124,7 +124,7 @@ BOOST_PYTHON_MODULE(convexdecompositionpy)
     .def( "message", &cdpy_exception::message, return_copy_const_ref() )
     .def( "__str__", &cdpy_exception::message, return_copy_const_ref() )
     ;
-    exception_translator<cdpy_exception>();
+    // exception_translator<cdpy_exception>();
 
     def("computeConvexDecomposition", computeConvexDecomposition,
         computeConvexDecomposition_overloads(args("vertices", "indices", "skinWidth", "decompositionDepth", "maxHullVertices", "concavityThresholdPercent", "mergeThresholdPercent", "volumeSplitThresholdPercent", "useInitialIslandGeneration", "useIslandGeneration"), "John Ratcliff's Convex Decomposition"));

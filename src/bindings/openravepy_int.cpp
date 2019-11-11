@@ -2258,10 +2258,10 @@ BOOST_PYTHON_MODULE(openravepy_int)
     }
 
     // boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-    int_from_number<int>();
-    int_from_number<uint8_t>();
-    float_from_number<float>();
-    float_from_number<double>();
+    // int_from_number<int>();
+    // int_from_number<uint8_t>();
+    // float_from_number<float>();
+    // float_from_number<double>();
     init_python_bindings();
 
     typedef return_value_policy< copy_const_reference > return_copy_const_ref;
@@ -2274,7 +2274,7 @@ BOOST_PYTHON_MODULE(openravepy_int)
     .def( "__unicode__", get_openrave_exception_unicode)
     .def( "__repr__", get_openrave_exception_repr)
     ;
-    exception_translator<openrave_exception>();
+    // exception_translator<openrave_exception>();
     class_< std::runtime_error >( "_std_runtime_error_", no_init)
     .def( init<const std::string&>() )
     .def( init<const std::runtime_error&>() )
@@ -2283,10 +2283,10 @@ BOOST_PYTHON_MODULE(openravepy_int)
     .def( "__unicode__", get_std_runtime_error_unicode)
     .def( "__repr__", get_std_runtime_error_repr)
     ;
-    exception_translator<std::runtime_error>();
+    // exception_translator<std::runtime_error>();
     //exception_translator<std::exception>();
     class_< boost::bad_function_call, bases<std::runtime_error> >( "_boost_bad_function_call_");
-    exception_translator<boost::bad_function_call>();
+    // exception_translator<boost::bad_function_call>();
 
     class_<PyEnvironmentBase, PyEnvironmentBasePtr > classenv("Environment", DOXY_CLASS(EnvironmentBase));
     {

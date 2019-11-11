@@ -345,9 +345,9 @@ BOOST_PYTHON_MODULE(pyANN_int)
     }
 
     // numeric::array::set_module_and_type("numpy", "ndarray");
-    int_from_number<int>();
-    float_from_number<float>();
-    float_from_number<double>();
+    // int_from_number<int>();
+    // float_from_number<float>();
+    // float_from_number<double>();
 
     typedef return_value_policy< copy_const_reference > return_copy_const_ref;
     class_< pyann_exception >( "_pyann_exception_" )
@@ -356,7 +356,7 @@ BOOST_PYTHON_MODULE(pyANN_int)
     .def( "message", &pyann_exception::message, return_copy_const_ref() )
     .def( "__str__", &pyann_exception::message, return_copy_const_ref() )
     ;
-    exception_translator<pyann_exception>();
+    // exception_translator<pyann_exception>();
 
     class_<ANNkd_tree, boost::shared_ptr<ANNkd_tree> >("KDTree")
     .def("__init__", make_constructor(&init_from_list))
