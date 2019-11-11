@@ -218,104 +218,104 @@ inline std::set<T> ExtractSet(const object& o)
     return v;
 }
 
-template <typename T>
-struct exception_translator
-{
-    exception_translator() {
-        bp::register_exception_translator<T>(&exception_translator::translate);
+// template <typename T>
+// struct exception_translator
+// {
+//     exception_translator() {
+//         bp::register_exception_translator<T>(&exception_translator::translate);
 
-        //Register custom r-value converter
-        //There are situations, where we have to pass the exception back to
-        //C++ library. This will do the trick
-        bp::converter::registry::push_back( &exception_translator::convertible, &exception_translator::construct, bp::type_id<T>() );
-    }
+//         //Register custom r-value converter
+//         //There are situations, where we have to pass the exception back to
+//         //C++ library. This will do the trick
+//         bp::converter::registry::push_back( &exception_translator::convertible, &exception_translator::construct, bp::type_id<T>() );
+//     }
 
-    static void translate( const T& err )
-    {
-        object pimpl_err( err );
-        object pyerr_class = pimpl_err.attr( "py_err_class" );
-        object pyerr = pyerr_class( pimpl_err );
-        PyErr_SetObject( pyerr_class.ptr(), bp::incref( pyerr.ptr() ) );
-    }
+//     static void translate( const T& err )
+//     {
+//         object pimpl_err( err );
+//         object pyerr_class = pimpl_err.attr( "py_err_class" );
+//         object pyerr = pyerr_class( pimpl_err );
+//         PyErr_SetObject( pyerr_class.ptr(), bp::incref( pyerr.ptr() ) );
+//     }
 
-    //Sometimes, exceptions should be passed back to the library.
-    static void* convertible(PyObject* py_obj){
-        if( 1 != PyObject_IsInstance( py_obj, PyExc_Exception ) ) {
-            return 0;
-        }
+//     //Sometimes, exceptions should be passed back to the library.
+//     static void* convertible(PyObject* py_obj){
+//         if( 1 != PyObject_IsInstance( py_obj, PyExc_Exception ) ) {
+//             return 0;
+//         }
 
-        if( !PyObject_HasAttrString( py_obj, "_pimpl" ) ) {
-            return 0;
-        }
+//         if( !PyObject_HasAttrString( py_obj, "_pimpl" ) ) {
+//             return 0;
+//         }
 
-        object pyerr( bp::handle<>( bp::borrowed( py_obj ) ) );
-        object pimpl = getattr( pyerr, "_pimpl" );
-        extract<T> type_checker( pimpl );
-        if( !type_checker.check() ) {
-            return 0;
-        }
-        return py_obj;
-    }
+//         object pyerr( bp::handle<>( bp::borrowed( py_obj ) ) );
+//         object pimpl = getattr( pyerr, "_pimpl" );
+//         extract<T> type_checker( pimpl );
+//         if( !type_checker.check() ) {
+//             return 0;
+//         }
+//         return py_obj;
+//     }
 
-    static void construct( PyObject* py_obj, bp::converter::rvalue_from_python_stage1_data* data)
-    {
-        typedef bp::converter::rvalue_from_python_storage<T> storage_t;
+//     static void construct( PyObject* py_obj, bp::converter::rvalue_from_python_stage1_data* data)
+//     {
+//         typedef bp::converter::rvalue_from_python_storage<T> storage_t;
 
-        object pyerr( bp::handle<>( bp::borrowed( py_obj ) ) );
-        object pimpl = getattr( pyerr, "_pimpl" );
+//         object pyerr( bp::handle<>( bp::borrowed( py_obj ) ) );
+//         object pimpl = getattr( pyerr, "_pimpl" );
 
-        storage_t* the_storage = reinterpret_cast<storage_t*>( data );
-        void* memory_chunk = the_storage->storage.bytes;
-        new (memory_chunk) T( extract<T>(pimpl) );
-        data->convertible = memory_chunk;
-    }
-};
+//         storage_t* the_storage = reinterpret_cast<storage_t*>( data );
+//         void* memory_chunk = the_storage->storage.bytes;
+//         new (memory_chunk) T( extract<T>(pimpl) );
+//         data->convertible = memory_chunk;
+//     }
+// };
 
-template<typename T>
-struct float_from_number
-{
-    float_from_number()
-    {
-        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<T>());
-    }
+// template<typename T>
+// struct float_from_number
+// {
+//     float_from_number()
+//     {
+//         bp::converter::registry::push_back(&convertible, &construct, bp::type_id<T>());
+//     }
 
-    static void* convertible( PyObject* obj)
-    {
-        return PyNumber_Check(obj) ? obj : NULL;
-    }
+//     static void* convertible( PyObject* obj)
+//     {
+//         return PyNumber_Check(obj) ? obj : NULL;
+//     }
 
-    static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
-    {
-        PyObject* tmp = PyNumber_Float(_obj);
-        T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
-        *storage = bp::extract<T>(tmp);
-        Py_DECREF(tmp);
-        data->convertible = storage;
-    }
-};
+//     static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
+//     {
+//         PyObject* tmp = PyNumber_Float(_obj);
+//         T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+//         *storage = bp::extract<T>(tmp);
+//         Py_DECREF(tmp);
+//         data->convertible = storage;
+//     }
+// };
 
-template<typename T>
-struct int_from_number
-{
-    int_from_number()
-    {
-        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<T>());
-    }
+// template<typename T>
+// struct int_from_number
+// {
+//     int_from_number()
+//     {
+//         bp::converter::registry::push_back(&convertible, &construct, bp::type_id<T>());
+//     }
 
-    static void* convertible( PyObject* obj)
-    {
-        return PyNumber_Check(obj) ? obj : NULL;
-    }
+//     static void* convertible( PyObject* obj)
+//     {
+//         return PyNumber_Check(obj) ? obj : NULL;
+//     }
 
-    static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
-    {
-        PyObject* tmp = PyNumber_Long(_obj);
-        T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
-        *storage = bp::extract<T>(tmp);
-        Py_DECREF(tmp);
-        data->convertible = storage;
-    }
-};
+//     static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
+//     {
+//         PyObject* tmp = PyNumber_Long(_obj);
+//         T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+//         *storage = bp::extract<T>(tmp);
+//         Py_DECREF(tmp);
+//         data->convertible = storage;
+//     }
+// };
 
 inline std::string GetPyErrorString()
 {
