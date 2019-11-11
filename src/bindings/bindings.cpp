@@ -38,6 +38,18 @@ DECLARE_DTYPE_FOR( uint64_t, "uint64" )
 
 namespace openravepy {
 
+using bp::object;
+using bp::list;
+using bp::tuple;
+using bp::type_id;
+using bp::handle;
+using bp::borrowed;
+using bp::to_python_converter;
+using bp::extract;
+using bp::incref;
+using bp::class_;
+using bp::allow_null;
+
 // namespace impl
 template< typename MultiArrayType >
 struct numpy_multi_array_converter
@@ -58,7 +70,7 @@ struct numpy_multi_array_converter
 
     static void register_from_python()
     {
-        converter::registry::push_back(&convertible,&construct,type_id<multi_array_t>());
+        bp::converter::registry::push_back(&convertible,&construct,type_id<multi_array_t>());
     }
 
     static void* convertible( PyObject * obj )
@@ -85,10 +97,10 @@ struct numpy_multi_array_converter
         (c.*pm) = a;
     }
 
-    static void construct(PyObject* obj, converter::rvalue_from_python_stage1_data* data )
+    static void construct(PyObject* obj, bp::converter::rvalue_from_python_stage1_data* data )
     {
         //get the storage
-        typedef converter::rvalue_from_python_storage< multi_array_t > storage_t;
+        typedef bp::converter::rvalue_from_python_storage< multi_array_t > storage_t;
         storage_t * the_storage = reinterpret_cast< storage_t * >( data );
         void * memory_chunk = the_storage->storage.bytes;
         //new (memory_chunk) multi_array_t(obj);
@@ -102,11 +114,11 @@ struct numpy_multi_array_converter
         //extract each element from numpy array and put in c array
         index i( a->num_dimensions(), 0 );
         do {
-            boost::python::list numpy_index;
+            list numpy_index;
             for( unsigned dim = 0; a->num_dimensions() != dim; ++dim ) {
                 numpy_index.append( i[ dim ] );
             }
-            (*a)(i) = extract<typename multi_array_t::element>(py_obj[ boost::python::tuple( numpy_index ) ]);
+            (*a)(i) = extract<typename multi_array_t::element>(py_obj[ tuple( numpy_index ) ]);
         }
         while( increment_index( i, *a ) );
 
@@ -125,7 +137,7 @@ struct numpy_multi_array_converter
         }
 
         //create a numpy array to put it in
-        boost::python::list extents;
+        list extents;
         for( unsigned dim = 0; c_array.num_dimensions() != dim; ++dim ) {
             extents.append( c_array.shape()[ dim ] );
         }
@@ -134,7 +146,7 @@ struct numpy_multi_array_converter
         //copy the elements
         index i( c_array.num_dimensions(), 0 );
         do {
-            boost::python::list numpy_index;
+            list numpy_index;
             for( unsigned dim = 0; c_array.num_dimensions() != dim; ++dim ) {
                 numpy_index.append(i[dim]);
             }
@@ -178,7 +190,7 @@ struct stdstring_from_python_str
 {
     stdstring_from_python_str()
     {
-        boost::python::converter::registry::push_back(&convertible, &construct, boost::python::type_id<std::string>());
+        boost::python::converter::registry::push_back(&convertible, &construct, type_id<std::string>());
     }
 
     static void* convertible(PyObject* obj)
@@ -196,7 +208,7 @@ struct stdstring_from_python_str
             data->convertible = storage;
         }
         else if(PyUnicode_Check(obj)) {
-            boost::python::handle<> utf8(boost::python::allow_null(PyUnicode_AsUTF8String(obj)));
+            handle<> utf8(allow_null(PyUnicode_AsUTF8String(obj)));
             //MY_CHECK(utf8,translate("Could not convert Python unicode object to UTF8 string"));
             void* storage = ((boost::python::converter::rvalue_from_python_storage<std::string>*)data)->storage.bytes;
             const char* utf8v = PyString_AsString(utf8.get());

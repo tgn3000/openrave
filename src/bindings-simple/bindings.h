@@ -84,11 +84,10 @@
 
 namespace openravepy {
 
-using namespace boost::python;
-namespace p = boost::python;
-using p::object;
-using p::extract;
-namespace np = p::numpy;
+namespace bp = boost::python;
+using bp::object;
+using bp::extract;
+namespace np = bp::numpy;
 using bpndarray = np::ndarray; // boost::python::numeric::array;
 
 // char* PyString_AsString(PyObject* pystring)
@@ -182,7 +181,7 @@ struct exception_translator
         //Register custom r-value converter
         //There are situations, where we have to pass the exception back to
         //C++ library. This will do the trick
-        converter::registry::push_back( &exception_translator::convertible, &exception_translator::construct, type_id<T>() );
+        bp::converter::registry::push_back( &exception_translator::convertible, &exception_translator::construct, type_id<T>() );
     }
 
     static void translate( const T& err )
@@ -212,9 +211,9 @@ struct exception_translator
         return py_obj;
     }
 
-    static void construct( PyObject* py_obj, converter::rvalue_from_python_stage1_data* data)
+    static void construct( PyObject* py_obj, bp::converter::rvalue_from_python_stage1_data* data)
     {
-        typedef converter::rvalue_from_python_storage<T> storage_t;
+        typedef bp::converter::rvalue_from_python_storage<T> storage_t;
 
         object pyerr( handle<>( borrowed( py_obj ) ) );
         object pimpl = getattr( pyerr, "_pimpl" );
@@ -231,7 +230,7 @@ struct float_from_number
 {
     float_from_number()
     {
-        converter::registry::push_back(&convertible, &construct, type_id<T>());
+        bp::converter::registry::push_back(&convertible, &construct, type_id<T>());
     }
 
     static void* convertible( PyObject* obj)
@@ -239,10 +238,10 @@ struct float_from_number
         return PyNumber_Check(obj) ? obj : NULL;
     }
 
-    static void construct(PyObject* _obj, converter::rvalue_from_python_stage1_data* data)
+    static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
     {
         PyObject* tmp = PyNumber_Float(_obj);
-        T* storage = (T*)((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+        T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
         *storage = boost::python::extract<T>(tmp);
         Py_DECREF(tmp);
         data->convertible = storage;
@@ -254,7 +253,7 @@ struct int_from_number
 {
     int_from_number()
     {
-        converter::registry::push_back(&convertible, &construct, type_id<T>());
+        bp::converter::registry::push_back(&convertible, &construct, type_id<T>());
     }
 
     static void* convertible( PyObject* obj)
@@ -262,10 +261,10 @@ struct int_from_number
         return PyNumber_Check(obj) ? obj : NULL;
     }
 
-    static void construct(PyObject* _obj, converter::rvalue_from_python_stage1_data* data)
+    static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
     {
         PyObject* tmp = PyNumber_Long(_obj);
-        T* storage = (T*)((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+        T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
         *storage = boost::python::extract<T>(tmp);
         Py_DECREF(tmp);
         data->convertible = storage;
@@ -307,129 +306,12 @@ inline bpndarray toPyArrayN(const T* data, size_t N)
     }
 
     // https://www.boost.org/doc/libs/1_71_0/libs/python/doc/html/numpy/reference/ndarray.html
-    p::tuple shape = p::make_tuple(N);
-    p::tuple stride = p::make_tuple(N) ;
-    p::object own;
+    bp::tuple shape = bp::make_tuple(N);
+    bp::tuple stride = bp::make_tuple(N) ;
+    bp::object own;
     np::ndarray data_ex = np::from_data(data, dt, shape, stride, own);
     return data_ex;
-    // npy_intp dims[] = {npy_intp(N)};
-    // PyObject *pyvalues = PyArray_SimpleNew(1,dims, PyArray_FLOAT);
-    // if( pvalues != NULL ) {
-    //     memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(float));
-    // }
-    // return static_cast<bpndarray>(handle<>(pyvalues));
 }
-
-// inline bpndarray toPyArrayN(const float* pvalues, std::vector<npy_intp>& dims)
-// {
-//     np::dtype dt = np::dtype::get_builtin<float>();
-//     if( dims.size() == 0 ) {
-//         return np::array(boost::python::list(), dt);
-//     }
-    
-//     size_t totalsize = 1;
-//     FOREACH(it,dims) {
-//         totalsize *= *it;
-//     }
-//     if( totalsize == 0 ) {
-//         return np::array(boost::python::list(), dt);
-//     }
-//     PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_FLOAT);
-//     if( pvalues != NULL ) {
-//         memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(float));
-//     }
-//     return static_cast<bpndarray>(handle<>(pyvalues));
-// }
-
-// inline bpndarray toPyArrayN(const double* pvalues, size_t N)
-// {
-//     if( N == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
-//     }
-//     npy_intp dims[] = {npy_intp(N)};
-//     PyObject *pyvalues = PyArray_SimpleNew(1,dims, PyArray_DOUBLE);
-//     if( pvalues != NULL ) {
-//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(double));
-//     }
-//     return static_cast<bpndarray>(handle<>(pyvalues));
-// }
-
-// inline bpndarray toPyArrayN(const double* pvalues, std::vector<npy_intp>& dims)
-// {
-//     if( dims.size() == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
-//     }
-//     size_t totalsize = 1;
-//     FOREACH(it,dims) {
-//         totalsize *= *it;
-//     }
-//     if( totalsize == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("f8"));
-//     }
-//     PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_DOUBLE);
-//     if( pvalues != NULL ) {
-//         memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(double));
-//     }
-//     return static_cast<bpndarray>(handle<>(pyvalues));
-// }
-
-// inline bpndarray toPyArrayN(const uint8_t* pvalues, size_t N)
-// {
-//     if( N == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
-//     }
-//     npy_intp dims[] = {npy_intp(N)};
-//     PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_UINT8);
-//     if( pvalues != NULL ) {
-//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(uint8_t));
-//     }
-//     return static_cast<bpndarray>(handle<>(pyvalues));
-// }
-
-// inline bpndarray toPyArrayN(const uint8_t* pvalues, std::vector<npy_intp>& dims)
-// {
-//     if( dims.size() == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
-//     }
-//     size_t totalsize = 1;
-//     for(size_t i = 0; i < dims.size(); ++i) {
-//         totalsize *= dims[i];
-//     }
-//     if( totalsize == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u1"));
-//     }
-//     PyObject *pyvalues = PyArray_SimpleNew(dims.size(),&dims[0], PyArray_UINT8);
-//     if( pvalues != NULL ) {
-//         memcpy(PyArray_DATA(pyvalues),pvalues,totalsize*sizeof(uint8_t));
-//     }
-//     return static_cast<bpndarray>(handle<>(pyvalues));
-// }
-
-// inline bpndarray toPyArrayN(const int* pvalues, size_t N)
-// {
-//     if( N == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("i4"));
-//     }
-//     npy_intp dims[] = {npy_intp(N)};
-//     PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_INT32);
-//     if( pvalues != NULL ) {
-//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(int));
-//     }
-//     return static_cast<bpndarray>(handle<>(pyvalues));
-// }
-
-// inline bpndarray toPyArrayN(const uint32_t* pvalues, size_t N)
-// {
-//     if( N == 0 ) {
-//         return static_cast<bpndarray>(bpndarray(boost::python::list()).astype("u4"));
-//     }
-//     npy_intp dims[] = {npy_intp(N)};
-//     PyObject *pyvalues = PyArray_SimpleNew(1,&dims[0], PyArray_UINT32);
-//     if( pvalues != NULL ) {
-//         memcpy(PyArray_DATA(pyvalues),pvalues,N*sizeof(uint32_t));
-//     }
-//     return static_cast<bpndarray>(handle<>(pyvalues));
-// }
 
 template <typename T>
 inline object toPyList(const std::vector<T>& v)

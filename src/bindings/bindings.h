@@ -87,11 +87,10 @@
 
 namespace openravepy {
 
-using namespace boost::python;
-namespace p = boost::python;
-using p::object;
-using p::extract;
-namespace np = p::numpy;
+namespace bp = boost::python;
+using bp::object;
+using bp::extract;
+namespace np = bp::numpy;
 using bpndarray = np::ndarray; // boost::python::numeric::array;
 
 // char* PyString_AsString(PyObject* pystring)
@@ -223,12 +222,12 @@ template <typename T>
 struct exception_translator
 {
     exception_translator() {
-        register_exception_translator<T>(&exception_translator::translate);
+        bp::register_exception_translator<T>(&exception_translator::translate);
 
         //Register custom r-value converter
         //There are situations, where we have to pass the exception back to
         //C++ library. This will do the trick
-        converter::registry::push_back( &exception_translator::convertible, &exception_translator::construct, type_id<T>() );
+        bp::converter::registry::push_back( &exception_translator::convertible, &exception_translator::construct, bp::type_id<T>() );
     }
 
     static void translate( const T& err )
@@ -236,7 +235,7 @@ struct exception_translator
         object pimpl_err( err );
         object pyerr_class = pimpl_err.attr( "py_err_class" );
         object pyerr = pyerr_class( pimpl_err );
-        PyErr_SetObject( pyerr_class.ptr(), incref( pyerr.ptr() ) );
+        PyErr_SetObject( pyerr_class.ptr(), bp::incref( pyerr.ptr() ) );
     }
 
     //Sometimes, exceptions should be passed back to the library.
@@ -249,7 +248,7 @@ struct exception_translator
             return 0;
         }
 
-        object pyerr( handle<>( borrowed( py_obj ) ) );
+        object pyerr( bp::handle<>( bp::borrowed( py_obj ) ) );
         object pimpl = getattr( pyerr, "_pimpl" );
         extract<T> type_checker( pimpl );
         if( !type_checker.check() ) {
@@ -258,11 +257,11 @@ struct exception_translator
         return py_obj;
     }
 
-    static void construct( PyObject* py_obj, converter::rvalue_from_python_stage1_data* data)
+    static void construct( PyObject* py_obj, bp::converter::rvalue_from_python_stage1_data* data)
     {
-        typedef converter::rvalue_from_python_storage<T> storage_t;
+        typedef bp::converter::rvalue_from_python_storage<T> storage_t;
 
-        object pyerr( handle<>( borrowed( py_obj ) ) );
+        object pyerr( bp::handle<>( bp::borrowed( py_obj ) ) );
         object pimpl = getattr( pyerr, "_pimpl" );
 
         storage_t* the_storage = reinterpret_cast<storage_t*>( data );
@@ -277,7 +276,7 @@ struct float_from_number
 {
     float_from_number()
     {
-        converter::registry::push_back(&convertible, &construct, type_id<T>());
+        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<T>());
     }
 
     static void* convertible( PyObject* obj)
@@ -285,10 +284,10 @@ struct float_from_number
         return PyNumber_Check(obj) ? obj : NULL;
     }
 
-    static void construct(PyObject* _obj, converter::rvalue_from_python_stage1_data* data)
+    static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
     {
         PyObject* tmp = PyNumber_Float(_obj);
-        T* storage = (T*)((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+        T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
         *storage = boost::python::extract<T>(tmp);
         Py_DECREF(tmp);
         data->convertible = storage;
@@ -300,7 +299,7 @@ struct int_from_number
 {
     int_from_number()
     {
-        converter::registry::push_back(&convertible, &construct, type_id<T>());
+        bp::converter::registry::push_back(&convertible, &construct, bp::type_id<T>());
     }
 
     static void* convertible( PyObject* obj)
@@ -308,10 +307,10 @@ struct int_from_number
         return PyNumber_Check(obj) ? obj : NULL;
     }
 
-    static void construct(PyObject* _obj, converter::rvalue_from_python_stage1_data* data)
+    static void construct(PyObject* _obj, bp::converter::rvalue_from_python_stage1_data* data)
     {
         PyObject* tmp = PyNumber_Long(_obj);
-        T* storage = (T*)((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+        T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
         *storage = boost::python::extract<T>(tmp);
         Py_DECREF(tmp);
         data->convertible = storage;
