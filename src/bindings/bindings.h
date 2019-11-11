@@ -91,7 +91,7 @@ namespace bp = boost::python;
 using bp::object;
 using bp::extract;
 namespace np = bp::numpy;
-using bpndarray = np::ndarray; // boost::python::numeric::array;
+using bpndarray = np::ndarray; // bp::numeric::array;
 
 // char* PyString_AsString(PyObject* pystring)
 // {
@@ -163,9 +163,9 @@ inline const char* PyString_AsString(PyObject* pystring)
     return PyUnicode_AsUTF8(pystring);
 }
 
-inline boost::python::object ConvertStringToUnicode(const std::string& s)
+inline bp::object ConvertStringToUnicode(const std::string& s)
 {
-    return boost::python::object(boost::python::handle<>(PyUnicode_Decode(s.c_str(),s.size(), "utf-8", NULL)));
+    return bp::object(bp::handle<>(PyUnicode_Decode(s.c_str(),s.size(), "utf-8", NULL)));
 }
 
 class PyVoidHandle
@@ -202,7 +202,7 @@ inline std::vector<T> ExtractArray(const object& o)
     }
     std::vector<T> v(len(o));
     for(size_t i = 0; i < v.size(); ++i) {
-        v[i] = boost::python::extract<T>(o[i]);
+        v[i] = bp::extract<T>(o[i]);
     }
     return v;
 }
@@ -288,7 +288,7 @@ struct float_from_number
     {
         PyObject* tmp = PyNumber_Float(_obj);
         T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
-        *storage = boost::python::extract<T>(tmp);
+        *storage = bp::extract<T>(tmp);
         Py_DECREF(tmp);
         data->convertible = storage;
     }
@@ -311,7 +311,7 @@ struct int_from_number
     {
         PyObject* tmp = PyNumber_Long(_obj);
         T* storage = (T*)((bp::converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
-        *storage = boost::python::extract<T>(tmp);
+        *storage = bp::extract<T>(tmp);
         Py_DECREF(tmp);
         data->convertible = storage;
     }
@@ -345,7 +345,7 @@ void init_python_bindings();
 template <typename T>
 inline bpndarray toPyArrayN(const T* data, size_t N)
 {
-    boost::python::tuple shapeA = boost::python::make_tuple(1, N);
+    bp::tuple shapeA = bp::make_tuple(1, N);
     np::ndarray A = np::zeros(shapeA, np::dtype::get_builtin<T>());
     for(uint8_t j = 0; j < N; ++j) {
         A[0][j] = *(data + j);
@@ -358,7 +358,7 @@ inline bpndarray toPyArrayN(const T* pvalues, std::vector<npy_intp>& dims)
 {
     np::dtype dt = np::dtype::get_builtin<T>();
     if( dims.size() == 0 ) {
-        return np::array(boost::python::list(), dt);
+        return np::array(bp::list(), dt);
     }
     
     size_t totalsize = 1;
@@ -366,21 +366,21 @@ inline bpndarray toPyArrayN(const T* pvalues, std::vector<npy_intp>& dims)
         totalsize *= *it;
     }
     if( totalsize == 0 ) {
-        return np::array(boost::python::list(), dt);
+        return np::array(bp::list(), dt);
     }
     PyObject *pyvalues = PyArray_SimpleNew(dims.size(), dims.data(), select_npy_type<T>::type);
     if( pvalues != NULL ) {
         memcpy(PyArray_DATA(pyvalues), pvalues, totalsize * sizeof(T));
     }
     // https://www.boost.org/doc/libs/1_71_0/libs/python/doc/html/tutorial/tutorial/object.html
-    boost::python::object o((boost::python::handle<>(pyvalues)));
+    bp::object o((bp::handle<>(pyvalues)));
     return np::array(o, dt);
 }
 
 template <typename T>
 inline object toPyList(const std::vector<T>& v)
 {
-    boost::python::list lvalues;
+    bp::list lvalues;
     FOREACHC(it,v) {
         lvalues.append(object(*it));
     }
