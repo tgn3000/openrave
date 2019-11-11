@@ -31,7 +31,7 @@ Install Python3 and Boost on Linux
 ----------------------------------
 * Specify the installation path of `OpenRAVE3` by
 ```
-export OPENRAVE3_INSTALL_DIR=......
+echo 'export OPENRAVE3_INSTALL_DIR='$HOME'/Projects/openrave3' >> ~/.bashrc
 ```
 Add its subdirectory `lib` into the library search paths by
 ```
@@ -58,7 +58,7 @@ cd $OPENRAVE3_INSTALL_DIR/bin
 wget https://dl.bintray.com/boostorg/release/1.71.0/source/boost_1_71_0.tar.gz
 tar xvfz boost_1_71_0.tar.gz
 cd boost_1_71_0
-./bootstrap --prefix=$OPENRAVE3_INSTALL_DIR --with-python=$OPENRAVE3_INSTALL_DIR/bin/python3
+bash bootstrap.sh --prefix=$OPENRAVE3_INSTALL_DIR --with-python=$OPENRAVE3_INSTALL_DIR/bin/python3
 ./b2 --prefix=$OPENRAVE3_INSTALL_DIR install
 ```
 

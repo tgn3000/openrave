@@ -13,6 +13,8 @@ add_executable(bindings bindings.cpp)
 
 if(APPLE)
     set(Python3_MINOR_VERSION "7")
+else()
+    set(Python3_MINOR_VERSION "8")
 endif()
 
 target_link_libraries(bindings

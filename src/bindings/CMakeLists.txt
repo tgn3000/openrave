@@ -44,6 +44,8 @@ if( HAVE_ALL_PYTHON_HEADERS )
   # stdc++ has to be included before opengl libraries due to some ATI bug (http://wiki.fifengine.de/Segfault_in_cxa_allocate_exception#Workaround)
   if(APPLE)
     set(Python3_MINOR_VERSION "7")
+  else()
+    set(Python3_MINOR_VERSION "8")
   endif()
 
   target_link_libraries(${OPENRAVE_PYTHON_BINDING_NAME} 
