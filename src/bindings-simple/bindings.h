@@ -33,6 +33,16 @@
 // #include <boost/version.hpp>
 #include <stdint.h>
 
+#define OPENRAVE_UNIQUE_PTR std::unique_ptr
+#define OPENRAVE_SHARED_PTR std::shared_ptr
+#define OPENRAVE_WEAK_PTR std::weak_ptr
+#define OPENRAVE_STATIC_POINTER_CAST std::static_pointer_cast
+#define OPENRAVE_ENABLE_SHARED_FROM_THIS std::enable_shared_from_this
+#define OPENRAVE_DYNAMIC_POINTER_CAST std::dynamic_pointer_cast
+#define OPENRAVE_CONST_POINTER_CAST std::const_pointer_cast
+#define OPENRAVE_MAKE_SHARED std::make_shared
+#define OPENRAVE_FUNCTION boost::function
+
 // #ifdef _MSC_VER
 // #include <boost/typeof/std/string.hpp>
 // #include <boost/typeof/std/vector.hpp>

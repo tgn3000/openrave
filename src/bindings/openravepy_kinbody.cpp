@@ -476,7 +476,7 @@ public:
         _voffsets = toPyArray<dReal,3>(info._voffsets);
         _vlowerlimit = toPyArray<dReal,3>(info._vlowerlimit);
         _vupperlimit = toPyArray<dReal,3>(info._vupperlimit);
-        _trajfollow = toPyTrajectory(info._trajfollow, pyenv);
+        _trajfollow = py::cast(toPyTrajectory(info._trajfollow, pyenv));
         FOREACHC(itmimic, info._vmimic) {
             if( !*itmimic ) {
                 _vmimic.append(py::object());
@@ -629,29 +629,41 @@ public:
                 }
             }
         }
-        num = len(_mapFloatParameters);
-        py::object okeyvalueiter = _mapFloatParameters.iteritems();
+        // num = len(_mapFloatParameters);
+        // py::object okeyvalueiter = _mapFloatParameters.iteritems();
         info._mapFloatParameters.clear();
-        for(size_t i = 0; i < num; ++i) {
-            py::object okeyvalue = okeyvalueiter.attr("next") ();
-            std::string name = okeyvalue[0].cast<std::string>();
-            info._mapFloatParameters[name] = ExtractArray<dReal>(okeyvalue[1]);
+        // for(size_t i = 0; i < num; ++i) {
+        //     py::object okeyvalue = okeyvalueiter.attr("next") ();
+        //     std::string name = okeyvalue[0].cast<std::string>();
+        //     info._mapFloatParameters[name] = ExtractArray<dReal>(okeyvalue[1]);
+        // }
+        for(auto item : _mapFloatParameters) {
+            std::string name = item.first.cast<std::string>();
+            info._mapFloatParameters[name] = ExtractArray<dReal>(item.second.cast<py::object>());
         }
-        okeyvalueiter = _mapIntParameters.iteritems();
-        num = len(_mapIntParameters);
+        // okeyvalueiter = _mapIntParameters.iteritems();
+        // num = len(_mapIntParameters);
         info._mapIntParameters.clear();
-        for(size_t i = 0; i < num; ++i) {
-            py::object okeyvalue = okeyvalueiter.attr("next") ();
-            std::string name = okeyvalue[0].cast<std::string>();
-            info._mapIntParameters[name] = ExtractArray<int>(okeyvalue[1]);
+        // for(size_t i = 0; i < num; ++i) {
+        //     py::object okeyvalue = okeyvalueiter.attr("next") ();
+        //     std::string name = okeyvalue[0].cast<std::string>();
+        //     info._mapIntParameters[name] = ExtractArray<int>(okeyvalue[1]);
+        // }
+        for(auto item : _mapIntParameters) {
+            std::string name = item.first.cast<std::string>();
+            info._mapIntParameters[name] = ExtractArray<int>(item.second.cast<py::object>());
         }
-        okeyvalueiter = _mapStringParameters.iteritems();
-        num = len(_mapStringParameters);
+        // okeyvalueiter = _mapStringParameters.iteritems();
+        // num = len(_mapStringParameters);
         info._mapStringParameters.clear();
-        for(size_t i = 0; i < num; ++i) {
-            py::object okeyvalue = okeyvalueiter.attr("next") ();
-            std::string name = okeyvalue[0].cast<std::string>();
-            info._mapStringParameters[name] = (std::string)okeyvalue[1].cast<std::string>();
+        // for(size_t i = 0; i < num; ++i) {
+        //     py::object okeyvalue = okeyvalueiter.attr("next") ();
+        //     std::string name = okeyvalue[0].cast<std::string>();
+        //     info._mapStringParameters[name] = (std::string)okeyvalue[1].cast<std::string>();
+        // }
+        for(auto item : _mapStringParameters) {
+            std::string name = item.first.cast<std::string>();
+            info._mapStringParameters[name] = item.second.cast<std::string>();
         }
         num = len(_bIsCircular);
         for(size_t i = 0; i < num; ++i) {
@@ -801,7 +813,7 @@ public:
             return toPyVector3(_pgeometry->GetAmbientColor());
         }
         py::object GetInfo() {
-            return py::object(PyGeometryInfoPtr(new PyGeometryInfo(_pgeometry->GetInfo())));
+            return py::cast(PyGeometryInfoPtr(new PyGeometryInfo(_pgeometry->GetInfo())));
         }
         py::object ComputeInnerEmptyVolume() const
         {
@@ -858,10 +870,10 @@ public:
     {
         KinBodyPtr parent = _plink->GetParent();
         if( parent->IsRobot() ) {
-            return py::object(toPyRobot(RaveInterfaceCast<RobotBase>(_plink->GetParent()),_pyenv));
+            return py::cast(toPyRobot(RaveInterfaceCast<RobotBase>(_plink->GetParent()),_pyenv));
         }
         else {
-            return py::object(PyKinBodyPtr(new PyKinBody(_plink->GetParent(),_pyenv)));
+            return py::cast(PyKinBodyPtr(new PyKinBody(_plink->GetParent(),_pyenv)));
         }
     }
 
@@ -1108,10 +1120,10 @@ public:
         _plink->UpdateInfo();
     }
     py::object GetInfo() {
-        return py::object(PyLinkInfoPtr(new PyLinkInfo(_plink->GetInfo())));
+        return py::cast(PyLinkInfoPtr(new PyLinkInfo(_plink->GetInfo())));
     }
     py::object UpdateAndGetInfo() {
-        return py::object(PyLinkInfoPtr(new PyLinkInfo(_plink->UpdateAndGetInfo())));
+        return py::cast(PyLinkInfoPtr(new PyLinkInfo(_plink->UpdateAndGetInfo())));
     }
 
 
@@ -1466,10 +1478,10 @@ public:
         _pjoint->UpdateInfo();
     }
     py::object GetInfo() {
-        return py::object(PyJointInfoPtr(new PyJointInfo(_pjoint->GetInfo(), _pyenv)));
+        return py::cast(PyJointInfoPtr(new PyJointInfo(_pjoint->GetInfo(), _pyenv)));
     }
     py::object UpdateAndGetInfo() {
-        return py::object(PyJointInfoPtr(new PyJointInfo(_pjoint->UpdateAndGetInfo(), _pyenv)));
+        return py::cast(PyJointInfoPtr(new PyJointInfo(_pjoint->UpdateAndGetInfo(), _pyenv)));
     }
 
     string __repr__() {
@@ -1533,10 +1545,10 @@ public:
             return py::object();
         }
         if( pbody->IsRobot() ) {
-            return py::object(openravepy::toPyRobot(RaveInterfaceCast<RobotBase>(pbody),_pyenv));
+            return py::cast(openravepy::toPyRobot(RaveInterfaceCast<RobotBase>(pbody),_pyenv));
         }
         else {
-            return py::object(openravepy::toPyKinBody(pbody,_pyenv));
+            return py::cast(openravepy::toPyKinBody(pbody,_pyenv));
         }
     }
 
@@ -1576,7 +1588,7 @@ public:
     }
 
     py::object GetSystem() {
-        return py::object(openravepy::toPySensorSystem(_pdata->GetSystem(),_pyenv));
+        return py::cast(openravepy::toPySensorSystem(_pdata->GetSystem(),_pyenv));
     }
 
     PyVoidHandleConst GetData() const {
@@ -1711,7 +1723,7 @@ void PyKinBody::SetLinkGroupGeometries(const std::string& geomname, py::object o
     std::vector< std::vector<KinBody::GeometryInfoPtr> > linkgeometries(len(olinkgeometryinfos));
     for(size_t i = 0; i < linkgeometries.size(); ++i) {
         std::vector<KinBody::GeometryInfoPtr>& geometries = linkgeometries[i];
-        geometries.resize(len(olinkgeometryinfos[i]));
+        geometries.resize(len(olinkgeometryinfos[i].cast<py::object>()));
         for(size_t j = 0; j < geometries.size(); ++j) {
             PyGeometryInfoPtr pygeom = olinkgeometryinfos[i][j].cast<PyGeometryInfoPtr>();
             if( !pygeom ) {

@@ -28,9 +28,15 @@
 // #include <boost/multi_array.hpp>
 #include <boost/shared_ptr.hpp>
 
-#define OPENRAVE_UNIQUE_PTR boost::unique_ptr
-#define OPENRAVE_SHARED_PTR boost::shared_ptr
-#define OPENRAVE_WEAK_PTR OPENRAVE_WEAK_PTR
+#define OPENRAVE_UNIQUE_PTR std::unique_ptr
+#define OPENRAVE_SHARED_PTR std::shared_ptr
+#define OPENRAVE_WEAK_PTR std::weak_ptr
+#define OPENRAVE_STATIC_POINTER_CAST std::static_pointer_cast
+#define OPENRAVE_ENABLE_SHARED_FROM_THIS std::enable_shared_from_this
+#define OPENRAVE_DYNAMIC_POINTER_CAST std::dynamic_pointer_cast
+#define OPENRAVE_CONST_POINTER_CAST std::const_pointer_cast
+#define OPENRAVE_MAKE_SHARED std::make_shared
+#define OPENRAVE_FUNCTION boost::function
 
 // #include <boost/format.hpp>
 // #include <boost/python.hpp>

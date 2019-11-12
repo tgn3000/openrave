@@ -298,11 +298,11 @@ PyInterfaceBasePtr toPyTrajectory(TrajectoryBasePtr ptrajectory, PyEnvironmentBa
 
 object toPyTrajectory(TrajectoryBasePtr ptraj, object opyenv)
 {
-    extract<PyEnvironmentBasePtr> pyenv(opyenv);
-    if( pyenv.check() ) {
-        return object(toPyTrajectory(ptraj,(PyEnvironmentBasePtr)pyenv));
+    PyEnvironmentBasePtr pyenv = opyenv.cast<PyEnvironmentBasePtr>();
+    if( pyenv != nullptr ) {
+        return py::cast(toPyTrajectory(ptraj,(PyEnvironmentBasePtr)pyenv));
     }
-    return object();
+    return py::object();
 }
 
 PyEnvironmentBasePtr toPyEnvironment(PyTrajectoryBasePtr pytraj)
