@@ -26,7 +26,7 @@
 // #include <boost/python/numpy.hpp>
 // #include <boost/array.hpp>
 // #include <boost/multi_array.hpp>
-// #include <boost/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 // #include <boost/format.hpp>
 // #include <boost/python.hpp>
 // #include <boost/assert.hpp>

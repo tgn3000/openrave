@@ -42,9 +42,9 @@
 #include <boost/version.hpp>
 
 #define PY_ARRAY_UNIQUE_SYMBOL PyArrayHandle
-#include <boost/python.hpp>
-#include <boost/python/exception_translator.hpp>
-#include <boost/python/docstring_options.hpp>
+// #include <boost/python.hpp>
+// #include <boost/python/exception_translator.hpp>
+// #include <boost/python/docstring_options.hpp>
 #include <pyconfig.h>
 #include <numpy/arrayobject.h>
 
@@ -58,7 +58,7 @@
         if( !(p) ) { throw openrave_exception(boost::str(boost::format(_("[%s:%d]: invalid pointer"))%__PRETTY_FUNCTION__%__LINE__)); } \
 }
 
-using namespace boost::python;
+// using namespace boost::python;
 using namespace std;
 using namespace OpenRAVE;
 
@@ -326,8 +326,8 @@ inline RaveTransformMatrix<T> ExtractTransformMatrixType(const object& o)
 
 inline object toPyArrayRotation(const TransformMatrix& t)
 {
-    boost::python::tuple shapeA = boost::python::make_tuple(3, 3);
-    np::ndarray A = np::zeros(shapeA, np::dtype::get_builtin<double>());
+    py::array_t<dReal> A;
+    A.resize({3, 3});
     for(int i = 0; i < 3; ++i) {
         for(int j = 0; j < 3; ++j) {
             A[i][j] = t.m[4*i+j];
@@ -374,24 +374,27 @@ inline object toPyArray3(const std::vector<RaveVector<double> >& v)
 
 inline object toPyVector2(Vector v)
 {
-    return np::array(boost::python::make_tuple(v.x,v.y));
+    std::array<dReal, 2> a {v.x, v.y};
+    return py::array_t<dReal>({1, 2}, a.data()); 
 }
 
 inline object toPyVector3(Vector v)
 {
-    return np::array(boost::python::make_tuple(v.x,v.y,v.z));
+    std::array<dReal, 3> a {v.x, v.y, v.z};
+    return py::array_t<dReal>({1, 3}, a.data()); 
 }
 
 inline object toPyVector4(Vector v)
 {
-    return np::array(boost::python::make_tuple(v.x,v.y,v.z,v.w));
+    std::array<dReal, 4> a {v.x, v.y, v.z, v.w};
+    return py::array_t<dReal>({1, 4}, a.data()); 
 }
 
 /// \brief converts dictionary of keyvalue pairs
-AttributesList toAttributesList(boost::python::dict odict);
+AttributesList toAttributesList(py::dict odict);
 /// \brief converts list of tuples [(key,value),(key,value)], it is possible for keys to repeat
-AttributesList toAttributesList(boost::python::list olist);
-AttributesList toAttributesList(boost::python::object oattributes);
+AttributesList toAttributesList(py::list olist);
+AttributesList toAttributesList(py::object oattributes);
 
 bool GetReturnTransformQuaternions();
 
@@ -412,15 +415,15 @@ public:
     PyPluginInfo(const PLUGININFO& info)
     {
         FOREACHC(it, info.interfacenames) {
-            boost::python::list names;
+            py::list names;
             FOREACHC(itname,it->second)
             names.append(*itname);
-            interfacenames.append(boost::python::make_tuple(it->first,names));
+            interfacenames.append(py::make_tuple(it->first,names));
         }
         version = OPENRAVE_VERSION_STRING_FORMAT(info.version);
     }
 
-    boost::python::list interfacenames;
+    py::list interfacenames;
     string version;
 };
 
@@ -512,7 +515,7 @@ public:
         std::stringstream ss;
         ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
         _handle->Serialize(ss,options);
-        return object(ss.str());
+        return ConvertStringToUnicode(ss.str());
     }
     void Deserialize(const std::string& s) {
         std::stringstream ss(s);
@@ -541,7 +544,7 @@ public:
     object pos();
     virtual string __repr__();
     virtual string __str__();
-    virtual boost::python::object __unicode__();
+    virtual py::object __unicode__();
     RAY r;
 };
 
@@ -626,7 +629,7 @@ public:
     virtual string __str__() {
         return boost::str(boost::format("<%s:%s>")%RaveGetInterfaceName(_pbase->GetInterfaceType())%_pbase->GetXMLId());
     }
-    virtual boost::python::object __unicode__() {
+    virtual py::object __unicode__() {
         return ConvertStringToUnicode(__str__());
     }
     virtual int __hash__() {

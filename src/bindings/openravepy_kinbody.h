@@ -63,7 +63,7 @@ public:
             _state->Restore();
         }
         else {
-            U pytarget = boost::python::extract<U>(p);
+            U pytarget = p.cast<U>();
             _state->Restore(pytarget);
         }
     }
@@ -97,7 +97,7 @@ public:
         _grabbedname = ConvertStringToUnicode(info._grabbedname);
         _robotlinkname = ConvertStringToUnicode(info._robotlinkname);
         _trelative = ReturnTransform(info._trelative);
-        boost::python::list setRobotLinksToIgnore;
+        py::list setRobotLinksToIgnore;
         FOREACHC(itindex, info._setRobotLinksToIgnore) {
             setRobotLinksToIgnore.append(*itindex);
         }
@@ -107,8 +107,8 @@ public:
     RobotBase::GrabbedInfoPtr GetGrabbedInfo() const
     {
         RobotBase::GrabbedInfoPtr pinfo(new RobotBase::GrabbedInfo());
-        pinfo->_grabbedname = boost::python::extract<std::string>(_grabbedname);
-        pinfo->_robotlinkname = boost::python::extract<std::string>(_robotlinkname);
+        pinfo->_grabbedname = _grabbedname.cast<std::string>();
+        pinfo->_robotlinkname = _robotlinkname.cast<std::string>();
         pinfo->_trelative = ExtractTransform(_trelative);
         std::vector<int> v = ExtractArray<int>(_setRobotLinksToIgnore);
         pinfo->_setRobotLinksToIgnore.clear();
@@ -119,8 +119,8 @@ public:
     }
 
     std::string __str__() {
-        std::string robotlinkname = boost::python::extract<std::string>(_robotlinkname);
-        std::string grabbedname = boost::python::extract<std::string>(_grabbedname);
+        std::string robotlinkname = _robotlinkname.cast<std::string>();
+        std::string grabbedname = _grabbedname.cast<std::string>();
         return boost::str(boost::format("<grabbedinfo:%s -> %s>")%robotlinkname%grabbedname);
     }
     object __unicode__() {
