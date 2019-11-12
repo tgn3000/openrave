@@ -22,6 +22,8 @@
 
 namespace openravepy {
 
+using py::object;
+
 class PyStateRestoreContextBase
 {
 public:
@@ -48,7 +50,7 @@ public:
     virtual ~PyStateRestoreContext() {
     }
     object __enter__() {
-        return object(_state);
+        return py::cast(_state);
     }
     void __exit__(object type, object value, object traceback) {
         _state->Restore();

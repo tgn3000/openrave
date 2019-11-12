@@ -333,7 +333,7 @@ object k_priority_search_array(ANNkd_tree& kdtree, object q, int k, double eps)
     return search_array(kdtree, q, k, eps, true);
 }
 
-BOOST_PYTHON_MODULE(pyANN_int)
+PYBIND11_MODULE(pyANN_int, m)
 {
 
     // expansion of the macro `import_array()` in 

@@ -66,9 +66,9 @@ namespace openravepy {
 
 struct DummyStruct {};
 
-class PyInterfaceBase;
-class PyKinBody;
-class PyRobotBase;
+class PyInterfaceBase; // here
+class PyKinBody; // openravepy_kinbody.h
+class PyRobotBase; // openravepy_robot.h
 class PyEnvironmentBase;
 class PyCollisionReport;
 class PyPhysicsEngineBase;

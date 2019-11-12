@@ -346,7 +346,7 @@ typedef OPENRAVE_SHARED_PTR<PyConfigurationCache> PyConfigurationCachePtr;
 
 } // end namespace configurationcachepy
 
-BOOST_PYTHON_MODULE(openravepy_configurationcache)
+PYBIND11_MODULE(openravepy_configurationcache, m)
 {
     using namespace configurationcachepy;
     import_array();

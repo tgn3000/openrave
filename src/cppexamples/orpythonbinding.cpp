@@ -116,7 +116,7 @@ void Init(UserDataPtr globalstate)
 
 } // end namespace cppexamples
 
-BOOST_PYTHON_MODULE(orpythonbinding)
+PYBIND11_MODULE(orpythonbinding, m)
 {
     boost::python::def("Init", cppexamples::Init, boost::python::args("globalstate"), "initializes the python bindings with the openrave global state");
     boost::python::def("RegisterSimulationFunction", cppexamples::RegisterSimulationFunction, boost::python::args("environmentid","simulationfn"));

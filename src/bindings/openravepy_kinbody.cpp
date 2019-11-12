@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define NO_IMPORT_ARRAY
 #include "openravepy_kinbody.h"
+#include "openravepy_configurationspecification.h"
 
 namespace openravepy {
 
@@ -34,7 +35,7 @@ py::object GetCustomParameters(const std::map<std::string, std::vector<T> >& par
     if( it != parameters.end() ) {
         if( index >= 0 ) {
             if( (size_t)index < it->second.size() ) {
-                return py::object(it->second.at(index));
+                return py::cast(it->second.at(index));
             }
             else {
                 return py::object();
@@ -1781,11 +1782,11 @@ py::object PyKinBody::GetDOFValues() const
 py::object PyKinBody::GetDOFValues(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> values;
     _pbody->GetDOFValues(values,vindices);
@@ -1802,11 +1803,11 @@ py::object PyKinBody::GetDOFVelocities() const
 py::object PyKinBody::GetDOFVelocities(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> values;
     _pbody->GetDOFVelocities(values,vindices);
@@ -1872,11 +1873,11 @@ py::object PyKinBody::GetDOFTorqueLimits() const
 py::object PyKinBody::GetDOFLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return py::make_tuple(np::array(py::list()), np::array(py::list())); // always need 2 since users can do lower, upper = GetDOFLimits()
+        return py::make_tuple(py::array_t<dReal>({1, 0}, nullptr), py::array_t<dReal>({1, 0}, nullptr)); // always need 2 since users can do lower, upper = GetDOFLimits()
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return py::make_tuple(np::array(py::list()), np::array(py::list())); // always need 2 since users can do lower, upper = GetDOFLimits()
+        return py::make_tuple(py::array_t<dReal>({1, 0}, nullptr), py::array_t<dReal>({1, 0}, nullptr)); // always need 2 since users can do lower, upper = GetDOFLimits()
     }
     vector<dReal> vlower, vupper, vtemplower, vtempupper;
     vlower.reserve(vindices.size());
@@ -1893,11 +1894,11 @@ py::object PyKinBody::GetDOFLimits(py::object oindices) const
 py::object PyKinBody::GetDOFVelocityLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vmax, vtempmax;
     vmax.reserve(vindices.size());
@@ -1912,11 +1913,11 @@ py::object PyKinBody::GetDOFVelocityLimits(py::object oindices) const
 py::object PyKinBody::GetDOFAccelerationLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vmax, vtempmax;
     vmax.reserve(vindices.size());
@@ -1931,11 +1932,11 @@ py::object PyKinBody::GetDOFAccelerationLimits(py::object oindices) const
 py::object PyKinBody::GetDOFJerkLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vmax, vtempmax;
     vmax.reserve(vindices.size());
@@ -1950,11 +1951,11 @@ py::object PyKinBody::GetDOFJerkLimits(py::object oindices) const
 py::object PyKinBody::GetDOFHardVelocityLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vmax, vtempmax;
     vmax.reserve(vindices.size());
@@ -1969,11 +1970,11 @@ py::object PyKinBody::GetDOFHardVelocityLimits(py::object oindices) const
 py::object PyKinBody::GetDOFHardAccelerationLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vmax, vtempmax;
     vmax.reserve(vindices.size());
@@ -1988,11 +1989,11 @@ py::object PyKinBody::GetDOFHardAccelerationLimits(py::object oindices) const
 py::object PyKinBody::GetDOFHardJerkLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vmax, vtempmax;
     vmax.reserve(vindices.size());
@@ -2007,11 +2008,11 @@ py::object PyKinBody::GetDOFHardJerkLimits(py::object oindices) const
 py::object PyKinBody::GetDOFTorqueLimits(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vmax, vtempmax;
     vmax.reserve(vindices.size());
@@ -2054,11 +2055,11 @@ py::object PyKinBody::GetDOFWeights() const
 py::object PyKinBody::GetDOFWeights(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> values, v;
     values.reserve(vindices.size());
@@ -2079,11 +2080,11 @@ py::object PyKinBody::GetDOFResolutions() const
 py::object PyKinBody::GetDOFResolutions(py::object oindices) const
 {
     if( IS_PYTHONOBJECT_NONE(oindices) ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<int> vindices = ExtractArray<int>(oindices);
     if( vindices.size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> values, v;
     values.reserve(vindices.size());
@@ -2119,7 +2120,7 @@ py::object PyKinBody::GetLinks(py::object oindices) const
 py::object PyKinBody::GetLink(const std::string& linkname) const
 {
     KinBody::LinkPtr plink = _pbody->GetLink(linkname);
-    return !plink ? py::object() : py::object(PyLinkPtr(new PyLink(plink,GetEnv())));
+    return !plink ? py::object() : py::cast(PyLinkPtr(new PyLink(plink,GetEnv())));
 }
 
 py::object PyKinBody::GetJoints() const
@@ -2220,13 +2221,13 @@ int PyKinBody::GetJointIndex(const std::string& jointname) const
 py::object PyKinBody::GetJoint(const std::string& jointname) const
 {
     KinBody::JointPtr pjoint = _pbody->GetJoint(jointname);
-    return !pjoint ? py::object() : py::object(PyJointPtr(new PyJoint(pjoint,GetEnv())));
+    return !pjoint ? py::object() : py::cast(PyJointPtr(new PyJoint(pjoint,GetEnv())));
 }
 
 py::object PyKinBody::GetJointFromDOFIndex(int dofindex) const
 {
     KinBody::JointPtr pjoint = _pbody->GetJointFromDOFIndex(dofindex);
-    return !pjoint ? py::object() : py::object(PyJointPtr(new PyJoint(pjoint,GetEnv())));
+    return !pjoint ? py::object() : py::cast(PyJointPtr(new PyJoint(pjoint,GetEnv())));
 }
 
 py::object PyKinBody::GetTransform() const {
@@ -2341,7 +2342,7 @@ void PyKinBody::SetDOFVelocities(py::object odofvelocities, uint32_t checklimits
 py::object PyKinBody::GetLinkVelocities() const
 {
     if( _pbody->GetLinks().size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     std::vector<std::pair<Vector,Vector> > velocities;
     _pbody->GetLinkVelocities(velocities);
@@ -2364,7 +2365,7 @@ py::object PyKinBody::GetLinkVelocities() const
 py::object PyKinBody::GetLinkAccelerations(py::object odofaccelerations, py::object oexternalaccelerations=py::object()) const
 {
     if( _pbody->GetLinks().size() == 0 ) {
-        return np::array(py::list());
+        return py::array_t<dReal>({1, 0}, nullptr);
     }
     vector<dReal> vDOFAccelerations = ExtractArray<dReal>(odofaccelerations);
     KinBody::AccelerationMapPtr pmapExternalAccelerations;
@@ -2372,13 +2373,19 @@ py::object PyKinBody::GetLinkAccelerations(py::object odofaccelerations, py::obj
         //externalaccelerations
         pmapExternalAccelerations.reset(new KinBody::AccelerationMap());
         py::dict odict = (py::dict)oexternalaccelerations;
-        py::list iterkeys = (py::list)odict.iterkeys();
+        // py::list iterkeys = (py::list)odict.iterkeys();
         vector<dReal> v;
-        for (int i = 0; i < py::len(iterkeys); i++) {
-            int linkindex = iterkeys[i].cast<int>();
-            py::object olinkaccelerations = odict[iterkeys[i]];
+        // for (int i = 0; i < py::len(iterkeys); i++) {
+        int i = 0;
+        for(auto item : odict) {
+            const int linkindex = item.first.cast<int>();
+            py::object olinkaccelerations = item.second.cast<py::object>();
             OPENRAVE_ASSERT_OP(len(olinkaccelerations),==,6);
-            (*pmapExternalAccelerations)[linkindex] = make_pair(Vector(olinkaccelerations[0].cast<dReal>(),olinkaccelerations[1].cast<dReal>(),olinkaccelerations[2].cast<dReal>()),Vector(olinkaccelerations[3].cast<dReal>(),olinkaccelerations[4].cast<dReal>(),olinkaccelerations[5].cast<dReal>()));
+            (*pmapExternalAccelerations)[linkindex] = std::make_pair(
+                Vector(olinkaccelerations[0].cast<dReal>(), olinkaccelerations[1].cast<dReal>(), olinkaccelerations[2].cast<dReal>()), 
+                Vector(olinkaccelerations[3].cast<dReal>(), olinkaccelerations[4].cast<dReal>(), olinkaccelerations[5].cast<dReal>())
+            );
+            ++i;
         }
     }
     std::vector<std::pair<Vector,Vector> > vLinkAccelerations;
@@ -2736,13 +2743,19 @@ py::object PyKinBody::ComputeInverseDynamics(py::object odofaccelerations, py::o
     KinBody::ForceTorqueMap mapExternalForceTorque;
     if( !IS_PYTHONOBJECT_NONE(oexternalforcetorque) ) {
         py::dict odict = (py::dict)oexternalforcetorque;
-        py::list iterkeys = (py::list)odict.iterkeys();
+        // py::list iterkeys = (py::list)odict.iterkeys();
         vector<dReal> v;
-        for (int i = 0; i < py::len(iterkeys); i++) {
-            int linkindex = iterkeys[i].cast<int>();
-            py::object oforcetorque = odict[iterkeys[i]];
+        // for (int i = 0; i < py::len(iterkeys); i++) {
+        int i = 0;
+        for(auto item : odict) {
+            const int linkindex = item.first.cast<int>();
+            py::object oforcetorque = item.second.cast<py::object>();
             OPENRAVE_ASSERT_OP(len(oforcetorque),==,6);
-            mapExternalForceTorque[linkindex] = make_pair(Vector(oforcetorque[0].cast<dReal>(),oforcetorque[1].cast<dReal>(),oforcetorque[2].cast<dReal>()),Vector(oforcetorque[3].cast<dReal>(),oforcetorque[4].cast<dReal>(),oforcetorque[5].cast<dReal>()));
+            mapExternalForceTorque[linkindex] = std::make_pair(
+                Vector(oforcetorque[0].cast<dReal>(), oforcetorque[1].cast<dReal>(), oforcetorque[2].cast<dReal>()),
+                Vector(oforcetorque[3].cast<dReal>(), oforcetorque[4].cast<dReal>(), oforcetorque[5].cast<dReal>())
+            );
+            ++i;
         }
     }
     if( returncomponents ) {
@@ -2800,25 +2813,25 @@ void PyKinBody::SetNonCollidingConfiguration()
 
 py::object PyKinBody::GetConfigurationSpecification(const std::string& interpolation) const
 {
-    return py::object(openravepy::toPyConfigurationSpecification(_pbody->GetConfigurationSpecification(interpolation)));
+    return py::cast(openravepy::toPyConfigurationSpecification(_pbody->GetConfigurationSpecification(interpolation)));
 }
 
 py::object PyKinBody::GetConfigurationSpecificationIndices(py::object oindices,const std::string& interpolation) const
 {
-    vector<int> vindices = ExtractArray<int>(oindices);
-    return py::object(openravepy::toPyConfigurationSpecification(_pbody->GetConfigurationSpecificationIndices(vindices,interpolation)));
+    std::vector<int> vindices = ExtractArray<int>(oindices);
+    return py::cast(openravepy::toPyConfigurationSpecification(_pbody->GetConfigurationSpecificationIndices(vindices,interpolation)));
 }
 
 void PyKinBody::SetConfigurationValues(py::object ovalues, uint32_t checklimits)
 {
-    vector<dReal> vvalues = ExtractArray<dReal>(ovalues);
+    std::vector<dReal> vvalues = ExtractArray<dReal>(ovalues);
     BOOST_ASSERT((int)vvalues.size()==_pbody->GetDOF()+7);
     _pbody->SetConfigurationValues(vvalues.begin(),checklimits);
 }
 
 py::object PyKinBody::GetConfigurationValues() const
 {
-    vector<dReal> values;
+    std::vector<dReal> values;
     _pbody->GetConfigurationValues(values);
     return toPyArray(values);
 }
@@ -2957,7 +2970,7 @@ py::object PyKinBody::GetAdjacentLinks() const
 py::object PyKinBody::GetManageData() const
 {
     KinBody::ManageDataPtr pdata = _pbody->GetManageData();
-    return !pdata ? py::object() : py::object(PyManageDataPtr(new PyManageData(pdata,_pyenv)));
+    return !pdata ? py::object() : py::cast(PyManageDataPtr(new PyManageData(pdata,_pyenv)));
 }
 int PyKinBody::GetUpdateStamp() const
 {
@@ -3031,14 +3044,17 @@ py::object toPyKinBodyLink(KinBody::LinkPtr plink, PyEnvironmentBasePtr pyenv)
     if( !plink ) {
         return py::object();
     }
-    return py::object(PyLinkPtr(new PyLink(plink,pyenv)));
+    return py::cast(PyLinkPtr(new PyLink(plink,pyenv)));
 }
 
 py::object toPyKinBodyLink(KinBody::LinkPtr plink, py::object opyenv)
 {
-    extract<PyEnvironmentBasePtr> pyenv(opyenv);
-    if( pyenv.check() ) {
-        return py::object(toPyKinBodyLink(plink,(PyEnvironmentBasePtr)pyenv));
+    // to-do: need to try-catch
+    PyEnvironmentBasePtr pyenv = opyenv.cast<PyEnvironmentBasePtr>();
+    // extract<PyEnvironmentBasePtr> pyenv(opyenv);
+    // if( pyenv.check() ) {
+    if(pyenv != nullptr) {
+        return toPyKinBodyLink(plink, (PyEnvironmentBasePtr)pyenv);
     }
     return py::object();
 }
@@ -3048,13 +3064,15 @@ py::object toPyKinBodyJoint(KinBody::JointPtr pjoint, PyEnvironmentBasePtr pyenv
     if( !pjoint ) {
         return py::object();
     }
-    return py::object(PyJointPtr(new PyJoint(pjoint,pyenv)));
+    return py::cast(PyJointPtr(new PyJoint(pjoint,pyenv)));
 }
 
 KinBody::LinkPtr GetKinBodyLink(py::object o)
 {
-    extract<PyLinkPtr> pylink(o);
-    if( pylink.check() ) {
+    // extract<PyLinkPtr> pylink(o);
+    PyLinkPtr pylink = o.cast<PyLinkPtr>();
+    // if( pylink.check() ) {
+    if(pylink != nullptr) {
         return ((PyLinkPtr)pylink)->GetLink();
     }
     return KinBody::LinkPtr();
@@ -3062,8 +3080,10 @@ KinBody::LinkPtr GetKinBodyLink(py::object o)
 
 KinBody::LinkConstPtr GetKinBodyLinkConst(py::object o)
 {
-    extract<PyLinkPtr> pylink(o);
-    if( pylink.check() ) {
+    // extract<PyLinkPtr> pylink(o);
+    PyLinkPtr pylink = o.cast<PyLinkPtr>();
+    // if( pylink.check() ) {
+    if(pylink != nullptr) {
         return ((PyLinkPtr)pylink)->GetLink();
     }
     return KinBody::LinkConstPtr();
@@ -3071,8 +3091,10 @@ KinBody::LinkConstPtr GetKinBodyLinkConst(py::object o)
 
 KinBody::JointPtr GetKinBodyJoint(py::object o)
 {
-    extract<PyJointPtr> pyjoint(o);
-    if( pyjoint.check() ) {
+    // extract<PyJointPtr> pyjoint(o);
+    PyJointPtr pyjoint = o.cast<PyJointPtr>();
+    // if( pyjoint.check() ) {
+    if( pyjoint != nullptr ) {
         return ((PyJointPtr)pyjoint)->GetJoint();
     }
     return KinBody::JointPtr();
@@ -3080,8 +3102,10 @@ KinBody::JointPtr GetKinBodyJoint(py::object o)
 
 std::string reprPyKinBodyJoint(py::object o)
 {
-    extract<PyJointPtr> pyjoint(o);
-    if( pyjoint.check() ) {
+    // extract<PyJointPtr> pyjoint(o);
+    PyJointPtr pyjoint = o.cast<PyJointPtr>();
+    // if( pyjoint.check() ) {
+    if( pyjoint != nullptr ) {
         return ((PyJointPtr)pyjoint)->__repr__();
     }
     return std::string();
@@ -3089,8 +3113,10 @@ std::string reprPyKinBodyJoint(py::object o)
 
 std::string strPyKinBodyJoint(py::object o)
 {
-    extract<PyJointPtr> pyjoint(o);
-    if( pyjoint.check() ) {
+    // extract<PyJointPtr> pyjoint(o);
+    PyJointPtr pyjoint = o.cast<PyJointPtr>();
+    // if( pyjoint.check() ) {
+    if( pyjoint != nullptr ) {
         return ((PyJointPtr)pyjoint)->__str__();
     }
     return std::string();
@@ -3098,8 +3124,10 @@ std::string strPyKinBodyJoint(py::object o)
 
 KinBodyPtr GetKinBody(py::object o)
 {
-    extract<PyKinBodyPtr> pykinbody(o);
-    if( pykinbody.check() ) {
+    // extract<PyKinBodyPtr> pykinbody(o);
+    PyKinBodyPtr pykinbody = o.cast<PyKinBodyPtr>();
+    // if( pykinbody.check() ) {
+    if(pykinbody != nullptr) {
         return ((PyKinBodyPtr)pykinbody)->GetBody();
     }
     return KinBodyPtr();
@@ -3112,8 +3140,10 @@ KinBodyPtr GetKinBody(PyKinBodyPtr pykinbody)
 
 PyEnvironmentBasePtr GetPyEnvFromPyKinBody(py::object o)
 {
-    extract<PyKinBodyPtr> pykinbody(o);
-    if( pykinbody.check() ) {
+    // extract<PyKinBodyPtr> pykinbody(o);
+    PyKinBodyPtr pykinbody = o.cast<PyKinBodyPtr>();
+    // if( pykinbody.check() ) {
+    if(pykinbody != nullptr) {
         return ((PyKinBodyPtr)pykinbody)->GetEnv();
     }
     return PyEnvironmentBasePtr();
@@ -3137,9 +3167,11 @@ PyInterfaceBasePtr toPyKinBody(KinBodyPtr pkinbody, PyEnvironmentBasePtr pyenv)
 
 py::object toPyKinBody(KinBodyPtr pkinbody, py::object opyenv)
 {
-    extract<PyEnvironmentBasePtr> pyenv(opyenv);
-    if( pyenv.check() ) {
-        return py::object(toPyKinBody(pkinbody,(PyEnvironmentBasePtr)pyenv));
+    // extract<PyEnvironmentBasePtr> pyenv(opyenv);
+    // if( pyenv.check() ) {
+    PyEnvironmentBasePtr pyenv = opyenv.cast<PyEnvironmentBasePtr>();
+    if( pyenv != nullptr ) {
+        return py::cast(toPyKinBody(pkinbody,(PyEnvironmentBasePtr)pyenv));
     }
     return py::object();
 }
@@ -3153,7 +3185,10 @@ PyKinBodyPtr RaveCreateKinBody(PyEnvironmentBasePtr pyenv, const std::string& na
     return PyKinBodyPtr(new PyKinBody(p,pyenv));
 }
 
-class GeometryInfo_pickle_suite : public pickle_suite
+// py::pickle
+// https://pybind11.readthedocs.io/en/stable/advanced/classes.html#pickling-support
+
+class GeometryInfo_pickle_suite //: public pickle_suite
 {
 public:
     static py::tuple getstate(const PyGeometryInfo& r)
@@ -3174,8 +3209,8 @@ public:
         r._meshcollision = state[4];
         r._type = (GeometryType)(int)state[5].cast<int>();
 
-        py::extract<std::string> pyoldfilenamerender(state[6]);
-        if( pyoldfilenamerender.check() ) {
+        try{
+            std::string pyoldfilenamerender = state[6].cast<std::string>();
             // old format
             r._filenamerender = state[6];
             r._filenamecollision = state[7];
@@ -3185,9 +3220,9 @@ public:
             r._fTransparency = state[10].cast<float>();
             r._bVisible = state[11].cast<bool>();
             r._bModifiable = state[12].cast<bool>();
-            r._mapExtraGeometries = dict(state[13]);
+            r._mapExtraGeometries = py::dict(state[13]);
         }
-        else {
+        catch(...) {
             // new format
             r._name = state[6][0];
             r._filenamerender = state[6][1];
@@ -3197,12 +3232,12 @@ public:
             r._fTransparency = state[9].cast<float>();
             r._bVisible = state[10].cast<bool>();
             r._bModifiable = state[11].cast<bool>();
-            r._mapExtraGeometries = dict(state[12]);
+            r._mapExtraGeometries = py::dict(state[12]);
         }
     }
 };
 
-class LinkInfo_pickle_suite : public pickle_suite
+class LinkInfo_pickle_suite //: public pickle_suite
 {
 public:
     static py::tuple getstate(const PyLinkInfo& r)
@@ -3217,18 +3252,18 @@ public:
         r._tMassFrame = state[3];
         r._mass = state[4].cast<dReal>();
         r._vinertiamoments = state[5];
-        r._mapFloatParameters = dict(state[6]);
-        r._mapIntParameters = dict(state[7]);
-        r._vForcedAdjacentLinks = dict(state[8]);
+        r._mapFloatParameters = py::dict(state[6]);
+        r._mapIntParameters = py::dict(state[7]);
+        r._vForcedAdjacentLinks = py::dict(state[8]);
         r._bStatic = state[9].cast<bool>();
         r._bIsEnabled = state[10].cast<bool>();
         if( num > 11 ) {
-            r._mapStringParameters = dict(state[11]);
+            r._mapStringParameters = py::dict(state[11]);
         }
     }
 };
 
-class ElectricMotorActuatorInfo_pickle_suite : public pickle_suite
+class ElectricMotorActuatorInfo_pickle_suite //: public pickle_suite
 {
 public:
     static py::tuple getstate(const PyElectricMotorActuatorInfo& r)
@@ -3256,7 +3291,7 @@ public:
     }
 };
 
-class JointInfo_pickle_suite : public pickle_suite
+class JointInfo_pickle_suite //: public pickle_suite
 {
 public:
     static py::tuple getstate(const PyJointInfo& r)
@@ -3281,7 +3316,7 @@ public:
         r._vlowerlimit = state[1][7];
         r._vupperlimit = state[1][8];
         r._trajfollow = state[2][0];
-        int num2 = len(state[2]);
+        int num2 = len(state[2].cast<py::object>());
         r._vmimic = py::list(state[2][1]);
         r._mapFloatParameters = py::dict(state[2][2]);
         r._mapIntParameters = py::dict(state[2][3]);
@@ -3308,7 +3343,7 @@ public:
     }
 };
 
-class GrabbedInfo_pickle_suite : public pickle_suite
+class GrabbedInfo_pickle_suite //: public pickle_suite
 {
 public:
     static py::tuple getstate(const PyKinBody::PyGrabbedInfo& r)
@@ -3323,63 +3358,64 @@ public:
     }
 };
 
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(IsMimic_overloads, IsMimic, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMimicEquation_overloads, GetMimicEquation, 0, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMimicDOFIndices_overloads, GetMimicDOFIndices, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetChain_overloads, GetChain, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetConfigurationSpecification_overloads, GetConfigurationSpecification, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetConfigurationSpecificationIndices_overloads, GetConfigurationSpecificationIndices, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetAxis_overloads, GetAxis, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetWrapOffset_overloads, GetWrapOffset, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetWrapOffset_overloads, SetWrapOffset, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxVel_overloads, GetMaxVel, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxAccel_overloads, GetMaxAccel, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxJerk_overloads, GetMaxJerk, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxTorque_overloads, GetMaxTorque, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetInstantaneousTorqueLimits_overloads, GetInstantaneousTorqueLimits, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetNominalTorqueLimits_overloads, GetNominalTorqueLimits, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxInertia_overloads, GetMaxInertia, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetLinkTransformations_overloads, GetLinkTransformations, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetLinkTransformations_overloads, SetLinkTransformations, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetDOFLimits_overloads, SetDOFLimits, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SubtractDOFValues_overloads, SubtractDOFValues, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeJacobianTranslation_overloads, ComputeJacobianTranslation, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeJacobianAxisAngle_overloads, ComputeJacobianAxisAngle, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeHessianTranslation_overloads, ComputeHessianTranslation, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeHessianAxisAngle_overloads, ComputeHessianAxisAngle, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeInverseDynamics_overloads, ComputeInverseDynamics, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Restore_overloads, Restore, 0,1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CreateKinBodyStateSaver_overloads, CreateKinBodyStateSaver, 0,1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetConfigurationValues_overloads, SetConfigurationValues, 1,2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetFloatParameters_overloads, GetFloatParameters, 0, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetIntParameters_overloads, GetIntParameters, 0, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetStringParameters_overloads, GetStringParameters, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CheckSelfCollision_overloads, CheckSelfCollision, 0, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetLinkAccelerations_overloads, GetLinkAccelerations, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitCollisionMesh_overloads, InitCollisionMesh, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromBoxes_overloads, InitFromBoxes, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromSpheres_overloads, InitFromSpheres, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromTrimesh_overloads, InitFromTrimesh, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromGeometries_overloads, InitFromGeometries, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Init_overloads, Init, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SerializeJSON_overloads, SerializeJSON, 0, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeAABB_overloads, ComputeAABB, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeAABBFromTransform_overloads, ComputeAABBFromTransform, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeLocalAABB_overloads, ComputeLocalAABB, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(IsMimic_overloads, IsMimic, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMimicEquation_overloads, GetMimicEquation, 0, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMimicDOFIndices_overloads, GetMimicDOFIndices, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetChain_overloads, GetChain, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetConfigurationSpecification_overloads, GetConfigurationSpecification, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetConfigurationSpecificationIndices_overloads, GetConfigurationSpecificationIndices, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetAxis_overloads, GetAxis, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetWrapOffset_overloads, GetWrapOffset, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetWrapOffset_overloads, SetWrapOffset, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxVel_overloads, GetMaxVel, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxAccel_overloads, GetMaxAccel, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxJerk_overloads, GetMaxJerk, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxTorque_overloads, GetMaxTorque, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetInstantaneousTorqueLimits_overloads, GetInstantaneousTorqueLimits, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetNominalTorqueLimits_overloads, GetNominalTorqueLimits, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetMaxInertia_overloads, GetMaxInertia, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetLinkTransformations_overloads, GetLinkTransformations, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetLinkTransformations_overloads, SetLinkTransformations, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetDOFLimits_overloads, SetDOFLimits, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SubtractDOFValues_overloads, SubtractDOFValues, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeJacobianTranslation_overloads, ComputeJacobianTranslation, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeJacobianAxisAngle_overloads, ComputeJacobianAxisAngle, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeHessianTranslation_overloads, ComputeHessianTranslation, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeHessianAxisAngle_overloads, ComputeHessianAxisAngle, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeInverseDynamics_overloads, ComputeInverseDynamics, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Restore_overloads, Restore, 0,1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CreateKinBodyStateSaver_overloads, CreateKinBodyStateSaver, 0,1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetConfigurationValues_overloads, SetConfigurationValues, 1,2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetFloatParameters_overloads, GetFloatParameters, 0, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetIntParameters_overloads, GetIntParameters, 0, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetStringParameters_overloads, GetStringParameters, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CheckSelfCollision_overloads, CheckSelfCollision, 0, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetLinkAccelerations_overloads, GetLinkAccelerations, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitCollisionMesh_overloads, InitCollisionMesh, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromBoxes_overloads, InitFromBoxes, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromSpheres_overloads, InitFromSpheres, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromTrimesh_overloads, InitFromTrimesh, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(InitFromGeometries_overloads, InitFromGeometries, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Init_overloads, Init, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SerializeJSON_overloads, SerializeJSON, 0, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeAABB_overloads, ComputeAABB, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeAABBFromTransform_overloads, ComputeAABBFromTransform, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(ComputeLocalAABB_overloads, ComputeLocalAABB, 0, 1)
 
-void init_openravepy_kinbody()
+void init_openravepy_kinbody(pybind11::module& m)
 {
-    class_<PyStateRestoreContextBase, boost::noncopyable>("StateRestoreContext",no_init)
-    .def("__enter__",&PyStateRestoreContextBase::__enter__,"returns the py::object storing the state")
-    .def("__exit__",&PyStateRestoreContextBase::__exit__,"restores the state held in the py::object")
-    .def("GetBody",&PyStateRestoreContextBase::GetBody,DOXY_FN(KinBody::KinBodyStateSaver, GetBody))
-    .def("Restore",&PyStateRestoreContextBase::Restore,Restore_overloads(args("body"), DOXY_FN(KinBody::KinBodyStateSaver, Restore)))
-    .def("Release",&PyStateRestoreContextBase::Release,DOXY_FN(KinBody::KinBodyStateSaver, Release))
-    .def("Close",&PyStateRestoreContextBase::Close,DOXY_FN(KinBody::KinBodyStateSaver, Close))
-    .def("__str__",&PyStateRestoreContextBase::__str__)
+    py::class_<PyStateRestoreContextBase>(m, "StateRestoreContext")
+    .def(py::init<>())
+    .def("__enter__", &PyStateRestoreContextBase::__enter__, "returns the py::object storing the state")
+    .def("__exit__", &PyStateRestoreContextBase::__exit__, "restores the state held in the py::object")
+    .def("GetBody", &PyStateRestoreContextBase::GetBody, DOXY_FN(KinBody::KinBodyStateSaver, GetBody))
+    .def("Restore", &PyStateRestoreContextBase::Restore, py::arg("body"), DOXY_FN(KinBody::KinBodyStateSaver, Restore))
+    .def("Release", &PyStateRestoreContextBase::Release, DOXY_FN(KinBody::KinBodyStateSaver, Release))
+    .def("Close", &PyStateRestoreContextBase::Close, DOXY_FN(KinBody::KinBodyStateSaver, Close))
+    .def("__str__", &PyStateRestoreContextBase::__str__)
     .def("__unicode__",&PyStateRestoreContextBase::__unicode__)
     ;
-    py::object geometrytype = enum_<GeometryType>("GeometryType" DOXY_ENUM(GeometryType))
+    py::object geometrytype = py::enum_<GeometryType>(m, "GeometryType" DOXY_ENUM(GeometryType))
                           .value("None",GT_None)
                           .value("Box",GT_Box)
                           .value("Sphere",GT_Sphere)
@@ -3388,13 +3424,13 @@ void init_openravepy_kinbody()
                           .value("Container",GT_Container)
                           .value("Cage",GT_Cage)
     ;
-    py::object sidewalltype = enum_<KinBody::GeometryInfo::SideWallType>("SideWallType" DOXY_ENUM(KinBody::GeometryInfo::SideWallType))
+    py::object sidewalltype = py::enum_<KinBody::GeometryInfo::SideWallType>(m, "SideWallType" DOXY_ENUM(KinBody::GeometryInfo::SideWallType))
                           .value("SWT_NX",KinBody::GeometryInfo::SideWallType::SWT_NX)
                           .value("SWT_PX",KinBody::GeometryInfo::SideWallType::SWT_PX)
                           .value("SWT_NY",KinBody::GeometryInfo::SideWallType::SWT_NY)
                           .value("SWT_PY",KinBody::GeometryInfo::SideWallType::SWT_PY)
     ;
-    py::object electricmotoractuatorinfo = class_<PyElectricMotorActuatorInfo, OPENRAVE_SHARED_PTR<PyElectricMotorActuatorInfo> >("ElectricMotorActuatorInfo", DOXY_CLASS(KinBody::ElectricMotorActuatorInfo))
+    py::object electricmotoractuatorinfo = py::class_<PyElectricMotorActuatorInfo, OPENRAVE_SHARED_PTR<PyElectricMotorActuatorInfo> >(m, "ElectricMotorActuatorInfo", DOXY_CLASS(KinBody::ElectricMotorActuatorInfo))
                                        .def_readwrite("model_type",&PyElectricMotorActuatorInfo::model_type)
                                        .def_readwrite("assigned_power_rating",&PyElectricMotorActuatorInfo::assigned_power_rating)
                                        .def_readwrite("max_speed",&PyElectricMotorActuatorInfo::max_speed)
@@ -3413,10 +3449,10 @@ void init_openravepy_kinbody()
                                        .def_readwrite("gear_ratio",&PyElectricMotorActuatorInfo::gear_ratio)
                                        .def_readwrite("coloumb_friction",&PyElectricMotorActuatorInfo::coloumb_friction)
                                        .def_readwrite("viscous_friction",&PyElectricMotorActuatorInfo::viscous_friction)
-                                       .def_pickle(ElectricMotorActuatorInfo_pickle_suite())
+                                       // .def_pickle(ElectricMotorActuatorInfo_pickle_suite())
     ;
 
-    py::object jointtype = enum_<KinBody::JointType>("JointType" DOXY_ENUM(JointType))
+    py::object jointtype = py::enum_<KinBody::JointType>(m, "JointType" DOXY_ENUM(JointType))
                        .value("None",KinBody::JointNone)
                        .value("Hinge",KinBody::JointHinge)
                        .value("Revolute",KinBody::JointRevolute)
@@ -3432,7 +3468,7 @@ void init_openravepy_kinbody()
                        .value("Trajectory",KinBody::JointTrajectory)
     ;
 
-    py::object geometryinfo = class_<PyGeometryInfo, OPENRAVE_SHARED_PTR<PyGeometryInfo> >("GeometryInfo", DOXY_CLASS(KinBody::GeometryInfo))
+    py::object geometryinfo = py::class_<PyGeometryInfo, OPENRAVE_SHARED_PTR<PyGeometryInfo> >(m, "GeometryInfo", DOXY_CLASS(KinBody::GeometryInfo))
                           .def_readwrite("_t",&PyGeometryInfo::_t)
                           .def_readwrite("_vGeomData",&PyGeometryInfo::_vGeomData)
                           .def_readwrite("_vGeomData2",&PyGeometryInfo::_vGeomData2)
@@ -3453,21 +3489,21 @@ void init_openravepy_kinbody()
                           .def_readwrite("_mapExtraGeometries",&PyGeometryInfo::_mapExtraGeometries)
                           .def_readwrite("_vSideWalls", &PyGeometryInfo::_vSideWalls)
                           .def("ComputeInnerEmptyVolume",&PyGeometryInfo::ComputeInnerEmptyVolume, DOXY_FN(GeomeryInfo,ComputeInnerEmptyVolume))
-                          .def("ComputeAABB",&PyGeometryInfo::ComputeAABB, args("transform"), DOXY_FN(GeomeryInfo,ComputeAABB))
+                          .def("ComputeAABB",&PyGeometryInfo::ComputeAABB, py::arg("transform"), DOXY_FN(GeomeryInfo,ComputeAABB))
 #ifdef OPENRAVE_RAPIDJSON                          
-                          .def("DeserializeJSON", &PyGeometryInfo::DeserializeJSON, args("obj", "unitScale"), DOXY_FN(GeometryInfo, DeserializeJSON))
-                          .def("SerializeJSON", &PyGeometryInfo::SerializeJSON,SerializeJSON_overloads(args("unitScale", "options"), DOXY_FN(GeometryInfo,SerializeJSON)))
+                          .def("DeserializeJSON", &PyGeometryInfo::DeserializeJSON, py::arg("obj"), py::arg("unitScale"), DOXY_FN(GeometryInfo, DeserializeJSON))
+                          .def("SerializeJSON", &PyGeometryInfo::SerializeJSON, py::arg("unitScale"), py::arg("options"), DOXY_FN(GeometryInfo,SerializeJSON))
 #endif // OPENRAVE_RAPIDJSON                          
-                          .def_pickle(GeometryInfo_pickle_suite())
+                          // .def_pickle(GeometryInfo_pickle_suite())
     ;
 
-    py::object sidewall = class_<PySideWall, OPENRAVE_SHARED_PTR<PySideWall> >("SideWall", DOXY_CLASS(KinBody::GeometryInfo::SideWall))
+    py::object sidewall = py::class_<PySideWall, OPENRAVE_SHARED_PTR<PySideWall> >(m, "SideWall", DOXY_CLASS(KinBody::GeometryInfo::SideWall))
                       .def_readwrite("transf",&PySideWall::transf)
                       .def_readwrite("vExtents",&PySideWall::vExtents)
                       .def_readwrite("type",&PySideWall::type)
     ;
 
-    py::object linkinfo = class_<PyLinkInfo, OPENRAVE_SHARED_PTR<PyLinkInfo> >("LinkInfo", DOXY_CLASS(KinBody::LinkInfo))
+    py::object linkinfo = py::class_<PyLinkInfo, OPENRAVE_SHARED_PTR<PyLinkInfo> >(m, "LinkInfo", DOXY_CLASS(KinBody::LinkInfo))
                       .def_readwrite("_vgeometryinfos",&PyLinkInfo::_vgeometryinfos)
                       .def_readwrite("_name",&PyLinkInfo::_name)
                       .def_readwrite("_t",&PyLinkInfo::_t)
@@ -3480,9 +3516,9 @@ void init_openravepy_kinbody()
                       .def_readwrite("_vForcedAdjacentLinks",&PyLinkInfo::_vForcedAdjacentLinks)
                       .def_readwrite("_bStatic",&PyLinkInfo::_bStatic)
                       .def_readwrite("_bIsEnabled",&PyLinkInfo::_bIsEnabled)
-                      .def_pickle(LinkInfo_pickle_suite())
+                      // .def_pickle(LinkInfo_pickle_suite())
     ;
-    py::object jointinfo = class_<PyJointInfo, OPENRAVE_SHARED_PTR<PyJointInfo> >("JointInfo", DOXY_CLASS(KinBody::JointInfo))
+    py::object jointinfo = py::class_<PyJointInfo, OPENRAVE_SHARED_PTR<PyJointInfo> >(m, "JointInfo", DOXY_CLASS(KinBody::JointInfo))
                        .def_readwrite("_type",&PyJointInfo::_type)
                        .def_readwrite("_name",&PyJointInfo::_name)
                        .def_readwrite("_linkname0",&PyJointInfo::_linkname0)
@@ -3511,17 +3547,17 @@ void init_openravepy_kinbody()
                        .def_readwrite("_bIsCircular",&PyJointInfo::_bIsCircular)
                        .def_readwrite("_bIsActive",&PyJointInfo::_bIsActive)
                        .def_readwrite("_infoElectricMotor", &PyJointInfo::_infoElectricMotor)
-                       .def_pickle(JointInfo_pickle_suite())
+                       // .def_pickle(JointInfo_pickle_suite())
     ;
 
-    py::object grabbedinfo = class_<PyKinBody::PyGrabbedInfo, OPENRAVE_SHARED_PTR<PyKinBody::PyGrabbedInfo> >("GrabbedInfo", DOXY_CLASS(KinBody::GrabbedInfo))
+    py::object grabbedinfo = py::class_<PyKinBody::PyGrabbedInfo, OPENRAVE_SHARED_PTR<PyKinBody::PyGrabbedInfo> >(m, "GrabbedInfo", DOXY_CLASS(KinBody::GrabbedInfo))
                          .def_readwrite("_grabbedname",&PyKinBody::PyGrabbedInfo::_grabbedname)
                          .def_readwrite("_robotlinkname",&PyKinBody::PyGrabbedInfo::_robotlinkname)
                          .def_readwrite("_trelative",&PyKinBody::PyGrabbedInfo::_trelative)
                          .def_readwrite("_setRobotLinksToIgnore",&PyKinBody::PyGrabbedInfo::_setRobotLinksToIgnore)
                          .def("__str__",&PyKinBody::PyGrabbedInfo::__str__)
                          .def("__unicode__",&PyKinBody::PyGrabbedInfo::__unicode__)
-                         .def_pickle(GrabbedInfo_pickle_suite())
+                         // .def_pickle(GrabbedInfo_pickle_suite())
     ;
 
 
@@ -3568,150 +3604,151 @@ void init_openravepy_kinbody()
         std::string sInitFromBoxesDoc = std::string(DOXY_FN(KinBody,InitFromBoxes "const std::vector< AABB; bool")) + std::string("\nboxes is a Nx6 array, first 3 columsn are position, last 3 are extents");
         std::string sGetChainDoc = std::string(DOXY_FN(KinBody,GetChain)) + std::string("If returnjoints is false will return a list of links, otherwise will return a list of links (default is true)");
         std::string sComputeInverseDynamicsDoc = std::string(":param returncomponents: If True will return three N-element arrays that represents the torque contributions to M, C, and G.\n\n:param externalforcetorque: A dictionary of link indices and a 6-element array of forces/torques in that order.\n\n") + std::string(DOXY_FN(KinBody, ComputeInverseDynamics));
-        scope kinbody = class_<PyKinBody, OPENRAVE_SHARED_PTR<PyKinBody>, bases<PyInterfaceBase> >("KinBody", DOXY_CLASS(KinBody), no_init)
+        
+        py::object kinbody = py::class_<PyKinBody, OPENRAVE_SHARED_PTR<PyKinBody>, PyInterfaceBase>(m, "KinBody", DOXY_CLASS(KinBody))
                         .def("Destroy",&PyKinBody::Destroy, DOXY_FN(KinBody,Destroy))
-                        .def("InitFromBoxes",&PyKinBody::InitFromBoxes,InitFromBoxes_overloads(args("boxes","draw","uri"), sInitFromBoxesDoc.c_str()))
-                        .def("InitFromSpheres",&PyKinBody::InitFromSpheres,InitFromSpheres_overloads(args("spherex","draw","uri"), DOXY_FN(KinBody,InitFromSpheres)))
-                        .def("InitFromTrimesh",&PyKinBody::InitFromTrimesh,InitFromTrimesh_overloads(args("trimesh","draw","uri"), DOXY_FN(KinBody,InitFromTrimesh)))
-                        .def("InitFromGeometries",&PyKinBody::InitFromGeometries,InitFromGeometries_overloads(args("geometries", "uri"), DOXY_FN(KinBody,InitFromGeometries)))
-                        .def("Init",&PyKinBody::Init,Init_overloads(args("linkinfos","jointinfos","uri"), DOXY_FN(KinBody,Init)))
-                        .def("SetLinkGeometriesFromGroup",&PyKinBody::SetLinkGeometriesFromGroup, args("name"), DOXY_FN(KinBody,SetLinkGeometriesFromGroup))
-                        .def("SetLinkGroupGeometries", &PyKinBody::SetLinkGroupGeometries, args("name", "linkgeometries"), DOXY_FN(KinBody, SetLinkGroupGeometries))
-                        .def("SetName", &PyKinBody::SetName,args("name"),DOXY_FN(KinBody,SetName))
+                        .def("InitFromBoxes",&PyKinBody::InitFromBoxes, py::arg("boxes"), py::arg("draw"), py::arg("uri"), sInitFromBoxesDoc.c_str())
+                        .def("InitFromSpheres",&PyKinBody::InitFromSpheres, py::arg("spherex"), py::arg("draw"), py::arg("uri"), DOXY_FN(KinBody,InitFromSpheres))
+                        .def("InitFromTrimesh",&PyKinBody::InitFromTrimesh, py::arg("trimesh"), py::arg("draw"), py::arg("uri"), DOXY_FN(KinBody,InitFromTrimesh))
+                        .def("InitFromGeometries",&PyKinBody::InitFromGeometries, py::arg("geometries"), py::arg("uri"), DOXY_FN(KinBody,InitFromGeometries))
+                        .def("Init",&PyKinBody::Init, py::arg("linkinfos"), py::arg("jointinfos"), py::arg("uri"), DOXY_FN(KinBody,Init))
+                        .def("SetLinkGeometriesFromGroup",&PyKinBody::SetLinkGeometriesFromGroup, py::arg("name"), DOXY_FN(KinBody,SetLinkGeometriesFromGroup))
+                        .def("SetLinkGroupGeometries", &PyKinBody::SetLinkGroupGeometries, py::arg("name"), py::arg("linkgeometries"), DOXY_FN(KinBody, SetLinkGroupGeometries))
+                        .def("SetName", &PyKinBody::SetName, py::arg("name"),DOXY_FN(KinBody,SetName))
                         .def("GetName",&PyKinBody::GetName,DOXY_FN(KinBody,GetName))
                         .def("GetDOF",&PyKinBody::GetDOF,DOXY_FN(KinBody,GetDOF))
                         .def("GetDOFValues",getdofvalues1,DOXY_FN(KinBody,GetDOFValues))
-                        .def("GetDOFValues",getdofvalues2,args("indices"),DOXY_FN(KinBody,GetDOFValues))
+                        .def("GetDOFValues",getdofvalues2,py::arg("indices"),DOXY_FN(KinBody,GetDOFValues))
                         .def("GetDOFVelocities",getdofvelocities1, DOXY_FN(KinBody,GetDOFVelocities))
-                        .def("GetDOFVelocities",getdofvelocities2, args("indices"), DOXY_FN(KinBody,GetDOFVelocities))
+                        .def("GetDOFVelocities",getdofvelocities2, py::arg("indices"), DOXY_FN(KinBody,GetDOFVelocities))
                         .def("GetDOFLimits",getdoflimits1, DOXY_FN(KinBody,GetDOFLimits))
-                        .def("GetDOFLimits",getdoflimits2, args("indices"),DOXY_FN(KinBody,GetDOFLimits))
+                        .def("GetDOFLimits",getdoflimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFLimits))
                         .def("GetDOFVelocityLimits",getdofvelocitylimits1, DOXY_FN(KinBody,GetDOFVelocityLimits))
-                        .def("GetDOFVelocityLimits",getdofvelocitylimits2, args("indices"),DOXY_FN(KinBody,GetDOFVelocityLimits))
+                        .def("GetDOFVelocityLimits",getdofvelocitylimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFVelocityLimits))
                         .def("GetDOFAccelerationLimits",getdofaccelerationlimits1, DOXY_FN(KinBody,GetDOFAccelerationLimits))
-                        .def("GetDOFAccelerationLimits",getdofaccelerationlimits2, args("indices"),DOXY_FN(KinBody,GetDOFAccelerationLimits))
+                        .def("GetDOFAccelerationLimits",getdofaccelerationlimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFAccelerationLimits))
                         .def("GetDOFJerkLimits",getdofjerklimits1, DOXY_FN(KinBody,GetDOFJerkLimits1))
-                        .def("GetDOFJerkLimits",getdofjerklimits2, args("indices"),DOXY_FN(KinBody,GetDOFJerkLimits2))
+                        .def("GetDOFJerkLimits",getdofjerklimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFJerkLimits2))
                         .def("GetDOFHardVelocityLimits",getdofhardvelocitylimits1, DOXY_FN(KinBody,GetDOFHardVelocityLimits1))
-                        .def("GetDOFHardVelocityLimits",getdofhardvelocitylimits2, args("indices"),DOXY_FN(KinBody,GetDOFHardVelocityLimits2))
+                        .def("GetDOFHardVelocityLimits",getdofhardvelocitylimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFHardVelocityLimits2))
                         .def("GetDOFHardAccelerationLimits",getdofhardaccelerationlimits1, DOXY_FN(KinBody,GetDOFHardAccelerationLimits1))
-                        .def("GetDOFHardAccelerationLimits",getdofhardaccelerationlimits2, args("indices"),DOXY_FN(KinBody,GetDOFHardAccelerationLimits2))
+                        .def("GetDOFHardAccelerationLimits",getdofhardaccelerationlimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFHardAccelerationLimits2))
                         .def("GetDOFHardJerkLimits",getdofhardjerklimits1, DOXY_FN(KinBody,GetDOFHardJerkLimits1))
-                        .def("GetDOFHardJerkLimits",getdofhardjerklimits2, args("indices"),DOXY_FN(KinBody,GetDOFHardJerkLimits2))
+                        .def("GetDOFHardJerkLimits",getdofhardjerklimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFHardJerkLimits2))
                         .def("GetDOFTorqueLimits",getdoftorquelimits1, DOXY_FN(KinBody,GetDOFTorqueLimits))
-                        .def("GetDOFTorqueLimits",getdoftorquelimits2, args("indices"),DOXY_FN(KinBody,GetDOFTorqueLimits))
+                        .def("GetDOFTorqueLimits",getdoftorquelimits2, py::arg("indices"),DOXY_FN(KinBody,GetDOFTorqueLimits))
                         .def("GetDOFMaxVel",&PyKinBody::GetDOFMaxVel, DOXY_FN(KinBody,GetDOFMaxVel))
                         .def("GetDOFMaxTorque",&PyKinBody::GetDOFMaxTorque, DOXY_FN(KinBody,GetDOFMaxTorque))
                         .def("GetDOFMaxAccel",&PyKinBody::GetDOFMaxAccel, DOXY_FN(KinBody,GetDOFMaxAccel))
                         .def("GetDOFWeights",getdofweights1, DOXY_FN(KinBody,GetDOFWeights))
                         .def("GetDOFWeights",getdofweights2, DOXY_FN(KinBody,GetDOFWeights))
-                        .def("SetDOFWeights",&PyKinBody::SetDOFWeights, args("weights"), DOXY_FN(KinBody,SetDOFWeights))
-                        .def("SetDOFResolutions",&PyKinBody::SetDOFResolutions, args("resolutions"), DOXY_FN(KinBody,SetDOFResolutions))
-                        .def("SetDOFLimits",&PyKinBody::SetDOFLimits, SetDOFLimits_overloads(args("lower","upper","indices"), DOXY_FN(KinBody,SetDOFLimits)))
-                        .def("SetDOFVelocityLimits",&PyKinBody::SetDOFVelocityLimits, args("limits"), DOXY_FN(KinBody,SetDOFVelocityLimits))
-                        .def("SetDOFAccelerationLimits",&PyKinBody::SetDOFAccelerationLimits, args("limits"), DOXY_FN(KinBody,SetDOFAccelerationLimits))
-                        .def("SetDOFJerkLimits",&PyKinBody::SetDOFJerkLimits, args("limits"), DOXY_FN(KinBody,SetDOFJerkLimits))
-                        .def("SetDOFHardVelocityLimits",&PyKinBody::SetDOFHardVelocityLimits, args("limits"), DOXY_FN(KinBody,SetDOFHardVelocityLimits))
-                        .def("SetDOFHardAccelerationLimits",&PyKinBody::SetDOFHardAccelerationLimits, args("limits"), DOXY_FN(KinBody,SetDOFHardAccelerationLimits))
-                        .def("SetDOFHardJerkLimits",&PyKinBody::SetDOFHardJerkLimits, args("limits"), DOXY_FN(KinBody,SetDOFHardJerkLimits))
-                        .def("SetDOFTorqueLimits",&PyKinBody::SetDOFTorqueLimits, args("limits"), DOXY_FN(KinBody,SetDOFTorqueLimits))
+                        .def("SetDOFWeights",&PyKinBody::SetDOFWeights, py::arg("weights"), DOXY_FN(KinBody,SetDOFWeights))
+                        .def("SetDOFResolutions",&PyKinBody::SetDOFResolutions, py::arg("resolutions"), DOXY_FN(KinBody,SetDOFResolutions))
+                        .def("SetDOFLimits",&PyKinBody::SetDOFLimits, py::arg("lower"),py::arg("upper"),py::arg("indices"), DOXY_FN(KinBody,SetDOFLimits))
+                        .def("SetDOFVelocityLimits",&PyKinBody::SetDOFVelocityLimits, py::arg("limits"), DOXY_FN(KinBody,SetDOFVelocityLimits))
+                        .def("SetDOFAccelerationLimits",&PyKinBody::SetDOFAccelerationLimits, py::arg("limits"), DOXY_FN(KinBody,SetDOFAccelerationLimits))
+                        .def("SetDOFJerkLimits",&PyKinBody::SetDOFJerkLimits, py::arg("limits"), DOXY_FN(KinBody,SetDOFJerkLimits))
+                        .def("SetDOFHardVelocityLimits",&PyKinBody::SetDOFHardVelocityLimits, py::arg("limits"), DOXY_FN(KinBody,SetDOFHardVelocityLimits))
+                        .def("SetDOFHardAccelerationLimits",&PyKinBody::SetDOFHardAccelerationLimits, py::arg("limits"), DOXY_FN(KinBody,SetDOFHardAccelerationLimits))
+                        .def("SetDOFHardJerkLimits",&PyKinBody::SetDOFHardJerkLimits, py::arg("limits"), DOXY_FN(KinBody,SetDOFHardJerkLimits))
+                        .def("SetDOFTorqueLimits",&PyKinBody::SetDOFTorqueLimits, py::arg("limits"), DOXY_FN(KinBody,SetDOFTorqueLimits))
                         .def("GetDOFResolutions",getdofresolutions1, DOXY_FN(KinBody,GetDOFResolutions))
                         .def("GetDOFResolutions",getdofresolutions2, DOXY_FN(KinBody,GetDOFResolutions))
                         .def("GetLinks",getlinks1, DOXY_FN(KinBody,GetLinks))
-                        .def("GetLinks",getlinks2, args("indices"), DOXY_FN(KinBody,GetLinks))
-                        .def("GetLink",&PyKinBody::GetLink,args("name"), DOXY_FN(KinBody,GetLink))
+                        .def("GetLinks",getlinks2, py::arg("indices"), DOXY_FN(KinBody,GetLinks))
+                        .def("GetLink",&PyKinBody::GetLink,py::arg("name"), DOXY_FN(KinBody,GetLink))
                         .def("GetJoints",getjoints1, DOXY_FN(KinBody,GetJoints))
-                        .def("GetJoints",getjoints2, args("indices"), DOXY_FN(KinBody,GetJoints))
+                        .def("GetJoints",getjoints2, py::arg("indices"), DOXY_FN(KinBody,GetJoints))
                         .def("GetPassiveJoints",&PyKinBody::GetPassiveJoints, DOXY_FN(KinBody,GetPassiveJoints))
                         .def("GetDependencyOrderedJoints",&PyKinBody::GetDependencyOrderedJoints, DOXY_FN(KinBody,GetDependencyOrderedJoints))
                         .def("GetClosedLoops",&PyKinBody::GetClosedLoops,DOXY_FN(KinBody,GetClosedLoops))
-                        .def("GetRigidlyAttachedLinks",&PyKinBody::GetRigidlyAttachedLinks,args("linkindex"), DOXY_FN(KinBody,GetRigidlyAttachedLinks))
-                        .def("GetChain",&PyKinBody::GetChain,GetChain_overloads(args("linkindex1","linkindex2","returnjoints"), sGetChainDoc.c_str()))
-                        .def("IsDOFInChain",&PyKinBody::IsDOFInChain,args("linkindex1","linkindex2","dofindex"), DOXY_FN(KinBody,IsDOFInChain))
-                        .def("GetJointIndex",&PyKinBody::GetJointIndex,args("name"), DOXY_FN(KinBody,GetJointIndex))
-                        .def("GetJoint",&PyKinBody::GetJoint,args("name"), DOXY_FN(KinBody,GetJoint))
-                        .def("GetJointFromDOFIndex",&PyKinBody::GetJointFromDOFIndex,args("dofindex"), DOXY_FN(KinBody,GetJointFromDOFIndex))
+                        .def("GetRigidlyAttachedLinks",&PyKinBody::GetRigidlyAttachedLinks,py::arg("linkindex"), DOXY_FN(KinBody,GetRigidlyAttachedLinks))
+                        .def("GetChain",&PyKinBody::GetChain, py::arg("linkindex1"),py::arg("linkindex2"),py::arg("returnjoints"), sGetChainDoc.c_str())
+                        .def("IsDOFInChain",&PyKinBody::IsDOFInChain,py::arg("linkindex1"),py::arg("linkindex2"),py::arg("dofindex"), DOXY_FN(KinBody,IsDOFInChain))
+                        .def("GetJointIndex",&PyKinBody::GetJointIndex,py::arg("name"), DOXY_FN(KinBody,GetJointIndex))
+                        .def("GetJoint",&PyKinBody::GetJoint,py::arg("name"), DOXY_FN(KinBody,GetJoint))
+                        .def("GetJointFromDOFIndex",&PyKinBody::GetJointFromDOFIndex,py::arg("dofindex"), DOXY_FN(KinBody,GetJointFromDOFIndex))
                         .def("GetTransform",&PyKinBody::GetTransform, DOXY_FN(KinBody,GetTransform))
                         .def("GetTransformPose",&PyKinBody::GetTransformPose, DOXY_FN(KinBody,GetTransform))
-                        .def("GetLinkTransformations",&PyKinBody::GetLinkTransformations, GetLinkTransformations_overloads(args("returndoflastvlaues"), DOXY_FN(KinBody,GetLinkTransformations)))
+                        .def("GetLinkTransformations",&PyKinBody::GetLinkTransformations, py::arg("returndoflastvlaues"), DOXY_FN(KinBody,GetLinkTransformations))
                         .def("GetBodyTransformations",&PyKinBody::GetLinkTransformations, DOXY_FN(KinBody,GetLinkTransformations))
-                        .def("SetLinkTransformations",&PyKinBody::SetLinkTransformations,SetLinkTransformations_overloads(args("transforms","doflastsetvalues"), DOXY_FN(KinBody,SetLinkTransformations)))
-                        .def("SetBodyTransformations",&PyKinBody::SetLinkTransformations,args("transforms"), DOXY_FN(KinBody,SetLinkTransformations))
-                        .def("SetLinkVelocities",&PyKinBody::SetLinkVelocities,args("velocities"), DOXY_FN(KinBody,SetLinkVelocities))
-                        .def("SetVelocity",&PyKinBody::SetVelocity, args("linear","angular"), DOXY_FN(KinBody,SetVelocity "const Vector; const Vector"))
-                        .def("SetDOFVelocities",setdofvelocities1, args("dofvelocities"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; uint32_t"))
-                        .def("SetDOFVelocities",setdofvelocities2, args("dofvelocities","linear","angular"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; const Vector; const Vector; uint32_t"))
-                        .def("SetDOFVelocities",setdofvelocities3, args("dofvelocities","checklimits","indices"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; uint32_t; const std::vector"))
-                        .def("SetDOFVelocities",setdofvelocities4, args("dofvelocities","linear","angular","checklimits"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; const Vector; const Vector; uint32_t"))
+                        .def("SetLinkTransformations",&PyKinBody::SetLinkTransformations, py::arg("transforms"), py::arg("doflastsetvalues"), DOXY_FN(KinBody,SetLinkTransformations))
+                        .def("SetBodyTransformations",&PyKinBody::SetLinkTransformations,py::arg("transforms"), DOXY_FN(KinBody,SetLinkTransformations))
+                        .def("SetLinkVelocities",&PyKinBody::SetLinkVelocities,py::arg("velocities"), DOXY_FN(KinBody,SetLinkVelocities))
+                        .def("SetVelocity",&PyKinBody::SetVelocity, py::arg("linear"),py::arg("angular"), DOXY_FN(KinBody,SetVelocity "const Vector; const Vector"))
+                        .def("SetDOFVelocities",setdofvelocities1, py::arg("dofvelocities"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; uint32_t"))
+                        .def("SetDOFVelocities",setdofvelocities2, py::arg("dofvelocities"),py::arg("linear"),py::arg("angular"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; const Vector; const Vector; uint32_t"))
+                        .def("SetDOFVelocities",setdofvelocities3, py::arg("dofvelocities"),py::arg("checklimits"),py::arg("indices"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; uint32_t; const std::vector"))
+                        .def("SetDOFVelocities",setdofvelocities4, py::arg("dofvelocities"),py::arg("linear"),py::arg("angular"),py::arg("checklimits"), DOXY_FN(KinBody,SetDOFVelocities "const std::vector; const Vector; const Vector; uint32_t"))
                         .def("GetLinkVelocities",&PyKinBody::GetLinkVelocities, DOXY_FN(KinBody,GetLinkVelocities))
-                        .def("GetLinkAccelerations",&PyKinBody::GetLinkAccelerations, GetLinkAccelerations_overloads(args("dofaccelerations", "externalaccelerations"), DOXY_FN(KinBody,GetLinkAccelerations)))
+                        .def("GetLinkAccelerations",&PyKinBody::GetLinkAccelerations, py::arg("dofaccelerations"), py::arg("externalaccelerations"), DOXY_FN(KinBody,GetLinkAccelerations))
                         .def("GetLinkEnableStates",&PyKinBody::GetLinkEnableStates, DOXY_FN(KinBody,GetLinkEnableStates))
                         .def("SetLinkEnableStates",&PyKinBody::SetLinkEnableStates, DOXY_FN(KinBody,SetLinkEnableStates))
-                        .def("ComputeAABB",&PyKinBody::ComputeAABB, ComputeAABB_overloads(args("enabledOnlyLinks"), DOXY_FN(KinBody,ComputeAABB)))
-                        .def("ComputeAABBFromTransform",&PyKinBody::ComputeAABBFromTransform, ComputeAABBFromTransform_overloads(args("transform", "enabledOnlyLinks"), DOXY_FN(KinBody,ComputeAABBFromTransform)))
-                        .def("ComputeLocalAABB",&PyKinBody::ComputeLocalAABB, ComputeLocalAABB_overloads(args("enabledOnlyLinks"), DOXY_FN(KinBody,ComputeLocalAABB)))
+                        .def("ComputeAABB",&PyKinBody::ComputeAABB, py::arg("enabledOnlyLinks"), DOXY_FN(KinBody,ComputeAABB))
+                        .def("ComputeAABBFromTransform",&PyKinBody::ComputeAABBFromTransform, py::arg("transform"),py::arg("enabledOnlyLinks"), DOXY_FN(KinBody,ComputeAABBFromTransform))
+                        .def("ComputeLocalAABB",&PyKinBody::ComputeLocalAABB, py::arg("enabledOnlyLinks"), DOXY_FN(KinBody,ComputeLocalAABB))
                         .def("GetCenterOfMass", &PyKinBody::GetCenterOfMass, DOXY_FN(KinBody,GetCenterOfMass))
-                        .def("Enable",&PyKinBody::Enable,args("enable"), DOXY_FN(KinBody,Enable))
+                        .def("Enable",&PyKinBody::Enable,py::arg("enable"), DOXY_FN(KinBody,Enable))
                         .def("IsEnabled",&PyKinBody::IsEnabled, DOXY_FN(KinBody,IsEnabled))
-                        .def("SetVisible",&PyKinBody::SetVisible,args("visible"), DOXY_FN(KinBody,SetVisible))
+                        .def("SetVisible",&PyKinBody::SetVisible,py::arg("visible"), DOXY_FN(KinBody,SetVisible))
                         .def("IsVisible",&PyKinBody::IsVisible, DOXY_FN(KinBody,IsVisible))
-                        .def("IsDOFRevolute",&PyKinBody::IsDOFRevolute, args("dofindex"), DOXY_FN(KinBody,IsDOFRevolute))
-                        .def("IsDOFPrismatic",&PyKinBody::IsDOFPrismatic, args("dofindex"), DOXY_FN(KinBody,IsDOFPrismatic))
-                        .def("SetTransform",&PyKinBody::SetTransform,args("transform"), DOXY_FN(KinBody,SetTransform))
-                        .def("SetJointValues",psetdofvalues1,args("values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
-                        .def("SetJointValues",psetdofvalues2,args("values","dofindices"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
-                        .def("SetDOFValues",psetdofvalues1,args("values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
-                        .def("SetDOFValues",psetdofvalues2,args("values","dofindices"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
-                        .def("SetDOFValues",psetdofvalues3,args("values","dofindices","checklimits"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
-                        .def("SubtractDOFValues",&PyKinBody::SubtractDOFValues,SubtractDOFValues_overloads(args("values0","values1"), DOXY_FN(KinBody,SubtractDOFValues)))
-                        .def("SetDOFTorques",&PyKinBody::SetDOFTorques,args("torques","add"), DOXY_FN(KinBody,SetDOFTorques))
-                        .def("SetJointTorques",&PyKinBody::SetDOFTorques,args("torques","add"), DOXY_FN(KinBody,SetDOFTorques))
-                        .def("SetTransformWithJointValues",&PyKinBody::SetTransformWithDOFValues,args("transform","values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; const Transform; uint32_t"))
-                        .def("SetTransformWithDOFValues",&PyKinBody::SetTransformWithDOFValues,args("transform","values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; const Transform; uint32_t"))
-                        .def("ComputeJacobianTranslation",&PyKinBody::ComputeJacobianTranslation,ComputeJacobianTranslation_overloads(args("linkindex","position","indices"), DOXY_FN(KinBody,ComputeJacobianTranslation)))
-                        .def("ComputeJacobianAxisAngle",&PyKinBody::ComputeJacobianAxisAngle,ComputeJacobianAxisAngle_overloads(args("linkindex","indices"), DOXY_FN(KinBody,ComputeJacobianAxisAngle)))
-                        .def("CalculateJacobian",&PyKinBody::CalculateJacobian,args("linkindex","position"), DOXY_FN(KinBody,CalculateJacobian "int; const Vector; std::vector"))
-                        .def("CalculateRotationJacobian",&PyKinBody::CalculateRotationJacobian,args("linkindex","quat"), DOXY_FN(KinBody,CalculateRotationJacobian "int; const Vector; std::vector"))
-                        .def("CalculateAngularVelocityJacobian",&PyKinBody::CalculateAngularVelocityJacobian,args("linkindex"), DOXY_FN(KinBody,CalculateAngularVelocityJacobian "int; std::vector"))
-                        .def("Grab",pgrab2,args("body","grablink"), DOXY_FN(RobotBase,Grab "KinBodyPtr; LinkPtr"))
-                        .def("Grab",pgrab4,args("body","grablink","linkstoignore"), DOXY_FN(KinBody,Grab "KinBodyPtr; LinkPtr; const std::set"))
-                        .def("Release",&PyKinBody::Release,args("body"), DOXY_FN(KinBody,Release))
+                        .def("IsDOFRevolute",&PyKinBody::IsDOFRevolute, py::arg("dofindex"), DOXY_FN(KinBody,IsDOFRevolute))
+                        .def("IsDOFPrismatic",&PyKinBody::IsDOFPrismatic, py::arg("dofindex"), DOXY_FN(KinBody,IsDOFPrismatic))
+                        .def("SetTransform",&PyKinBody::SetTransform,py::arg("transform"), DOXY_FN(KinBody,SetTransform))
+                        .def("SetJointValues",psetdofvalues1,py::arg("values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
+                        .def("SetJointValues",psetdofvalues2,py::arg("values"),py::arg("dofindices"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
+                        .def("SetDOFValues",psetdofvalues1,py::arg("values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
+                        .def("SetDOFValues",psetdofvalues2,py::arg("values"),py::arg("dofindices"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
+                        .def("SetDOFValues",psetdofvalues3,py::arg("values"),py::arg("dofindices"),py::arg("checklimits"), DOXY_FN(KinBody,SetDOFValues "const std::vector; uint32_t; const std::vector"))
+                        .def("SubtractDOFValues",&PyKinBody::SubtractDOFValues, py::arg("values0"),py::arg("values1"), DOXY_FN(KinBody,SubtractDOFValues))
+                        .def("SetDOFTorques",&PyKinBody::SetDOFTorques,py::arg("torques"), py::arg("add"), DOXY_FN(KinBody,SetDOFTorques))
+                        .def("SetJointTorques",&PyKinBody::SetDOFTorques,py::arg("torques"), py::arg("add"), DOXY_FN(KinBody,SetDOFTorques))
+                        .def("SetTransformWithJointValues",&PyKinBody::SetTransformWithDOFValues,py::arg("transform"),py::arg("values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; const Transform; uint32_t"))
+                        .def("SetTransformWithDOFValues",&PyKinBody::SetTransformWithDOFValues,py::arg("transform"),py::arg("values"), DOXY_FN(KinBody,SetDOFValues "const std::vector; const Transform; uint32_t"))
+                        .def("ComputeJacobianTranslation",&PyKinBody::ComputeJacobianTranslation, py::arg("linkindex"),py::arg("position"),py::arg("indices"), DOXY_FN(KinBody,ComputeJacobianTranslation))
+                        .def("ComputeJacobianAxisAngle",&PyKinBody::ComputeJacobianAxisAngle, py::arg("linkindex"),py::arg("indices"), DOXY_FN(KinBody,ComputeJacobianAxisAngle))
+                        .def("CalculateJacobian",&PyKinBody::CalculateJacobian,py::arg("linkindex"),py::arg("position"), DOXY_FN(KinBody,CalculateJacobian "int; const Vector; std::vector"))
+                        .def("CalculateRotationJacobian",&PyKinBody::CalculateRotationJacobian,py::arg("linkindex"),py::arg("quat"), DOXY_FN(KinBody,CalculateRotationJacobian "int; const Vector; std::vector"))
+                        .def("CalculateAngularVelocityJacobian",&PyKinBody::CalculateAngularVelocityJacobian,py::arg("linkindex"), DOXY_FN(KinBody,CalculateAngularVelocityJacobian "int; std::vector"))
+                        .def("Grab",pgrab2,py::arg("body"), py::arg("grablink"), DOXY_FN(RobotBase,Grab "KinBodyPtr; LinkPtr"))
+                        .def("Grab",pgrab4,py::arg("body"), py::arg("grablink"), py::arg("linkstoignore"), DOXY_FN(KinBody,Grab "KinBodyPtr; LinkPtr; const std::set"))
+                        .def("Release",&PyKinBody::Release,py::arg("body"), DOXY_FN(KinBody,Release))
                         .def("ReleaseAllGrabbed",&PyKinBody::ReleaseAllGrabbed, DOXY_FN(KinBody,ReleaseAllGrabbed))
-                        .def("ReleaseAllGrabbedWithLink",&PyKinBody::ReleaseAllGrabbedWithLink, args("grablink"), DOXY_FN(KinBody,ReleaseAllGrabbedWithLink))
+                        .def("ReleaseAllGrabbedWithLink",&PyKinBody::ReleaseAllGrabbedWithLink, py::arg("grablink"), DOXY_FN(KinBody,ReleaseAllGrabbedWithLink))
                         .def("RegrabAll",&PyKinBody::RegrabAll, DOXY_FN(KinBody,RegrabAll))
-                        .def("IsGrabbing",&PyKinBody::IsGrabbing,args("body"), DOXY_FN(KinBody,IsGrabbing))
+                        .def("IsGrabbing",&PyKinBody::IsGrabbing,py::arg("body"), DOXY_FN(KinBody,IsGrabbing))
                         .def("GetGrabbed",&PyKinBody::GetGrabbed, DOXY_FN(KinBody,GetGrabbed))
                         .def("GetGrabbedInfo",&PyKinBody::GetGrabbedInfo, DOXY_FN(KinBody,GetGrabbedInfo))
-                        .def("ResetGrabbed",&PyKinBody::ResetGrabbed, args("grabbedinfos"), DOXY_FN(KinBody,ResetGrabbed))
-                        .def("ComputeHessianTranslation",&PyKinBody::ComputeHessianTranslation,ComputeHessianTranslation_overloads(args("linkindex","position","indices"), DOXY_FN(KinBody,ComputeHessianTranslation)))
-                        .def("ComputeHessianAxisAngle",&PyKinBody::ComputeHessianAxisAngle,ComputeHessianAxisAngle_overloads(args("linkindex","indices"), DOXY_FN(KinBody,ComputeHessianAxisAngle)))
-                        .def("ComputeInverseDynamics",&PyKinBody::ComputeInverseDynamics, ComputeInverseDynamics_overloads(args("dofaccelerations","externalforcetorque","returncomponents"), sComputeInverseDynamicsDoc.c_str()))
-                        .def("SetSelfCollisionChecker",&PyKinBody::SetSelfCollisionChecker,args("collisionchecker"), DOXY_FN(KinBody,SetSelfCollisionChecker))
-                        .def("GetSelfCollisionChecker",&PyKinBody::GetSelfCollisionChecker,args("collisionchecker"), DOXY_FN(KinBody,GetSelfCollisionChecker))
-                        .def("CheckSelfCollision",&PyKinBody::CheckSelfCollision, CheckSelfCollision_overloads(args("report","collisionchecker"), DOXY_FN(KinBody,CheckSelfCollision)))
-                        .def("IsAttached",&PyKinBody::IsAttached,args("body"), DOXY_FN(KinBody,IsAttached))
+                        .def("ResetGrabbed",&PyKinBody::ResetGrabbed, py::arg("grabbedinfos"), DOXY_FN(KinBody,ResetGrabbed))
+                        .def("ComputeHessianTranslation",&PyKinBody::ComputeHessianTranslation,py::arg("linkindex"),py::arg("position"),py::arg("indices"), DOXY_FN(KinBody,ComputeHessianTranslation))
+                        .def("ComputeHessianAxisAngle",&PyKinBody::ComputeHessianAxisAngle,py::arg("linkindex"),py::arg("indices"), DOXY_FN(KinBody,ComputeHessianAxisAngle))
+                        .def("ComputeInverseDynamics",&PyKinBody::ComputeInverseDynamics, py::arg("dofaccelerations"),py::arg("externalforcetorque"),py::arg("returncomponents"), sComputeInverseDynamicsDoc.c_str())
+                        .def("SetSelfCollisionChecker",&PyKinBody::SetSelfCollisionChecker,py::arg("collisionchecker"), DOXY_FN(KinBody,SetSelfCollisionChecker))
+                        .def("GetSelfCollisionChecker",&PyKinBody::GetSelfCollisionChecker,py::arg("collisionchecker"), DOXY_FN(KinBody,GetSelfCollisionChecker))
+                        .def("CheckSelfCollision",&PyKinBody::CheckSelfCollision, py::arg("report"),py::arg("collisionchecker"), DOXY_FN(KinBody,CheckSelfCollision))
+                        .def("IsAttached",&PyKinBody::IsAttached,py::arg("body"), DOXY_FN(KinBody,IsAttached))
                         .def("GetAttached",&PyKinBody::GetAttached, DOXY_FN(KinBody,GetAttached))
                         .def("SetZeroConfiguration",&PyKinBody::SetZeroConfiguration, DOXY_FN(KinBody,SetZeroConfiguration))
                         .def("SetNonCollidingConfiguration",&PyKinBody::SetNonCollidingConfiguration, DOXY_FN(KinBody,SetNonCollidingConfiguration))
-                        .def("GetConfigurationSpecification",&PyKinBody::GetConfigurationSpecification, GetConfigurationSpecification_overloads(args("interpolation"), DOXY_FN(KinBody,GetConfigurationSpecification)))
-                        .def("GetConfigurationSpecificationIndices",&PyKinBody::GetConfigurationSpecificationIndices, GetConfigurationSpecificationIndices_overloads(args("indices","interpolation"), DOXY_FN(KinBody,GetConfigurationSpecificationIndices)))
-                        .def("SetConfigurationValues",&PyKinBody::SetConfigurationValues, SetConfigurationValues_overloads(args("values","checklimits"), DOXY_FN(KinBody,SetConfigurationValues)))
+                        .def("GetConfigurationSpecification",&PyKinBody::GetConfigurationSpecification, py::arg("interpolation"), DOXY_FN(KinBody,GetConfigurationSpecification))
+                        .def("GetConfigurationSpecificationIndices",&PyKinBody::GetConfigurationSpecificationIndices, py::arg("indices"),py::arg("interpolation"), DOXY_FN(KinBody,GetConfigurationSpecificationIndices))
+                        .def("SetConfigurationValues",&PyKinBody::SetConfigurationValues, py::arg("values"),py::arg("checklimits"), DOXY_FN(KinBody,SetConfigurationValues))
                         .def("GetConfigurationValues",&PyKinBody::GetConfigurationValues, DOXY_FN(KinBody,GetConfigurationValues))
                         .def("IsRobot",&PyKinBody::IsRobot, DOXY_FN(KinBody,IsRobot))
                         .def("GetEnvironmentId",&PyKinBody::GetEnvironmentId, DOXY_FN(KinBody,GetEnvironmentId))
-                        .def("DoesAffect",&PyKinBody::DoesAffect,args("jointindex","linkindex"), DOXY_FN(KinBody,DoesAffect))
-                        .def("DoesDOFAffectLink",&PyKinBody::DoesDOFAffectLink,args("dofindex","linkindex"), DOXY_FN(KinBody,DoesDOFAffectLink))
+                        .def("DoesAffect",&PyKinBody::DoesAffect,py::arg("jointindex"), py::arg("linkindex"), DOXY_FN(KinBody,DoesAffect))
+                        .def("DoesDOFAffectLink",&PyKinBody::DoesDOFAffectLink,py::arg("dofindex"), py::arg("linkindex"), DOXY_FN(KinBody,DoesDOFAffectLink))
                         .def("GetURI",&PyKinBody::GetURI, DOXY_FN(InterfaceBase,GetURI))
                         .def("GetXMLFilename",&PyKinBody::GetURI, DOXY_FN(InterfaceBase,GetURI))
                         .def("GetNonAdjacentLinks",GetNonAdjacentLinks1, DOXY_FN(KinBody,GetNonAdjacentLinks))
-                        .def("GetNonAdjacentLinks",GetNonAdjacentLinks2, args("adjacentoptions"), DOXY_FN(KinBody,GetNonAdjacentLinks))
-                        .def("SetAdjacentLinks",&PyKinBody::SetAdjacentLinks, args("linkindex0", "linkindex1"), DOXY_FN(KinBody,SetAdjacentLinks))
+                        .def("GetNonAdjacentLinks",GetNonAdjacentLinks2, py::arg("adjacentoptions"), DOXY_FN(KinBody,GetNonAdjacentLinks))
+                        .def("SetAdjacentLinks",&PyKinBody::SetAdjacentLinks, py::arg("linkindex0"), py::arg("linkindex1"), DOXY_FN(KinBody,SetAdjacentLinks))
                         .def("GetAdjacentLinks",&PyKinBody::GetAdjacentLinks, DOXY_FN(KinBody,GetAdjacentLinks))
                         .def("GetManageData",&PyKinBody::GetManageData, DOXY_FN(KinBody,GetManageData))
                         .def("GetUpdateStamp",&PyKinBody::GetUpdateStamp, DOXY_FN(KinBody,GetUpdateStamp))
-                        .def("serialize",&PyKinBody::serialize,args("options"), DOXY_FN(KinBody,serialize))
+                        .def("serialize",&PyKinBody::serialize,py::arg("options"), DOXY_FN(KinBody,serialize))
                         .def("GetKinematicsGeometryHash",&PyKinBody::GetKinematicsGeometryHash, DOXY_FN(KinBody,GetKinematicsGeometryHash))
-                        .def("CreateKinBodyStateSaver",&PyKinBody::CreateKinBodyStateSaver, CreateKinBodyStateSaver_overloads(args("options"), "Creates an py::object that can be entered using 'with' and returns a KinBodyStateSaver")[return_value_policy<manage_new_py::object>()])
+                        .def("CreateKinBodyStateSaver",&PyKinBody::CreateKinBodyStateSaver, py::arg("options"), "Creates an py::object that can be entered using 'with' and returns a KinBodyStateSaver")
                         .def("__enter__",&PyKinBody::__enter__)
                         .def("__exit__",&PyKinBody::__exit__)
                         .def("__repr__",&PyKinBody::__repr__)
@@ -3719,7 +3756,7 @@ void init_openravepy_kinbody()
                         .def("__unicode__",&PyKinBody::__unicode__)
         ;
 
-        enum_<KinBody::SaveParameters>("SaveParameters" DOXY_ENUM(SaveParameters))
+        py::enum_<KinBody::SaveParameters>(m, "SaveParameters" DOXY_ENUM(SaveParameters))
         .value("LinkTransformation",KinBody::Save_LinkTransformation)
         .value("LinkEnable",KinBody::Save_LinkEnable)
         .value("LinkVelocities", KinBody::Save_LinkVelocities)
@@ -3731,13 +3768,15 @@ void init_openravepy_kinbody()
         .value("GrabbedBodies",KinBody::Save_GrabbedBodies)
         .value("ActiveManipulatorToolTransform",KinBody::Save_ActiveManipulatorToolTransform)
         ;
-        enum_<KinBody::CheckLimitsAction>("CheckLimitsAction" DOXY_ENUM(CheckLimitsAction))
+        
+        py::enum_<KinBody::CheckLimitsAction>(m, "CheckLimitsAction" DOXY_ENUM(CheckLimitsAction))
         .value("Nothing",KinBody::CLA_Nothing)
         .value("CheckLimits",KinBody::CLA_CheckLimits)
         .value("CheckLimitsSilent",KinBody::CLA_CheckLimitsSilent)
         .value("CheckLimitsThrow",KinBody::CLA_CheckLimitsThrow)
         ;
-        enum_<KinBody::AdjacentOptions>("AdjacentOptions" DOXY_ENUM(AdjacentOptions))
+
+        py::enum_<KinBody::AdjacentOptions>(m, "AdjacentOptions" DOXY_ENUM(AdjacentOptions))
         .value("Enabled",KinBody::AO_Enabled)
         .value("ActiveDOFs",KinBody::AO_ActiveDOFs)
         ;
@@ -3747,20 +3786,20 @@ void init_openravepy_kinbody()
         kinbody.attr("JointInfo") = jointinfo;
         kinbody.attr("GrabbedInfo") = grabbedinfo;
         {
-            scope link = class_<PyLink, OPENRAVE_SHARED_PTR<PyLink> >("Link", DOXY_CLASS(KinBody::Link), no_init)
+            py::object link = py::class_<PyLink, OPENRAVE_SHARED_PTR<PyLink> >(m, "Link", DOXY_CLASS(KinBody::Link))
                          .def("GetName",&PyLink::GetName, DOXY_FN(KinBody::Link,GetName))
                          .def("GetIndex",&PyLink::GetIndex, DOXY_FN(KinBody::Link,GetIndex))
-                         .def("Enable",&PyLink::Enable,args("enable"), DOXY_FN(KinBody::Link,Enable))
+                         .def("Enable",&PyLink::Enable,py::arg("enable"), DOXY_FN(KinBody::Link,Enable))
                          .def("IsEnabled",&PyLink::IsEnabled, DOXY_FN(KinBody::Link,IsEnabled))
                          .def("IsStatic",&PyLink::IsStatic, DOXY_FN(KinBody::Link,IsStatic))
-                         .def("SetVisible",&PyLink::SetVisible,args("visible"), DOXY_FN(KinBody::Link,SetVisible))
+                         .def("SetVisible",&PyLink::SetVisible,py::arg("visible"), DOXY_FN(KinBody::Link,SetVisible))
                          .def("IsVisible",&PyLink::IsVisible, DOXY_FN(KinBody::Link,IsVisible))
                          .def("GetParent",&PyLink::GetParent, DOXY_FN(KinBody::Link,GetParent))
                          .def("GetParentLinks",&PyLink::GetParentLinks, DOXY_FN(KinBody::Link,GetParentLinks))
                          .def("IsParentLink",&PyLink::IsParentLink, DOXY_FN(KinBody::Link,IsParentLink))
                          .def("GetCollisionData",&PyLink::GetCollisionData, DOXY_FN(KinBody::Link,GetCollisionData))
                          .def("ComputeAABB",&PyLink::ComputeAABB, DOXY_FN(KinBody::Link,ComputeAABB))
-                         .def("ComputeAABBFromTransform",&PyLink::ComputeAABBFromTransform, args("transform"), DOXY_FN(KinBody::Link,ComputeAABB))
+                         .def("ComputeAABBFromTransform",&PyLink::ComputeAABBFromTransform, py::arg("transform"), DOXY_FN(KinBody::Link,ComputeAABB))
                          .def("ComputeLocalAABB",&PyLink::ComputeLocalAABB, DOXY_FN(KinBody::Link,ComputeLocalAABB))
                          .def("GetTransform",&PyLink::GetTransform, DOXY_FN(KinBody::Link,GetTransform))
                          .def("GetTransformPose",&PyLink::GetTransformPose, DOXY_FN(KinBody::Link,GetTransform))
@@ -3773,30 +3812,30 @@ void init_openravepy_kinbody()
                          .def("GetLocalMassFrame",&PyLink::GetLocalMassFrame, DOXY_FN(KinBody::Link,GetLocalMassFrame))
                          .def("GetGlobalMassFrame",&PyLink::GetGlobalMassFrame, DOXY_FN(KinBody::Link,GetGlobalMassFrame))
                          .def("GetMass",&PyLink::GetMass, DOXY_FN(KinBody::Link,GetMass))
-                         .def("SetLocalMassFrame",&PyLink::SetLocalMassFrame, args("massframe"), DOXY_FN(KinBody::Link,SetLocalMassFrame))
-                         .def("SetPrincipalMomentsOfInertia",&PyLink::SetPrincipalMomentsOfInertia, args("inertiamoments"), DOXY_FN(KinBody::Link,SetPrincipalMomentsOfInertia))
-                         .def("SetMass",&PyLink::SetMass, args("mass"), DOXY_FN(KinBody::Link,SetMass))
-                         .def("SetStatic",&PyLink::SetStatic,args("static"), DOXY_FN(KinBody::Link,SetStatic))
-                         .def("SetTransform",&PyLink::SetTransform,args("transform"), DOXY_FN(KinBody::Link,SetTransform))
-                         .def("SetForce",&PyLink::SetForce,args("force","pos","add"), DOXY_FN(KinBody::Link,SetForce))
-                         .def("SetTorque",&PyLink::SetTorque,args("torque","add"), DOXY_FN(KinBody::Link,SetTorque))
+                         .def("SetLocalMassFrame",&PyLink::SetLocalMassFrame, py::arg("massframe"), DOXY_FN(KinBody::Link,SetLocalMassFrame))
+                         .def("SetPrincipalMomentsOfInertia",&PyLink::SetPrincipalMomentsOfInertia, py::arg("inertiamoments"), DOXY_FN(KinBody::Link,SetPrincipalMomentsOfInertia))
+                         .def("SetMass",&PyLink::SetMass, py::arg("mass"), DOXY_FN(KinBody::Link,SetMass))
+                         .def("SetStatic",&PyLink::SetStatic,py::arg("static"), DOXY_FN(KinBody::Link,SetStatic))
+                         .def("SetTransform",&PyLink::SetTransform,py::arg("transform"), DOXY_FN(KinBody::Link,SetTransform))
+                         .def("SetForce",&PyLink::SetForce,py::arg("force"),py::arg("pos"),py::arg("add"), DOXY_FN(KinBody::Link,SetForce))
+                         .def("SetTorque",&PyLink::SetTorque,py::arg("torque"),py::arg("add"), DOXY_FN(KinBody::Link,SetTorque))
                          .def("GetGeometries",&PyLink::GetGeometries, DOXY_FN(KinBody::Link,GetGeometries))
-                         .def("InitGeometries",&PyLink::InitGeometries, args("geometries"), DOXY_FN(KinBody::Link,InitGeometries))
-                         .def("AddGeometry", &PyLink::AddGeometry, args("geometryinfo", "addToGroups"), DOXY_FN(KinBody::Link,AddGeometry))
-                         .def("RemoveGeometryByName", &PyLink::RemoveGeometryByName, args("geometryname", "removeFromAllGroups"), DOXY_FN(KinBody::Link,RemoveGeometryByName))
-                         .def("SetGeometriesFromGroup",&PyLink::SetGeometriesFromGroup, args("name"), DOXY_FN(KinBody::Link,SetGeometriesFromGroup))
-                         .def("GetGeometriesFromGroup",&PyLink::GetGeometriesFromGroup, args("name"), DOXY_FN(KinBody::Link,GetGeometriesFromGroup))
-                         .def("SetGroupGeometries",&PyLink::SetGroupGeometries, args("geometries"), DOXY_FN(KinBody::Link,SetGroupGeometries))
-                         .def("GetGroupNumGeometries",&PyLink::GetGroupNumGeometries, args("geometries"), DOXY_FN(KinBody::Link,GetGroupNumGeometries))
+                         .def("InitGeometries",&PyLink::InitGeometries, py::arg("geometries"), DOXY_FN(KinBody::Link,InitGeometries))
+                         .def("AddGeometry", &PyLink::AddGeometry, py::arg("geometryinfo"),py::arg("addToGroups"), DOXY_FN(KinBody::Link,AddGeometry))
+                         .def("RemoveGeometryByName", &PyLink::RemoveGeometryByName, py::arg("geometryname"),py::arg("removeFromAllGroups"), DOXY_FN(KinBody::Link,RemoveGeometryByName))
+                         .def("SetGeometriesFromGroup",&PyLink::SetGeometriesFromGroup, py::arg("name"), DOXY_FN(KinBody::Link,SetGeometriesFromGroup))
+                         .def("GetGeometriesFromGroup",&PyLink::GetGeometriesFromGroup, py::arg("name"), DOXY_FN(KinBody::Link,GetGeometriesFromGroup))
+                         .def("SetGroupGeometries",&PyLink::SetGroupGeometries, py::arg("geometries"), DOXY_FN(KinBody::Link,SetGroupGeometries))
+                         .def("GetGroupNumGeometries",&PyLink::GetGroupNumGeometries, py::arg("geometries"), DOXY_FN(KinBody::Link,GetGroupNumGeometries))
                          .def("GetRigidlyAttachedLinks",&PyLink::GetRigidlyAttachedLinks, DOXY_FN(KinBody::Link,GetRigidlyAttachedLinks))
                          .def("IsRigidlyAttached",&PyLink::IsRigidlyAttached, DOXY_FN(KinBody::Link,IsRigidlyAttached))
                          .def("GetVelocity",&PyLink::GetVelocity,DOXY_FN(KinBody::Link,GetVelocity))
                          .def("SetVelocity",&PyLink::SetVelocity,DOXY_FN(KinBody::Link,SetVelocity))
-                         .def("GetFloatParameters",&PyLink::GetFloatParameters,GetFloatParameters_overloads(args("name","index"), DOXY_FN(KinBody::Link,GetFloatParameters)))
+                         .def("GetFloatParameters",&PyLink::GetFloatParameters,py::arg("name"),py::arg("index"), DOXY_FN(KinBody::Link,GetFloatParameters))
                          .def("SetFloatParameters",&PyLink::SetFloatParameters,DOXY_FN(KinBody::Link,SetFloatParameters))
-                         .def("GetIntParameters",&PyLink::GetIntParameters,GetIntParameters_overloads(args("name", "index"), DOXY_FN(KinBody::Link,GetIntParameters)))
+                         .def("GetIntParameters",&PyLink::GetIntParameters,py::arg("name"),py::arg("index"), DOXY_FN(KinBody::Link,GetIntParameters))
                          .def("SetIntParameters",&PyLink::SetIntParameters,DOXY_FN(KinBody::Link,SetIntParameters))
-                         .def("GetStringParameters",&PyLink::GetStringParameters,GetStringParameters_overloads(args("name"), DOXY_FN(KinBody::Link,GetStringParameters)))
+                         .def("GetStringParameters",&PyLink::GetStringParameters,py::arg("name"), DOXY_FN(KinBody::Link,GetStringParameters))
                          .def("SetStringParameters",&PyLink::SetStringParameters,DOXY_FN(KinBody::Link,SetStringParameters))
                          .def("UpdateInfo",&PyLink::UpdateInfo,DOXY_FN(KinBody::Link,UpdateInfo))
                          .def("GetInfo",&PyLink::GetInfo,DOXY_FN(KinBody::Link,GetInfo))
@@ -3809,23 +3848,24 @@ void init_openravepy_kinbody()
                          .def("__ne__",&PyLink::__ne__)
                          .def("__hash__",&PyLink::__hash__)
             ;
+
             // \deprecated (12/10/18)
             link.attr("GeomType") = geometrytype;
             link.attr("GeometryInfo") = geometryinfo;
             {
-                scope geometry = class_<PyLink::PyGeometry, OPENRAVE_SHARED_PTR<PyLink::PyGeometry> >("Geometry", DOXY_CLASS(KinBody::Link::Geometry),no_init)
-                                 .def("SetCollisionMesh",&PyLink::PyGeometry::SetCollisionMesh,args("trimesh"), DOXY_FN(KinBody::Link::Geometry,SetCollisionMesh))
+                py::object geometry = py::class_<PyLink::PyGeometry, OPENRAVE_SHARED_PTR<PyLink::PyGeometry> >(m, "Geometry", DOXY_CLASS(KinBody::Link::Geometry))
+                                 .def("SetCollisionMesh",&PyLink::PyGeometry::SetCollisionMesh,py::arg("trimesh"), DOXY_FN(KinBody::Link::Geometry,SetCollisionMesh))
                                  .def("GetCollisionMesh",&PyLink::PyGeometry::GetCollisionMesh, DOXY_FN(KinBody::Link::Geometry,GetCollisionMesh))
-                                 .def("InitCollisionMesh",&PyLink::PyGeometry::InitCollisionMesh, InitCollisionMesh_overloads(args("tesselation"), DOXY_FN(KinBody::Link::Geometry,GetCollisionMesh)))
-                                 .def("ComputeAABB",&PyLink::PyGeometry::ComputeAABB, args("transform"), DOXY_FN(KinBody::Link::Geometry,ComputeAABB))
+                                 .def("InitCollisionMesh",&PyLink::PyGeometry::InitCollisionMesh, py::arg("tesselation"), DOXY_FN(KinBody::Link::Geometry,GetCollisionMesh))
+                                 .def("ComputeAABB",&PyLink::PyGeometry::ComputeAABB, py::arg("transform"), DOXY_FN(KinBody::Link::Geometry,ComputeAABB))
                                  .def("GetSideWallExists",&PyLink::PyGeometry::GetSideWallExists, DOXY_FN(KinBody::Link::Geometry,GetSideWallExists))
-                                 .def("SetDraw",&PyLink::PyGeometry::SetDraw,args("draw"), DOXY_FN(KinBody::Link::Geometry,SetDraw))
-                                 .def("SetTransparency",&PyLink::PyGeometry::SetTransparency,args("transparency"), DOXY_FN(KinBody::Link::Geometry,SetTransparency))
-                                 .def("SetDiffuseColor",&PyLink::PyGeometry::SetDiffuseColor,args("color"), DOXY_FN(KinBody::Link::Geometry,SetDiffuseColor))
-                                 .def("SetAmbientColor",&PyLink::PyGeometry::SetAmbientColor,args("color"), DOXY_FN(KinBody::Link::Geometry,SetAmbientColor))
-                                 .def("SetRenderFilename",&PyLink::PyGeometry::SetRenderFilename,args("color"), DOXY_FN(KinBody::Link::Geometry,SetRenderFilename))
-                                 .def("SetName",&PyLink::PyGeometry::SetName,args("name"), DOXY_FN(KinBody::Link::Geometry,setName))
-                                 .def("SetVisible",&PyLink::PyGeometry::SetVisible,args("visible"), DOXY_FN(KinBody::Link::Geometry,SetVisible))
+                                 .def("SetDraw",&PyLink::PyGeometry::SetDraw,py::arg("draw"), DOXY_FN(KinBody::Link::Geometry,SetDraw))
+                                 .def("SetTransparency",&PyLink::PyGeometry::SetTransparency,py::arg("transparency"), DOXY_FN(KinBody::Link::Geometry,SetTransparency))
+                                 .def("SetDiffuseColor",&PyLink::PyGeometry::SetDiffuseColor,py::arg("color"), DOXY_FN(KinBody::Link::Geometry,SetDiffuseColor))
+                                 .def("SetAmbientColor",&PyLink::PyGeometry::SetAmbientColor,py::arg("color"), DOXY_FN(KinBody::Link::Geometry,SetAmbientColor))
+                                 .def("SetRenderFilename",&PyLink::PyGeometry::SetRenderFilename,py::arg("color"), DOXY_FN(KinBody::Link::Geometry,SetRenderFilename))
+                                 .def("SetName",&PyLink::PyGeometry::SetName,py::arg("name"), DOXY_FN(KinBody::Link::Geometry,setName))
+                                 .def("SetVisible",&PyLink::PyGeometry::SetVisible,py::arg("visible"), DOXY_FN(KinBody::Link::Geometry,SetVisible))
                                  .def("IsDraw",&PyLink::PyGeometry::IsDraw, DOXY_FN(KinBody::Link::Geometry,IsDraw))
                                  .def("IsVisible",&PyLink::PyGeometry::IsVisible, DOXY_FN(KinBody::Link::Geometry,IsVisible))
                                  .def("IsModifiable",&PyLink::PyGeometry::IsModifiable, DOXY_FN(KinBody::Link::Geometry,IsModifiable))
@@ -3859,19 +3899,19 @@ void init_openravepy_kinbody()
             link.attr("GeomProperties") = link.attr("Geometry");
         }
         {
-            scope joint = class_<PyJoint, OPENRAVE_SHARED_PTR<PyJoint> >("Joint", DOXY_CLASS(KinBody::Joint),no_init)
+            py::object joint = py::class_<PyJoint, OPENRAVE_SHARED_PTR<PyJoint> >(m, "Joint", DOXY_CLASS(KinBody::Joint))
                           .def("GetName", &PyJoint::GetName, DOXY_FN(KinBody::Joint,GetName))
-                          .def("IsMimic",&PyJoint::IsMimic,IsMimic_overloads(args("axis"), DOXY_FN(KinBody::Joint,IsMimic)))
-                          .def("GetMimicEquation",&PyJoint::GetMimicEquation,GetMimicEquation_overloads(args("axis","type","format"), DOXY_FN(KinBody::Joint,GetMimicEquation)))
-                          .def("GetMimicDOFIndices",&PyJoint::GetMimicDOFIndices,GetMimicDOFIndices_overloads(args("axis"), DOXY_FN(KinBody::Joint,GetMimicDOFIndices)))
-                          .def("SetMimicEquations", &PyJoint::SetMimicEquations, args("axis","poseq","veleq","acceleq"), DOXY_FN(KinBody::Joint,SetMimicEquations))
-                          .def("GetMaxVel", &PyJoint::GetMaxVel, GetMaxVel_overloads(args("axis"),DOXY_FN(KinBody::Joint,GetMaxVel)))
-                          .def("GetMaxAccel", &PyJoint::GetMaxAccel, GetMaxAccel_overloads(args("axis"),DOXY_FN(KinBody::Joint,GetMaxAccel)))
-                          .def("GetMaxJerk", &PyJoint::GetMaxJerk, GetMaxJerk_overloads(args("axis"),DOXY_FN(KinBody::Joint,GetMaxJerk)))
-                          .def("GetMaxTorque", &PyJoint::GetMaxTorque, GetMaxTorque_overloads(args("axis"),DOXY_FN(KinBody::Joint,GetMaxTorque)))
-                          .def("GetInstantaneousTorqueLimits", &PyJoint::GetInstantaneousTorqueLimits, GetInstantaneousTorqueLimits_overloads(args("axis"),DOXY_FN(KinBody::Joint,GetInstantaneousTorqueLimits)))
-                          .def("GetNominalTorqueLimits", &PyJoint::GetNominalTorqueLimits, GetNominalTorqueLimits_overloads(args("axis"),DOXY_FN(KinBody::Joint,GetNominalTorqueLimits)))
-                          .def("GetMaxInertia", &PyJoint::GetMaxInertia, GetMaxInertia_overloads(args("axis"),DOXY_FN(KinBody::Joint,GetMaxInertia)))
+                          .def("IsMimic",&PyJoint::IsMimic,py::arg("axis"), DOXY_FN(KinBody::Joint,IsMimic))
+                          .def("GetMimicEquation",&PyJoint::GetMimicEquation,py::arg("axis"), py::arg("type"), py::arg("format"), DOXY_FN(KinBody::Joint,GetMimicEquation))
+                          .def("GetMimicDOFIndices",&PyJoint::GetMimicDOFIndices,py::arg("axis"), DOXY_FN(KinBody::Joint,GetMimicDOFIndices))
+                          .def("SetMimicEquations", &PyJoint::SetMimicEquations, py::arg("axis"), py::arg("poseq"), py::arg("veleq"), py::arg("acceleq"), DOXY_FN(KinBody::Joint,SetMimicEquations))
+                          .def("GetMaxVel", &PyJoint::GetMaxVel, py::arg("axis"),DOXY_FN(KinBody::Joint,GetMaxVel))
+                          .def("GetMaxAccel", &PyJoint::GetMaxAccel, py::arg("axis"),DOXY_FN(KinBody::Joint,GetMaxAccel))
+                          .def("GetMaxJerk", &PyJoint::GetMaxJerk, py::arg("axis"),DOXY_FN(KinBody::Joint,GetMaxJerk))
+                          .def("GetMaxTorque", &PyJoint::GetMaxTorque, py::arg("axis"),DOXY_FN(KinBody::Joint,GetMaxTorque))
+                          .def("GetInstantaneousTorqueLimits", &PyJoint::GetInstantaneousTorqueLimits, py::arg("axis"),DOXY_FN(KinBody::Joint,GetInstantaneousTorqueLimits))
+                          .def("GetNominalTorqueLimits", &PyJoint::GetNominalTorqueLimits, py::arg("axis"),DOXY_FN(KinBody::Joint,GetNominalTorqueLimits))
+                          .def("GetMaxInertia", &PyJoint::GetMaxInertia, py::arg("axis"),DOXY_FN(KinBody::Joint,GetMaxInertia))
                           .def("GetDOFIndex", &PyJoint::GetDOFIndex, DOXY_FN(KinBody::Joint,GetDOFIndex))
                           .def("GetJointIndex", &PyJoint::GetJointIndex, DOXY_FN(KinBody::Joint,GetJointIndex))
                           .def("GetParent", &PyJoint::GetParent, DOXY_FN(KinBody::Joint,GetParent))
@@ -3887,10 +3927,10 @@ void init_openravepy_kinbody()
                           .def("GetValue", &PyJoint::GetValue, DOXY_FN(KinBody::Joint,GetValue))
                           .def("GetVelocities", &PyJoint::GetVelocities, DOXY_FN(KinBody::Joint,GetVelocities))
                           .def("GetAnchor", &PyJoint::GetAnchor, DOXY_FN(KinBody::Joint,GetAnchor))
-                          .def("GetAxis", &PyJoint::GetAxis,GetAxis_overloads(args("axis"), DOXY_FN(KinBody::Joint,GetAxis)))
+                          .def("GetAxis", &PyJoint::GetAxis,py::arg("axis"), DOXY_FN(KinBody::Joint,GetAxis))
                           .def("GetHierarchyParentLink", &PyJoint::GetHierarchyParentLink, DOXY_FN(KinBody::Joint,GetHierarchyParentLink))
                           .def("GetHierarchyChildLink", &PyJoint::GetHierarchyChildLink, DOXY_FN(KinBody::Joint,GetHierarchyChildLink))
-                          .def("GetInternalHierarchyAxis", &PyJoint::GetInternalHierarchyAxis,args("axis"), DOXY_FN(KinBody::Joint,GetInternalHierarchyAxis))
+                          .def("GetInternalHierarchyAxis", &PyJoint::GetInternalHierarchyAxis,py::arg("axis"), DOXY_FN(KinBody::Joint,GetInternalHierarchyAxis))
                           .def("GetInternalHierarchyLeftTransform",&PyJoint::GetInternalHierarchyLeftTransform, DOXY_FN(KinBody::Joint,GetInternalHierarchyLeftTransform))
                           .def("GetInternalHierarchyLeftTransformPose",&PyJoint::GetInternalHierarchyLeftTransformPose, DOXY_FN(KinBody::Joint,GetInternalHierarchyLeftTransform))
                           .def("GetInternalHierarchyRightTransform",&PyJoint::GetInternalHierarchyRightTransform, DOXY_FN(KinBody::Joint,GetInternalHierarchyRightTransform))
@@ -3903,31 +3943,31 @@ void init_openravepy_kinbody()
                           .def("GetHardAccelerationLimits", &PyJoint::GetHardAccelerationLimits, DOXY_FN(KinBody::Joint,GetHardAccelerationLimits))
                           .def("GetHardJerkLimits", &PyJoint::GetHardJerkLimits, DOXY_FN(KinBody::Joint,GetHardJerkLimits))
                           .def("GetTorqueLimits", &PyJoint::GetTorqueLimits, DOXY_FN(KinBody::Joint,GetTorqueLimits))
-                          .def("SetWrapOffset",&PyJoint::SetWrapOffset,SetWrapOffset_overloads(args("offset","axis"), DOXY_FN(KinBody::Joint,SetWrapOffset)))
-                          .def("GetWrapOffset",&PyJoint::GetWrapOffset,GetWrapOffset_overloads(args("axis"), DOXY_FN(KinBody::Joint,GetWrapOffset)))
-                          .def("SetLimits",&PyJoint::SetLimits,args("lower","upper"), DOXY_FN(KinBody::Joint,SetLimits))
-                          .def("SetVelocityLimits",&PyJoint::SetVelocityLimits,args("maxlimits"), DOXY_FN(KinBody::Joint,SetVelocityLimits))
-                          .def("SetAccelerationLimits",&PyJoint::SetAccelerationLimits,args("maxlimits"), DOXY_FN(KinBody::Joint,SetAccelerationLimits))
-                          .def("SetJerkLimits",&PyJoint::SetJerkLimits,args("maxlimits"), DOXY_FN(KinBody::Joint,SetJerkLimits))
-                          .def("SetHardVelocityLimits",&PyJoint::SetHardVelocityLimits,args("maxlimits"), DOXY_FN(KinBody::Joint,SetHardVelocityLimits))
-                          .def("SetHardAccelerationLimits",&PyJoint::SetHardAccelerationLimits,args("maxlimits"), DOXY_FN(KinBody::Joint,SetHardAccelerationLimits))
-                          .def("SetHardJerkLimits",&PyJoint::SetHardJerkLimits,args("maxlimits"), DOXY_FN(KinBody::Joint,SetHardJerkLimits))
-                          .def("SetTorqueLimits",&PyJoint::SetTorqueLimits,args("maxlimits"), DOXY_FN(KinBody::Joint,SetTorqueLimits))
-                          .def("GetResolution",&PyJoint::GetResolution,args("axis"), DOXY_FN(KinBody::Joint,GetResolution))
+                          .def("SetWrapOffset",&PyJoint::SetWrapOffset,py::arg("offset"), py::arg("axis"), DOXY_FN(KinBody::Joint,SetWrapOffset))
+                          .def("GetWrapOffset",&PyJoint::GetWrapOffset,py::arg("axis"), DOXY_FN(KinBody::Joint,GetWrapOffset))
+                          .def("SetLimits",&PyJoint::SetLimits,py::arg("lower"), py::arg("upper"), DOXY_FN(KinBody::Joint,SetLimits))
+                          .def("SetVelocityLimits",&PyJoint::SetVelocityLimits,py::arg("maxlimits"), DOXY_FN(KinBody::Joint,SetVelocityLimits))
+                          .def("SetAccelerationLimits",&PyJoint::SetAccelerationLimits,py::arg("maxlimits"), DOXY_FN(KinBody::Joint,SetAccelerationLimits))
+                          .def("SetJerkLimits",&PyJoint::SetJerkLimits,py::arg("maxlimits"), DOXY_FN(KinBody::Joint,SetJerkLimits))
+                          .def("SetHardVelocityLimits",&PyJoint::SetHardVelocityLimits,py::arg("maxlimits"), DOXY_FN(KinBody::Joint,SetHardVelocityLimits))
+                          .def("SetHardAccelerationLimits",&PyJoint::SetHardAccelerationLimits,py::arg("maxlimits"), DOXY_FN(KinBody::Joint,SetHardAccelerationLimits))
+                          .def("SetHardJerkLimits",&PyJoint::SetHardJerkLimits,py::arg("maxlimits"), DOXY_FN(KinBody::Joint,SetHardJerkLimits))
+                          .def("SetTorqueLimits",&PyJoint::SetTorqueLimits,py::arg("maxlimits"), DOXY_FN(KinBody::Joint,SetTorqueLimits))
+                          .def("GetResolution",&PyJoint::GetResolution,py::arg("axis"), DOXY_FN(KinBody::Joint,GetResolution))
                           .def("GetResolutions",&PyJoint::GetResolutions,DOXY_FN(KinBody::Joint,GetResolutions))
-                          .def("SetResolution",&PyJoint::SetResolution,args("resolution"), DOXY_FN(KinBody::Joint,SetResolution))
-                          .def("GetWeight",&PyJoint::GetWeight,args("axis"), DOXY_FN(KinBody::Joint,GetWeight))
+                          .def("SetResolution",&PyJoint::SetResolution,py::arg("resolution"), DOXY_FN(KinBody::Joint,SetResolution))
+                          .def("GetWeight",&PyJoint::GetWeight,py::arg("axis"), DOXY_FN(KinBody::Joint,GetWeight))
                           .def("GetWeights",&PyJoint::GetWeights,DOXY_FN(KinBody::Joint,GetWeights))
-                          .def("SetWeights",&PyJoint::SetWeights,args("weights"), DOXY_FN(KinBody::Joint,SetWeights))
-                          .def("SubtractValues",&PyJoint::SubtractValues,args("values0","values1"), DOXY_FN(KinBody::Joint,SubtractValues))
-                          .def("SubtractValue",&PyJoint::SubtractValue,args("value0","value1","axis"), DOXY_FN(KinBody::Joint,SubtractValue))
+                          .def("SetWeights",&PyJoint::SetWeights,py::arg("weights"), DOXY_FN(KinBody::Joint,SetWeights))
+                          .def("SubtractValues",&PyJoint::SubtractValues,py::arg("values0"), py::arg("values1"), DOXY_FN(KinBody::Joint,SubtractValues))
+                          .def("SubtractValue",&PyJoint::SubtractValue,py::arg("value0"), py::arg("value1"), py::arg("axis"), DOXY_FN(KinBody::Joint,SubtractValue))
 
-                          .def("AddTorque",&PyJoint::AddTorque,args("torques"), DOXY_FN(KinBody::Joint,AddTorque))
-                          .def("GetFloatParameters",&PyJoint::GetFloatParameters,GetFloatParameters_overloads(args("name", "index"), DOXY_FN(KinBody::Joint,GetFloatParameters)))
+                          .def("AddTorque",&PyJoint::AddTorque,py::arg("torques"), DOXY_FN(KinBody::Joint,AddTorque))
+                          .def("GetFloatParameters",&PyJoint::GetFloatParameters,py::arg("name"), py::arg("index"), DOXY_FN(KinBody::Joint,GetFloatParameters))
                           .def("SetFloatParameters",&PyJoint::SetFloatParameters,DOXY_FN(KinBody::Joint,SetFloatParameters))
-                          .def("GetIntParameters",&PyJoint::GetIntParameters,GetIntParameters_overloads(args("name", "index"), DOXY_FN(KinBody::Joint,GetIntParameters)))
+                          .def("GetIntParameters",&PyJoint::GetIntParameters,py::arg("name"), py::arg("index"), DOXY_FN(KinBody::Joint,GetIntParameters))
                           .def("SetIntParameters",&PyJoint::SetIntParameters,DOXY_FN(KinBody::Joint,SetIntParameters))
-                          .def("GetStringParameters",&PyJoint::GetStringParameters,GetStringParameters_overloads(args("name", "index"), DOXY_FN(KinBody::Joint,GetStringParameters)))
+                          .def("GetStringParameters",&PyJoint::GetStringParameters,py::arg("name"), py::arg("index"), DOXY_FN(KinBody::Joint,GetStringParameters))
                           .def("SetStringParameters",&PyJoint::SetStringParameters,DOXY_FN(KinBody::Joint,SetStringParameters))
                           .def("UpdateInfo",&PyJoint::UpdateInfo,DOXY_FN(KinBody::Joint,UpdateInfo))
                           .def("GetInfo",&PyJoint::GetInfo,DOXY_FN(KinBody::Joint,GetInfo))
@@ -3943,11 +3983,11 @@ void init_openravepy_kinbody()
         }
 
         {
-            scope statesaver = class_<PyKinBodyStateSaver, OPENRAVE_SHARED_PTR<PyKinBodyStateSaver> >("KinBodyStateSaver", DOXY_CLASS(KinBody::KinBodyStateSaver), no_init)
-                               .def(init<PyKinBodyPtr>(args("body")))
-                               .def(init<PyKinBodyPtr,py::object>(args("body","options")))
+            py::object statesaver = py::class_<PyKinBodyStateSaver, OPENRAVE_SHARED_PTR<PyKinBodyStateSaver> >(m, "KinBodyStateSaver", DOXY_CLASS(KinBody::KinBodyStateSaver))
+                               .def(py::init<PyKinBodyPtr>())
+                               .def(py::init<PyKinBodyPtr,py::object>())
                                .def("GetBody",&PyKinBodyStateSaver::GetBody,DOXY_FN(KinBody::KinBodyStateSaver, GetBody))
-                               .def("Restore",&PyKinBodyStateSaver::Restore,Restore_overloads(args("body"), DOXY_FN(KinBody::KinBodyStateSaver, Restore)))
+                               .def("Restore",&PyKinBodyStateSaver::Restore,py::arg("body"), DOXY_FN(KinBody::KinBodyStateSaver, Restore))
                                .def("Release",&PyKinBodyStateSaver::Release,DOXY_FN(KinBody::KinBodyStateSaver, Release))
                                .def("__str__",&PyKinBodyStateSaver::__str__)
                                .def("__unicode__",&PyKinBodyStateSaver::__unicode__)
@@ -3955,14 +3995,14 @@ void init_openravepy_kinbody()
         }
 
         {
-            scope managedata = class_<PyManageData, OPENRAVE_SHARED_PTR<PyManageData> >("ManageData", DOXY_CLASS(KinBody::ManageData),no_init)
+            py::object managedata = py::class_<PyManageData, OPENRAVE_SHARED_PTR<PyManageData> >(m, "ManageData", DOXY_CLASS(KinBody::ManageData))
                                .def("GetSystem", &PyManageData::GetSystem, DOXY_FN(KinBody::ManageData,GetSystem))
                                .def("GetData", &PyManageData::GetData, DOXY_FN(KinBody::ManageData,GetData))
                                .def("GetOffsetLink", &PyManageData::GetOffsetLink, DOXY_FN(KinBody::ManageData,GetOffsetLink))
                                .def("IsPresent", &PyManageData::IsPresent, DOXY_FN(KinBody::ManageData,IsPresent))
                                .def("IsEnabled", &PyManageData::IsEnabled, DOXY_FN(KinBody::ManageData,IsEnabled))
                                .def("IsLocked", &PyManageData::IsLocked, DOXY_FN(KinBody::ManageData,IsLocked))
-                               .def("Lock", &PyManageData::Lock,args("dolock"), DOXY_FN(KinBody::ManageData,Lock))
+                               .def("Lock", &PyManageData::Lock,py::arg("dolock"), DOXY_FN(KinBody::ManageData,Lock))
                                .def("__repr__", &PyManageData::__repr__)
                                .def("__str__", &PyManageData::__str__)
                                .def("__unicode__", &PyManageData::__unicode__)
@@ -3973,7 +4013,7 @@ void init_openravepy_kinbody()
     }
 
 
-    def("RaveCreateKinBody",openravepy::RaveCreateKinBody,args("env","name"),DOXY_FN1(RaveCreateKinBody));
+    m.def("RaveCreateKinBody",openravepy::RaveCreateKinBody, py::arg("env"), py::arg("name"),DOXY_FN1(RaveCreateKinBody));
 }
 
 }

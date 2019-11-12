@@ -109,7 +109,7 @@ object computeConvexDecomposition(const boost::multi_array<float, 2>& vertices, 
 
 BOOST_PYTHON_FUNCTION_OVERLOADS(computeConvexDecomposition_overloads, computeConvexDecomposition, 2, 10)
 
-BOOST_PYTHON_MODULE(convexdecompositionpy)
+PYBIND11_MODULE(convexdecompositionpy, m)
 {
     import_array();
     numeric::array::set_module_and_type("numpy", "ndarray");

@@ -215,7 +215,7 @@ inline std::vector<T> ExtractArray(const object& o)
     }
     std::vector<T> v(len(o));
     for(size_t i = 0; i < v.size(); ++i) {
-        v[i] = o[i].cast<std::string>();
+        v[i] = o[i].cast<T>();
     }
     return v;
 }
@@ -359,7 +359,7 @@ void init_python_bindings();
 template <typename T>
 inline py::array_t<T> toPyArrayN(const T* data, const size_t N)
 {
-    return py::array_t<T>({1, N}, data); 
+    return py::array_t<T>(std::vector<npy_intp>({1, N}), data); 
 }
 
 template <typename T>
