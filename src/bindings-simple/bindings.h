@@ -173,12 +173,12 @@ class PyVoidHandle
 public:
     PyVoidHandle() {
     }
-    PyVoidHandle(boost::shared_ptr<void> handle) : _handle(handle) {
+    PyVoidHandle(OPENRAVE_SHARED_PTR<void> handle) : _handle(handle) {
     }
     void Close() {
         _handle.reset();
     }
-    boost::shared_ptr<void> _handle;
+    OPENRAVE_SHARED_PTR<void> _handle;
 };
 
 class PyVoidHandleConst
@@ -186,12 +186,12 @@ class PyVoidHandleConst
 public:
     PyVoidHandleConst() {
     }
-    PyVoidHandleConst(boost::shared_ptr<void const> handle) : _handle(handle) {
+    PyVoidHandleConst(OPENRAVE_SHARED_PTR<void const> handle) : _handle(handle) {
     }
     void Close() {
         _handle.reset();
     }
-    boost::shared_ptr<void const> _handle;
+    OPENRAVE_SHARED_PTR<void const> _handle;
 };
 
 template <typename T>

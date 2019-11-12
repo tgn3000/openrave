@@ -74,7 +74,7 @@ def updateik(robotfilename,manipname,iktype,destfilename=None,freeindices=None,r
 #include "plugindefs.h" 
 namespace IKFAST_NAMESPACE {
 IkSolverBasePtr CreateIkSolver(EnvironmentBasePtr penv, std::istream& sinput, const std::vector<dReal>& vfreeinc) {
-    boost::shared_ptr<ikfast::IkFastFunctions<IkReal> > ikfunctions(new ikfast::IkFastFunctions<IkReal>());
+    OPENRAVE_SHARED_PTR<ikfast::IkFastFunctions<IkReal> > ikfunctions(new ikfast::IkFastFunctions<IkReal>());
     ikfunctions->_ComputeIk = IKFAST_NAMESPACE::ComputeIk;
     ikfunctions->_ComputeFk = IKFAST_NAMESPACE::ComputeFk;
     ikfunctions->_GetNumFreeParameters = IKFAST_NAMESPACE::GetNumFreeParameters;

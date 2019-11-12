@@ -37,7 +37,7 @@ A GripperJacobianConstrains class is defined in the rmanipulation plugin. It hol
   boost::array<double,6> vconstraintfreedoms = {{1,1,0,0,0,0}}; // rotx, roty, rotz, transx, transy, transz
   double constrainterrorthresh = 0.02; // threshold
   // create the class
-  boost::shared_ptr<CM::GripperJacobianConstrains<double> > pconstraints(new CM::GripperJacobianConstrains<double>(manip,tConstraintTargetWorldFrame,vconstraintfreedoms,constrainterrorthresh));
+  OPENRAVE_SHARED_PTR<CM::GripperJacobianConstrains<double> > pconstraints(new CM::GripperJacobianConstrains<double>(manip,tConstraintTargetWorldFrame,vconstraintfreedoms,constrainterrorthresh));
   
   // set the distance metric used from the one already defined in params
   pconstraints->_distmetricfn = params->_distmetricfn;

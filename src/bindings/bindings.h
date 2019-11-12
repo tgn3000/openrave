@@ -27,6 +27,11 @@
 // #include <boost/array.hpp>
 // #include <boost/multi_array.hpp>
 #include <boost/shared_ptr.hpp>
+
+#define OPENRAVE_UNIQUE_PTR boost::unique_ptr
+#define OPENRAVE_SHARED_PTR boost::shared_ptr
+#define OPENRAVE_WEAK_PTR OPENRAVE_WEAK_PTR
+
 // #include <boost/format.hpp>
 // #include <boost/python.hpp>
 // #include <boost/assert.hpp>
@@ -175,12 +180,12 @@ class PyVoidHandle
 public:
     PyVoidHandle() {
     }
-    PyVoidHandle(boost::shared_ptr<void> handle) : _handle(handle) {
+    PyVoidHandle(OPENRAVE_SHARED_PTR<void> handle) : _handle(handle) {
     }
     void Close() {
         _handle.reset();
     }
-    boost::shared_ptr<void> _handle;
+    OPENRAVE_SHARED_PTR<void> _handle;
 };
 
 class PyVoidHandleConst
@@ -188,12 +193,12 @@ class PyVoidHandleConst
 public:
     PyVoidHandleConst() {
     }
-    PyVoidHandleConst(boost::shared_ptr<void const> handle) : _handle(handle) {
+    PyVoidHandleConst(OPENRAVE_SHARED_PTR<void const> handle) : _handle(handle) {
     }
     void Close() {
         _handle.reset();
     }
-    boost::shared_ptr<void const> _handle;
+    OPENRAVE_SHARED_PTR<void const> _handle;
 };
 
 template <typename T>

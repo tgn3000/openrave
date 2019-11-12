@@ -150,9 +150,9 @@ struct null_deleter
     }
 };
 
-template <class T> boost::shared_ptr<T> sptr_from(boost::weak_ptr<T> const& wpt)
+template <class T> OPENRAVE_SHARED_PTR<T> sptr_from(OPENRAVE_WEAK_PTR<T> const& wpt)
 {
-    return boost::shared_ptr<T>(wpt); // throws on wpt.expired()
+    return OPENRAVE_SHARED_PTR<T>(wpt); // throws on wpt.expired()
 }
 
 template<typename T>
@@ -175,10 +175,10 @@ struct smart_pointer_deleter
 {
 private:
     P p_;
-    boost::function<void(void const*)> _deleterfn;
-    boost::function<void()> _postdeleterfn;
+    OPENRAVE_FUNCTION<void(void const*)> _deleterfn;
+    OPENRAVE_FUNCTION<void()> _postdeleterfn;
 public:
-    smart_pointer_deleter(P const & p, const boost::function<void(void const*)>& deleterfn, const boost::function<void()>& postdeleterfn = boost::function<void()>()) : p_(p), _deleterfn(deleterfn), _postdeleterfn(postdeleterfn)
+    smart_pointer_deleter(P const & p, const OPENRAVE_FUNCTION<void(void const*)>& deleterfn, const OPENRAVE_FUNCTION<void()>& postdeleterfn = OPENRAVE_FUNCTION<void()>()) : p_(p), _deleterfn(deleterfn), _postdeleterfn(postdeleterfn)
     {
     }
 
