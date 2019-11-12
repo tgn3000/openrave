@@ -20,7 +20,7 @@
 #ifndef OPENRAVE_LOGGING_H
 #define OPENRAVE_LOGGING_H
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
 #include <log4cxx/logger.h>
 #endif
 
@@ -150,7 +150,7 @@ inline const char* RaveGetSourceFilename(const char* pfilename)
 #define RAVELOG_LEVELA(LEVEL,level,...) do { if (int(OpenRAVE::RaveGetDebugLevel()&OpenRAVE::Level_OutputMask)>=int(level)) { RAVEPRINTHEADER(LEVEL); OpenRAVE::RavePrintfA ## LEVEL(__VA_ARGS__); } } while (0)
 
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
 
 /// \brief Get the global log4cxx logger.
 OPENRAVE_API log4cxx::LoggerPtr RaveGetLogger();

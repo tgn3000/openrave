@@ -46,7 +46,7 @@
 #include <libxml/debugXML.h>
 #include <libxml/xmlmemory.h>
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
 
 #include <log4cxx/layout.h>
 #include <log4cxx/patternlayout.h>
@@ -546,7 +546,7 @@ public:
         }
 #endif
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
         _logger = 0;
 #endif
     }
@@ -584,7 +584,7 @@ public:
         return "";
     }
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
     log4cxx::LoggerPtr GetLogger()
     {
         return _logger;
@@ -1036,7 +1036,7 @@ protected:
 #endif
 
     void _InitializeLogging(int level) {
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
         _logger = log4cxx::Logger::getLogger("openrave");
 
         // if root appenders have not been configured, configure a default console appender
@@ -1081,7 +1081,7 @@ private:
     std::vector<boost::filesystem::path> _vBoostDataDirs; ///< \brief returns absolute filenames of the data
 #endif
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
     log4cxx::LoggerPtr _logger;
 #endif
 
@@ -1089,7 +1089,7 @@ private:
     friend UserDataPtr RaveGlobalState();
 };
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
 log4cxx::LevelPtr RaveGetVerboseLogLevel()
 {
     static log4cxx::LevelPtr level(new log4cxx::Level(log4cxx::Level::TRACE_INT, LOG4CXX_STR("VERBOSE"), 7));
@@ -2710,7 +2710,7 @@ bool ParseXMLData(BaseXMLReader& reader, const char* buffer, int size)
 
 } // end namespace OpenRAVE
 
-#if OPENRAVE_LOG4CXX
+#ifdef OPENRAVE_LOG4CXX
 
 using namespace log4cxx;
 
