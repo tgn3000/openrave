@@ -1546,10 +1546,10 @@ public:
             return py::object();
         }
         if( pbody->IsRobot() ) {
-            return py::cast(openravepy::toPyRobot(RaveInterfaceCast<RobotBase>(pbody),_pyenv));
+            return py::cast(toPyRobot(RaveInterfaceCast<RobotBase>(pbody),_pyenv));
         }
         else {
-            return py::cast(openravepy::toPyKinBody(pbody,_pyenv));
+            return py::cast(toPyKinBody(pbody,_pyenv));
         }
     }
 
@@ -1589,7 +1589,7 @@ public:
     }
 
     py::object GetSystem() {
-        return py::cast(openravepy::toPySensorSystem(_pdata->GetSystem(),_pyenv));
+        return py::cast(toPySensorSystem(_pdata->GetSystem(),_pyenv));
     }
 
     PyVoidHandleConst GetData() const {
@@ -2772,18 +2772,18 @@ py::object PyKinBody::ComputeInverseDynamics(py::object odofaccelerations, py::o
 
 void PyKinBody::SetSelfCollisionChecker(PyCollisionCheckerBasePtr pycollisionchecker)
 {
-    _pbody->SetSelfCollisionChecker(openravepy::GetCollisionChecker(pycollisionchecker));
+    _pbody->SetSelfCollisionChecker(GetCollisionChecker(pycollisionchecker));
 }
 
 PyInterfaceBasePtr PyKinBody::GetSelfCollisionChecker()
 {
-    return openravepy::toPyCollisionChecker(_pbody->GetSelfCollisionChecker(), _pyenv);
+    return toPyCollisionChecker(_pbody->GetSelfCollisionChecker(), _pyenv);
 }
 
 bool PyKinBody::CheckSelfCollision(PyCollisionReportPtr pReport, PyCollisionCheckerBasePtr pycollisionchecker)
 {
-    bool bCollision = _pbody->CheckSelfCollision(openravepy::GetCollisionReport(pReport), openravepy::GetCollisionChecker(pycollisionchecker));
-    openravepy::UpdateCollisionReport(pReport,GetEnv());
+    bool bCollision = _pbody->CheckSelfCollision(GetCollisionReport(pReport), GetCollisionChecker(pycollisionchecker));
+    UpdateCollisionReport(pReport,GetEnv());
     return bCollision;
 }
 
@@ -2813,13 +2813,13 @@ void PyKinBody::SetNonCollidingConfiguration()
 
 py::object PyKinBody::GetConfigurationSpecification(const std::string& interpolation) const
 {
-    return py::cast(openravepy::toPyConfigurationSpecification(_pbody->GetConfigurationSpecification(interpolation)));
+    return py::cast(toPyConfigurationSpecification(_pbody->GetConfigurationSpecification(interpolation)));
 }
 
 py::object PyKinBody::GetConfigurationSpecificationIndices(py::object oindices,const std::string& interpolation) const
 {
     std::vector<int> vindices = ExtractArray<int>(oindices);
-    return py::cast(openravepy::toPyConfigurationSpecification(_pbody->GetConfigurationSpecificationIndices(vindices,interpolation)));
+    return py::cast(toPyConfigurationSpecification(_pbody->GetConfigurationSpecificationIndices(vindices,interpolation)));
 }
 
 void PyKinBody::SetConfigurationValues(py::object ovalues, uint32_t checklimits)
@@ -3025,7 +3025,7 @@ void PyKinBody::__enter__()
 {
     // necessary to lock physics to prevent multiple threads from interfering
     if( _listStateSavers.size() == 0 ) {
-        openravepy::LockEnvironment(_pyenv);
+        LockEnvironment(_pyenv);
     }
     _listStateSavers.push_back(OPENRAVE_SHARED_PTR<void>(new KinBody::KinBodyStateSaver(_pbody)));
 }
@@ -3035,7 +3035,7 @@ void PyKinBody::__exit__(py::object type, py::object value, py::object traceback
     BOOST_ASSERT(_listStateSavers.size()>0);
     _listStateSavers.pop_back();
     if( _listStateSavers.size() == 0 ) {
-        openravepy::UnlockEnvironment(_pyenv);
+        UnlockEnvironment(_pyenv);
     }
 }
 
@@ -3178,7 +3178,7 @@ py::object toPyKinBody(KinBodyPtr pkinbody, py::object opyenv)
 
 PyKinBodyPtr RaveCreateKinBody(PyEnvironmentBasePtr pyenv, const std::string& name)
 {
-    KinBodyPtr p = OpenRAVE::RaveCreateKinBody(openravepy::GetEnvironment(pyenv), name);
+    KinBodyPtr p = OpenRAVE::RaveCreateKinBody(GetEnvironment(pyenv), name);
     if( !p ) {
         return PyKinBodyPtr();
     }
@@ -3404,17 +3404,30 @@ public:
 
 void init_openravepy_kinbody(pybind11::module& m)
 {
-    py::class_<PyStateRestoreContextBase>(m, "StateRestoreContext")
+    py::class_<PyStateRestoreContext<PyRobotStateSaverPtr, PyRobotBasePtr>, PyStateRestoreContextBase>(m, "StateRestoreContext")
     .def(py::init<>())
-    .def("__enter__", &PyStateRestoreContextBase::__enter__, "returns the py::object storing the state")
-    .def("__exit__", &PyStateRestoreContextBase::__exit__, "restores the state held in the py::object")
-    .def("GetBody", &PyStateRestoreContextBase::GetBody, DOXY_FN(KinBody::KinBodyStateSaver, GetBody))
-    .def("Restore", &PyStateRestoreContextBase::Restore, py::arg("body"), DOXY_FN(KinBody::KinBodyStateSaver, Restore))
-    .def("Release", &PyStateRestoreContextBase::Release, DOXY_FN(KinBody::KinBodyStateSaver, Release))
-    .def("Close", &PyStateRestoreContextBase::Close, DOXY_FN(KinBody::KinBodyStateSaver, Close))
-    .def("__str__", &PyStateRestoreContextBase::__str__)
-    .def("__unicode__",&PyStateRestoreContextBase::__unicode__)
+    .def("__enter__", &PyStateRestoreContext::__enter__, "returns the py::object storing the state")
+    .def("__exit__", &PyStateRestoreContext::__exit__, "restores the state held in the py::object")
+    .def("GetBody", &PyStateRestoreContext::GetBody, DOXY_FN(KinBody::KinBodyStateSaver, GetBody))
+    .def("Restore", &PyStateRestoreContext::Restore, py::arg("body"), DOXY_FN(KinBody::KinBodyStateSaver, Restore))
+    .def("Release", &PyStateRestoreContext::Release, DOXY_FN(KinBody::KinBodyStateSaver, Release))
+    .def("Close", &PyStateRestoreContext::Close, DOXY_FN(KinBody::KinBodyStateSaver, Close))
+    .def("__str__", &PyStateRestoreContext::__str__)
+    .def("__unicode__",&PyStateRestoreContext::__unicode__)
     ;
+
+    py::class_<PyStateRestoreContext<PyKinBodyStateSaverPtr, PyKinBodyPtr>, PyStateRestoreContextBase>(m, "StateRestoreContext")
+    .def(py::init<>())
+    .def("__enter__", &PyStateRestoreContext::__enter__, "returns the py::object storing the state")
+    .def("__exit__", &PyStateRestoreContext::__exit__, "restores the state held in the py::object")
+    .def("GetBody", &PyStateRestoreContext::GetBody, DOXY_FN(KinBody::KinBodyStateSaver, GetBody))
+    .def("Restore", &PyStateRestoreContext::Restore, py::arg("body"), DOXY_FN(KinBody::KinBodyStateSaver, Restore))
+    .def("Release", &PyStateRestoreContext::Release, DOXY_FN(KinBody::KinBodyStateSaver, Release))
+    .def("Close", &PyStateRestoreContext::Close, DOXY_FN(KinBody::KinBodyStateSaver, Close))
+    .def("__str__", &PyStateRestoreContext::__str__)
+    .def("__unicode__",&PyStateRestoreContext::__unicode__)
+    ;
+
     py::object geometrytype = py::enum_<GeometryType>(m, "GeometryType" DOXY_ENUM(GeometryType))
                           .value("None",GT_None)
                           .value("Box",GT_Box)
@@ -4013,7 +4026,7 @@ void init_openravepy_kinbody(pybind11::module& m)
     }
 
 
-    m.def("RaveCreateKinBody",openravepy::RaveCreateKinBody, py::arg("env"), py::arg("name"),DOXY_FN1(RaveCreateKinBody));
+    m.def("RaveCreateKinBody",RaveCreateKinBody, py::arg("env"), py::arg("name"),DOXY_FN1(RaveCreateKinBody));
 }
 
 }

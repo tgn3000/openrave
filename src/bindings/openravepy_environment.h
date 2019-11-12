@@ -14,8 +14,8 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef OPENRAVEPY_ENVIRONMENT_H
-#define OPENRAVEPY_ENVIRONMENT_H
+#ifndef OPENRAVEPY_INTERNAL_ENVIRONMENT_H
+#define OPENRAVEPY_INTERNAL_ENVIRONMENT_H
 #include "openravepy_int.h"
 
 #include <openrave/utils.h>
@@ -89,11 +89,10 @@ protected:
             RAVELOG_WARN("collision callback nothing returning, so executing default action\n");
         }
         else {
-            extract<int> xi(res);
-            if( xi.check() ) {
-                ret = (CollisionAction)(int) xi;
+            try {
+                ret = (CollisionAction) res.cast<int>();
             }
-            else {
+            catch(...) {
                 RAVELOG_WARN("collision callback nothing returning, so executing default action\n");
             }
         }
@@ -165,7 +164,7 @@ public:
     }
     object GetCollisionChecker()
     {
-        return object(openravepy::toPyCollisionChecker(_penv->GetCollisionChecker(), shared_from_this()));
+        return py::cast(openravepy::toPyCollisionChecker(_penv->GetCollisionChecker(), shared_from_this()));
     }
     bool CheckCollision(PyKinBodyPtr pbody1)
     {
@@ -370,11 +369,13 @@ public:
 
         std::vector<KinBodyConstPtr> vbodyexcluded;
         for(int i = 0; i < len(bodyexcluded); ++i) {
-            PyKinBodyPtr pbody = extract<PyKinBodyPtr>(bodyexcluded[i]);
-            if( !!pbody ) {
-                vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+            try {
+                PyKinBodyPtr pbody = bodyexcluded[i].cast<PyKinBodyPtr>();
+                if( pbody != nullptr ) {
+                    vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+                }               
             }
-            else {
+            catch(...) {
                 RAVELOG_ERROR("failed to get excluded body\n");
             }
         }
@@ -406,11 +407,13 @@ public:
         KinBodyConstPtr pbody1 = openravepy::GetKinBody(o1);
 
         for(int i = 0; i < len(bodyexcluded); ++i) {
-            PyKinBodyPtr pbody = extract<PyKinBodyPtr>(bodyexcluded[i]);
-            if( !!pbody ) {
-                vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+            try {
+                PyKinBodyPtr pbody = bodyexcluded[i].cast<PyKinBodyPtr>();
+                if( !!pbody ) {
+                    vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+                }                
             }
-            else {
+            catch(...) {
                 RAVELOG_ERROR("failed to get excluded body\n");
             }
         }
@@ -444,11 +447,13 @@ public:
     {
         std::vector<KinBodyConstPtr> vbodyexcluded;
         for(int i = 0; i < len(bodyexcluded); ++i) {
-            PyKinBodyPtr pbody = extract<PyKinBodyPtr>(bodyexcluded[i]);
-            if( !!pbody ) {
-                vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+            try {
+                PyKinBodyPtr pbody = bodyexcluded[i].cast<PyKinBodyPtr>();
+                if( pbody != nullptr ) {
+                    vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+                }                
             }
-            else {
+            catch(...) {
                 RAVELOG_ERROR("failed to get excluded body\n");
             }
         }
@@ -469,11 +474,13 @@ public:
     {
         std::vector<KinBodyConstPtr> vbodyexcluded;
         for(int i = 0; i < len(bodyexcluded); ++i) {
-            PyKinBodyPtr pbody = extract<PyKinBodyPtr>(bodyexcluded[i]);
-            if( !!pbody ) {
-                vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+            try {
+                PyKinBodyPtr pbody = bodyexcluded[i].cast<PyKinBodyPtr>();
+                if( pbody != nullptr ) {
+                    vbodyexcluded.push_back(openravepy::GetKinBody(pbody));
+                }
             }
-            else {
+            catch(...) {
                 RAVELOG_ERROR("failed to get excluded body\n");
             }
         }
@@ -505,17 +512,17 @@ public:
         return bCollision;
     }
 
-    object CheckCollisionRays(bpndarray rays, PyKinBodyPtr pbody,bool bFrontFacingOnly=false)
+    object CheckCollisionRays(py::array_t<dReal> rays, PyKinBodyPtr pbody, bool bFrontFacingOnly = false)
     {
         object shape = rays.attr("shape");
-        int nRays = extract<int>(shape[0]);
+        int nRays = shape[0].cast<int>();
         if( nRays == 0 ) {
-            return boost::python::make_tuple(
-                np::array(boost::python::list(), np::dtype::get_builtin<int>()),
-                np::array(boost::python::list())
+            return py::make_tuple(
+                py::array_t<dReal>({1, 0}, nullptr),
+                py::array_t<dReal>({1, 0}, nullptr)
             );
         }
-        if( extract<int>(shape[1]) != 6 ) {
+        if( shape[1].cast<int>() != 6 ) {
             throw openrave_exception(_("rays object needs to be a Nx6 vector\n"));
         }
         CollisionReport report;
@@ -585,7 +592,7 @@ public:
             }
         }
 
-        return boost::python::make_tuple(
+        return py::make_tuple(
             toPyArrayN(pcollision, nRays),
             toPyArrayN(ppos, 6 * nRays)
         );
@@ -628,15 +635,16 @@ public:
     }
 
     void Save(const string &filename, EnvironmentBase::SelectionOptions options=EnvironmentBase::SO_Everything, object odictatts=object()) {
-        extract<std::string> otarget(odictatts);
-        if( otarget.check() ) {
-            // old versions
+        try {
+            std::string otarget = odictatts.cast<std::string>();
+            // old version
             AttributesList atts;
             atts.emplace_back("target", (std::string)otarget);
             openravepy::PythonThreadSaver threadsaver;
             _penv->Save(filename,options,atts);
         }
-        else {
+        catch (...) {
+            // new version
             AttributesList dictatts = toAttributesList(odictatts);
             openravepy::PythonThreadSaver threadsaver;
             _penv->Save(filename,options,dictatts);
@@ -645,58 +653,57 @@ public:
 
     object WriteToMemory(const string &filetype, EnvironmentBase::SelectionOptions options=EnvironmentBase::SO_Everything, object odictatts=object()) {
         std::vector<char> output;
-        extract<std::string> otarget(odictatts);
-        if( otarget.check() ) {
-            // old versions
+        try {
+            std::string otarget = odictatts.cast<std::string>();
+            // old version
             AttributesList atts;
             atts.emplace_back("target", (std::string)otarget);
             _penv->WriteToMemory(filetype,output,options,atts);
         }
-        else {
+        catch(...) {
+            // new version
             _penv->WriteToMemory(filetype,output,options,toAttributesList(odictatts));
         }
 
         if( output.size() == 0 ) {
-            return boost::python::object();
+            return py::object();
         }
         else {
-            return boost::python::object(
-                boost::python::handle<>(PyBytes_FromStringAndSize(&output[0], output.size()))
-            );
+            return py::cast(PyBytes_FromStringAndSize(&output[0], output.size()));
         }
     }
 
     object ReadRobotURI(const string &filename)
     {
-        return object(openravepy::toPyRobot(_penv->ReadRobotURI(filename),shared_from_this()));
+        return py::cast(openravepy::toPyRobot(_penv->ReadRobotURI(filename),shared_from_this()));
     }
     object ReadRobotURI(const string &filename, object odictatts)
     {
-        return object(openravepy::toPyRobot(_penv->ReadRobotURI(RobotBasePtr(), filename,toAttributesList(odictatts)),shared_from_this()));
+        return py::cast(openravepy::toPyRobot(_penv->ReadRobotURI(RobotBasePtr(), filename,toAttributesList(odictatts)),shared_from_this()));
     }
     object ReadRobotData(const string &data)
     {
-        return object(openravepy::toPyRobot(_penv->ReadRobotData(RobotBasePtr(), data, AttributesList()), shared_from_this()));
+        return py::cast(openravepy::toPyRobot(_penv->ReadRobotData(RobotBasePtr(), data, AttributesList()), shared_from_this()));
     }
     object ReadRobotData(const string &data, object odictatts)
     {
-        return object(openravepy::toPyRobot(_penv->ReadRobotData(RobotBasePtr(), data, toAttributesList(odictatts)),shared_from_this()));
+        return py::cast(openravepy::toPyRobot(_penv->ReadRobotData(RobotBasePtr(), data, toAttributesList(odictatts)),shared_from_this()));
     }
     object ReadKinBodyURI(const string &filename)
     {
-        return object(openravepy::toPyKinBody(_penv->ReadKinBodyURI(filename), shared_from_this()));
+        return py::cast(openravepy::toPyKinBody(_penv->ReadKinBodyURI(filename), shared_from_this()));
     }
     object ReadKinBodyURI(const string &filename, object odictatts)
     {
-        return object(openravepy::toPyKinBody(_penv->ReadKinBodyURI(KinBodyPtr(), filename, toAttributesList(odictatts)),shared_from_this()));
+        return py::cast(openravepy::toPyKinBody(_penv->ReadKinBodyURI(KinBodyPtr(), filename, toAttributesList(odictatts)),shared_from_this()));
     }
     object ReadKinBodyData(const string &data)
     {
-        return object(openravepy::toPyKinBody(_penv->ReadKinBodyData(KinBodyPtr(), data, AttributesList()),shared_from_this()));
+        return py::cast(openravepy::toPyKinBody(_penv->ReadKinBodyData(KinBodyPtr(), data, AttributesList()),shared_from_this()));
     }
     object ReadKinBodyData(const string &data, object odictatts)
     {
-        return object(openravepy::toPyKinBody(_penv->ReadKinBodyData(KinBodyPtr(), data, toAttributesList(odictatts)),shared_from_this()));
+        return py::cast(openravepy::toPyKinBody(_penv->ReadKinBodyData(KinBodyPtr(), data, toAttributesList(odictatts)),shared_from_this()));
     }
     PyInterfaceBasePtr ReadInterfaceURI(const std::string& filename)
     {
@@ -788,24 +795,24 @@ public:
             return object();
         }
         if( pbody->IsRobot() ) {
-            return object(openravepy::toPyRobot(RaveInterfaceCast<RobotBase>(pbody),shared_from_this()));
+            return py::cast(openravepy::toPyRobot(RaveInterfaceCast<RobotBase>(pbody),shared_from_this()));
         }
         else {
-            return object(openravepy::toPyKinBody(pbody,shared_from_this()));
+            return py::cast(openravepy::toPyKinBody(pbody,shared_from_this()));
         }
     }
     object GetRobot(const string &name)
     {
-        return object(openravepy::toPyRobot(_penv->GetRobot(name), shared_from_this()));
+        return py::cast(openravepy::toPyRobot(_penv->GetRobot(name), shared_from_this()));
     }
     object GetSensor(const string &name)
     {
-        return object(openravepy::toPySensor(_penv->GetSensor(name),shared_from_this()));
+        return py::cast(openravepy::toPySensor(_penv->GetSensor(name),shared_from_this()));
     }
 
     object GetBodyFromEnvironmentId(int id)
     {
-        return object(openravepy::toPyKinBody(_penv->GetBodyFromEnvironmentId(id),shared_from_this()));
+        return py::cast(openravepy::toPyKinBody(_penv->GetBodyFromEnvironmentId(id),shared_from_this()));
     }
 
     int AddModule(PyModuleBasePtr prob, const string &args) {
@@ -832,7 +839,7 @@ public:
     {
         std::list<ModuleBasePtr> listModules;
         _penv->GetModules(listModules);
-        boost::python::list modules;
+        py::list modules;
         FOREACHC(itprob, listModules) {
             modules.append(openravepy::toPyModule(*itprob,shared_from_this()));
         }
@@ -844,7 +851,7 @@ public:
         return _penv->SetPhysicsEngine(openravepy::GetPhysicsEngine(pengine));
     }
     object GetPhysicsEngine() {
-        return object(openravepy::toPyPhysicsEngine(_penv->GetPhysicsEngine(),shared_from_this()));
+        return py::cast(openravepy::toPyPhysicsEngine(_penv->GetPhysicsEngine(),shared_from_this()));
     }
 
     object RegisterBodyCallback(object fncallback)
@@ -1023,7 +1030,7 @@ public:
 
     object GetViewer()
     {
-        return object(openravepy::toPyViewer(_penv->GetViewer(),shared_from_this()));
+        return py::cast(openravepy::toPyViewer(_penv->GetViewer(),shared_from_this()));
     }
 
     /// returns the number of points
@@ -1039,8 +1046,8 @@ public:
                 }
                 return vpoints.size()/3;
             case 2: {
-                int num = extract<int>(pointshape[0]);
-                int dim = extract<int>(pointshape[1]);
+                int num = pointshape[0].cast<int>();
+                int dim = pointshape[1].cast<int>();
                 vpoints = ExtractArray<float>(opoints.attr("flat"));
                 if(dim % 3) {
                     throw OPENRAVE_EXCEPTION_FORMAT(_("points have bad size %dx%d"), num%dim,ORE_InvalidArguments);
@@ -1069,8 +1076,8 @@ public:
                 case 1:
                     break;
                 case 2: {
-                    int numcolors = extract<int>(colorshape[0]);
-                    int colordim = extract<int>(colorshape[1]);
+                    int numcolors = colorshape[0].cast<int>();
+                    int colordim = colorshape[1].cast<int>();
                     if(( colordim != 3) &&( colordim != 4) ) {
                         throw OPENRAVE_EXCEPTION_FORMAT(_("colors dim %d needs to be 3 or 4"),colordim, ORE_InvalidArguments);
                     }
@@ -1182,11 +1189,13 @@ public:
         vtexture[0] = _vtexture;
         boost::array<size_t,3> dims = { { _vtexture.shape()[0],_vtexture.shape()[1],1}};
         vtexture.reshape(dims);
-        return toPyGraphHandle(_penv->drawplane(RaveTransform<float>(ExtractTransform(otransform)), RaveVector<float>(extract<float>(oextents[0]),extract<float>(oextents[1]),0), vtexture));
+        return toPyGraphHandle(_penv->drawplane(RaveTransform<float>(ExtractTransform(otransform)), 
+            RaveVector<float>(oextents[0].cast<float>(), oextents[1].cast<float>(), 0), vtexture));
     }
     object drawplane(object otransform, object oextents, const boost::multi_array<float,3>&vtexture)
     {
-        return toPyGraphHandle(_penv->drawplane(RaveTransform<float>(ExtractTransform(otransform)), RaveVector<float>(extract<float>(oextents[0]),extract<float>(oextents[1]),0), vtexture));
+        return toPyGraphHandle(_penv->drawplane(RaveTransform<float>(ExtractTransform(otransform)), 
+            RaveVector<float>(oextents[0].cast<float>(), oextents[1].cast<float>(), 0), vtexture));
     }
 
     object drawtrimesh(object opoints, object oindices=object(), object ocolors=object())
@@ -1210,8 +1219,8 @@ public:
                 return toPyGraphHandle(_penv->drawtrimesh(&vpoints[0],sizeof(float)*3,pindices,numTriangles,ExtractVector34(ocolors,1.0f)));
             }
             else {
-                BOOST_ASSERT(extract<size_t>(shape[0])==vpoints.size()/3);
-                return toPyGraphHandle(_penv->drawtrimesh(&vpoints[0],sizeof(float)*3,pindices,numTriangles,extract<boost::multi_array<float,2> >(ocolors)));
+                BOOST_ASSERT(shape[0].cast<size_t>()==vpoints.size()/3);
+                return toPyGraphHandle(_penv->drawtrimesh(&vpoints[0], sizeof(float)*3, pindices, numTriangles, /*extract<boost::multi_array<float,2> >*/ocolors.cast<Vector>()));
             }
         }
         return toPyGraphHandle(_penv->drawtrimesh(&vpoints[0],sizeof(float)*3,pindices,numTriangles,RaveVector<float>(1,0.5,0.5,1)));
@@ -1221,7 +1230,7 @@ public:
     {
         std::vector<KinBodyPtr> vbodies;
         _penv->GetBodies(vbodies);
-        boost::python::list bodies;
+        py::list bodies;
         FOREACHC(itbody, vbodies) {
             if( (*itbody)->IsRobot() ) {
                 bodies.append(openravepy::toPyRobot(RaveInterfaceCast<RobotBase>(*itbody),shared_from_this()));
@@ -1237,7 +1246,7 @@ public:
     {
         std::vector<RobotBasePtr> vrobots;
         _penv->GetRobots(vrobots);
-        boost::python::list robots;
+        py::list robots;
         FOREACHC(itrobot, vrobots) {
             robots.append(openravepy::toPyRobot(*itrobot,shared_from_this()));
         }
@@ -1248,7 +1257,7 @@ public:
     {
         std::vector<SensorBasePtr> vsensors;
         _penv->GetSensors(vsensors);
-        boost::python::list sensors;
+        py::list sensors;
         FOREACHC(itsensor, vsensors) {
             sensors.append(openravepy::toPySensor(*itsensor,shared_from_this()));
         }
@@ -1264,11 +1273,11 @@ public:
     {
         std::vector<KinBody::BodyState> vbodystates;
         _penv->GetPublishedBodies(vbodystates, timeout);
-        boost::python::list ostates;
+        py::list ostates;
         FOREACH(itstate, vbodystates) {
-            boost::python::dict ostate;
+            py::dict ostate;
             ostate["body"] = toPyKinBody(itstate->pbody, shared_from_this());
-            boost::python::list olinktransforms;
+            py::list olinktransforms;
             FOREACH(ittransform, itstate->vectrans) {
                 olinktransforms.append(ReturnTransform(*ittransform));
             }
@@ -1294,9 +1303,9 @@ public:
             return object();
         }
 
-        boost::python::dict ostate;
+        py::dict ostate;
         ostate["body"] = toPyKinBody(bodystate.pbody, shared_from_this());
-        boost::python::list olinktransforms;
+        py::list olinktransforms;
         FOREACH(ittransform, bodystate.vectrans) {
             olinktransforms.append(ReturnTransform(*ittransform));
         }
@@ -1326,7 +1335,7 @@ public:
         std::vector< std::pair<std::string, Transform> > nameTransfPairs;
         _penv->GetPublishedBodyTransformsMatchingPrefix(prefix, nameTransfPairs, timeout);
 
-        boost::python::dict otransforms;
+        py::dict otransforms;
         FOREACH(itpair, nameTransfPairs) {
             otransforms[itpair->first] = ReturnTransform(itpair->second);
         }
@@ -1376,7 +1385,7 @@ public:
 
     object GetUnit() const {
         std::pair<std::string, dReal> unit = _penv->GetUnit();
-        return boost::python::make_tuple(unit.first, unit.second);
+        return py::make_tuple(unit.first, unit.second);
 
     }
 
@@ -1403,4 +1412,4 @@ public:
 
 } // namespace openravepy
 
-#endif // OPENRAVEPY_ENVIRONMENT_H
+#endif // OPENRAVEPY_INTERNAL_ENVIRONMENT_H

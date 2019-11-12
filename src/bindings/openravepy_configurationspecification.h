@@ -114,17 +114,17 @@ public:
 
     PyConfigurationSpecificationPtr ConvertToVelocitySpecification() const
     {
-        return openravepy::toPyConfigurationSpecification(_spec.ConvertToVelocitySpecification());
+        return toPyConfigurationSpecification(_spec.ConvertToVelocitySpecification());
     }
 
     PyConfigurationSpecificationPtr ConvertToDerivativeSpecification(uint32_t timederivative) const
     {
-        return openravepy::toPyConfigurationSpecification(_spec.ConvertToDerivativeSpecification(timederivative));
+        return toPyConfigurationSpecification(_spec.ConvertToDerivativeSpecification(timederivative));
     }
 
     PyConfigurationSpecificationPtr GetTimeDerivativeSpecification(int timederivative) const
     {
-        return openravepy::toPyConfigurationSpecification(_spec.GetTimeDerivativeSpecification(timederivative));
+        return toPyConfigurationSpecification(_spec.GetTimeDerivativeSpecification(timederivative));
     }
 
     object ExtractTransform(object otransform, object odata, PyKinBodyPtr pybody, int timederivative=0) const
@@ -134,8 +134,8 @@ public:
         if( !IS_PYTHONOBJECT_NONE(otransform) ) {
             t = openravepy::ExtractTransform(otransform);
         }
-        if( _spec.ExtractTransform(t,vdata.begin(),openravepy::GetKinBody(pybody)) ) {
-            return openravepy::ReturnTransform(t);
+        if( _spec.ExtractTransform(t,vdata.begin(), GetKinBody(pybody)) ) {
+            return ReturnTransform(t);
         }
         return object();
     }
@@ -157,7 +157,7 @@ public:
     {
         std::vector<dReal> vdata = ExtractArray<dReal>(odata);
         std::vector<dReal> values(RaveGetAffineDOF(affinedofs),0);
-        bool bfound = _spec.ExtractAffineValues(values.begin(),vdata.begin(),openravepy::GetKinBody(pybody),affinedofs, timederivative);
+        bool bfound = _spec.ExtractAffineValues(values.begin(),vdata.begin(), GetKinBody(pybody),affinedofs, timederivative);
         if( bfound ) {
             return toPyArray(values);
         }

@@ -294,6 +294,6 @@ protected:
     void _ParseJointInfos(object ojointinfos, std::vector<KinBody::JointInfoConstPtr>& vjointinfos);
 };
 
-}
+} // namespace openravepy
 
-#endif
+#endif // OPENRAVEPY_INTERNAL_KINBODY_H

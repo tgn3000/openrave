@@ -69,8 +69,8 @@ struct DummyStruct {};
 class PyInterfaceBase; // here
 class PyKinBody; // openravepy_kinbody.h
 class PyRobotBase; // openravepy_robot.h
-class PyEnvironmentBase;
-class PyCollisionReport;
+class PyEnvironmentBase; // openravepy_environment.h
+class PyCollisionReport; // 
 class PyPhysicsEngineBase;
 class PyCollisionCheckerBase;
 class PyIkSolverBase;
@@ -764,6 +764,6 @@ PyInterfaceBasePtr RaveCreateInterface(PyEnvironmentBasePtr pyenv, InterfaceType
 void init_openravepy_global();
 void InitPlanningUtils();
 
-}
+} // namespace openravepy
 
-#endif
+#endif // OPENRAVEPY_INTERNAL_H

@@ -357,9 +357,10 @@ void init_python_bindings();
 
 #ifdef OPENRAVE_BININGS_PYARRAY
 template <typename T>
-inline py::array_t<T> toPyArrayN(const T* data, const size_t N)
+inline py::array_t<T> toPyArrayN(const T* pvalues, const size_t N)
 {
-    return py::array_t<T>(std::vector<npy_intp>({1, N}), data); 
+    std::vector<npy_intp> dims {(long int)1, (long int)N};
+    return py::array_t<T>(dims, pvalues); 
 }
 
 template <typename T>

@@ -75,7 +75,7 @@ public:
             return _pmanip->SetIkSolver(openravepy::GetIkSolver(iksolver));
         }
         object GetIkSolver() {
-            return object(openravepy::toPyIkSolver(_pmanip->GetIkSolver(),_pyenv));
+            return py::cast(openravepy::toPyIkSolver(_pmanip->GetIkSolver(),_pyenv));
         }
 
         object GetBase() {
@@ -129,7 +129,7 @@ public:
         object GetArmDOFValues()
         {
             if( _pmanip->GetArmDOF() == 0 ) {
-                return np::array(boost::python::list());
+                return py::array_t<dReal>({1, 0}, nullptr);
             }
             vector<dReal> values;
             _pmanip->GetArmDOFValues(values);
@@ -138,7 +138,7 @@ public:
         object GetGripperDOFValues()
         {
             if( _pmanip->GetGripperDOF() == 0 ) {
-                return np::array(boost::python::list());
+                return py::array_t<dReal>({1, 0}, nullptr);
             }
             vector<dReal> values;
             _pmanip->GetGripperDOFValues(values);
@@ -175,7 +175,7 @@ public:
         object GetFreeParameters() const {
             RAVELOG_WARN("Manipulator::GetFreeParameters() is deprecated\n");
             if( _pmanip->GetIkSolver()->GetNumFreeParameters() == 0 ) {
-                return np::array(boost::python::list());
+                return py::array_t<dReal>({1, 0}, nullptr);
             }
             vector<dReal> values;
             _pmanip->GetIkSolver()->GetFreeParameters(values);
@@ -328,15 +328,15 @@ public:
                 std::vector<IkReturnPtr> vikreturns;
                 if( ExtractIkParameterization(oparam,ikparam) ) {
                     if( !_FindIKSolutions(ikparam,filteroptions,vikreturns,releasegil) ) {
-                        return boost::python::list();
+                        return py::list();
                     }
                 }
                 // assume transformation matrix
                 else if( !_FindIKSolutions(ExtractTransform(oparam),filteroptions,vikreturns,releasegil) ) {
-                    return boost::python::list();
+                    return py::list();
                 }
 
-                boost::python::list oikreturns;
+                py::list oikreturns;
                 FOREACH(it,vikreturns) {
                     oikreturns.append(openravepy::toPyIkReturn(**it));
                 }
@@ -346,12 +346,12 @@ public:
                 std::vector<std::vector<dReal> > vsolutions;
                 if( ExtractIkParameterization(oparam,ikparam) ) {
                     if( !_FindIKSolutions(ikparam,vsolutions,filteroptions,releasegil) ) {
-                        return np::array(boost::python::list());
+                        return py::array_t<dReal>({1, 0}, nullptr);
                     }
                 }
                 // assume transformation matrix
                 else if( !_FindIKSolutions(ExtractTransform(oparam),vsolutions,filteroptions,releasegil) ) {
-                    return np::array(boost::python::list());
+                    return py::array_t<dReal>({1, 0}, nullptr);
                 }
 
                 npy_intp dims[] = { npy_intp(vsolutions.size()), npy_intp(_pmanip->GetArmIndices().size()) };
@@ -375,15 +375,15 @@ public:
                 std::vector<IkReturnPtr> vikreturns;
                 if( ExtractIkParameterization(oparam,ikparam) ) {
                     if( !_FindIKSolutions(ikparam,vfreeparams,filteroptions,vikreturns,releasegil) ) {
-                        return boost::python::list();
+                        return py::list();
                     }
                 }
                 // assume transformation matrix
                 else if( !_FindIKSolutions(ExtractTransform(oparam),vfreeparams,filteroptions,vikreturns,releasegil) ) {
-                    return boost::python::list();
+                    return py::list();
                 }
 
-                boost::python::list oikreturns;
+                py::list oikreturns;
                 FOREACH(it,vikreturns) {
                     oikreturns.append(openravepy::toPyIkReturn(**it));
                 }
@@ -393,12 +393,12 @@ public:
                 std::vector<std::vector<dReal> > vsolutions;
                 if( ExtractIkParameterization(oparam,ikparam) ) {
                     if( !_FindIKSolutions(ikparam,vfreeparams,vsolutions,filteroptions,releasegil) ) {
-                        return np::array(boost::python::list());
+                        return py::array_t<dReal>({1, 0}, nullptr);
                     }
                 }
                 // assume transformation matrix
                 else if( !_FindIKSolutions(ExtractTransform(oparam),vfreeparams, vsolutions,filteroptions,releasegil) ) {
-                    return np::array(boost::python::list());
+                    return py::array_t<dReal>({1, 0}, nullptr);
                 }
 
                 npy_intp dims[] = { npy_intp(vsolutions.size()), npy_intp(_pmanip->GetArmIndices().size()) };
@@ -420,13 +420,13 @@ public:
                 return toPyIkParameterization(_pmanip->GetIkParameterization(ikparam,inworld));
             }
             // must be IkParameterizationType
-            return toPyIkParameterization(_pmanip->GetIkParameterization((IkParameterizationType)extract<IkParameterizationType>(oparam),inworld));
+            return toPyIkParameterization(_pmanip->GetIkParameterization(oparam.cast<IkParameterizationType>(),inworld));
         }
 
         object GetChildJoints() {
             std::vector<KinBody::JointPtr> vjoints;
             _pmanip->GetChildJoints(vjoints);
-            boost::python::list joints;
+            py::list joints;
             FOREACH(itjoint,vjoints) {
                 joints.append(toPyKinBodyJoint(*itjoint,_pyenv));
             }
@@ -435,7 +435,7 @@ public:
         object GetChildDOFIndices() {
             std::vector<int> vdofindices;
             _pmanip->GetChildDOFIndices(vdofindices);
-            boost::python::list dofindices;
+            py::list dofindices;
             FOREACH(itindex,vdofindices) {
                 dofindices.append(*itindex);
             }
@@ -445,7 +445,7 @@ public:
         object GetChildLinks() {
             std::vector<KinBody::LinkPtr> vlinks;
             _pmanip->GetChildLinks(vlinks);
-            boost::python::list links;
+            py::list links;
             FOREACH(itlink,vlinks) {
                 links.append(toPyKinBodyLink(*itlink,_pyenv));
             }
@@ -461,7 +461,7 @@ public:
         object GetIndependentLinks() {
             std::vector<KinBody::LinkPtr> vlinks;
             _pmanip->GetIndependentLinks(vlinks);
-            boost::python::list links;
+            py::list links;
             FOREACH(itlink,vlinks) {
                 links.append(toPyKinBodyLink(*itlink,_pyenv));
             }
@@ -469,11 +469,11 @@ public:
         }
 
         object GetArmConfigurationSpecification(const std::string& interpolation="") const {
-            return object(openravepy::toPyConfigurationSpecification(_pmanip->GetArmConfigurationSpecification(interpolation)));
+            return py::cast(openravepy::toPyConfigurationSpecification(_pmanip->GetArmConfigurationSpecification(interpolation)));
         }
 
         object GetIkConfigurationSpecification(IkParameterizationType iktype, const std::string& interpolation="") const {
-            return object(openravepy::toPyConfigurationSpecification(_pmanip->GetIkConfigurationSpecification(iktype, interpolation)));
+            return py::cast(openravepy::toPyConfigurationSpecification(_pmanip->GetIkConfigurationSpecification(iktype, interpolation)));
         }
 
         bool CheckEndEffectorCollision(PyCollisionReportPtr pyreport) const
@@ -559,7 +559,7 @@ public:
         }
 
         object GetInfo() {
-            return object(PyManipulatorInfoPtr(new PyManipulatorInfo(_pmanip->GetInfo())));
+            return py::cast(PyManipulatorInfoPtr(new PyManipulatorInfo(_pmanip->GetInfo())));
         }
 
         string GetStructureHash() const {
@@ -610,7 +610,7 @@ public:
             return _pattached;
         }
         object GetSensor() {
-            return object(openravepy::toPySensor(_pattached->GetSensor(),_pyenv));
+            return py::cast(openravepy::toPySensor(_pattached->GetSensor(),_pyenv));
         }
         object GetAttachingLink() const {
             return toPyKinBodyLink(_pattached->GetAttachingLink(), _pyenv);
@@ -648,11 +648,11 @@ public:
         }
 
         object UpdateAndGetInfo(SensorBase::SensorType type=SensorBase::ST_Invalid) {
-            return object(PyAttachedSensorInfoPtr(new PyAttachedSensorInfo(_pattached->UpdateAndGetInfo(type))));
+            return py::cast(PyAttachedSensorInfoPtr(new PyAttachedSensorInfo(_pattached->UpdateAndGetInfo(type))));
         }
 
         object GetInfo() {
-            return object(PyAttachedSensorInfoPtr(new PyAttachedSensorInfo(_pattached->GetInfo())));
+            return py::cast(PyAttachedSensorInfoPtr(new PyAttachedSensorInfo(_pattached->GetInfo())));
         }
 
         string __repr__() {
@@ -701,7 +701,7 @@ public:
         }
 
         object GetInfo() {
-            return object(PyConnectedBodyInfoPtr(new PyConnectedBodyInfo(_pconnected->GetInfo(), _pyenv)));
+            return py::cast(PyConnectedBodyInfoPtr(new PyConnectedBodyInfo(_pconnected->GetInfo(), _pyenv)));
         }
 
         bool SetActive(bool active) {
@@ -735,7 +735,7 @@ public:
 
         object GetResolvedLinks()
         {
-            boost::python::list olinks;
+            py::list olinks;
             std::vector<KinBody::LinkPtr> vlinks;
             _pconnected->GetResolvedLinks(vlinks);
             FOREACH(itlink, vlinks) {
@@ -746,7 +746,7 @@ public:
 
         object GetResolvedJoints()
         {
-            boost::python::list ojoints;
+            py::list ojoints;
             std::vector<KinBody::JointPtr> vjoints;
             _pconnected->GetResolvedJoints(vjoints);
             FOREACH(itjoint, vjoints) {
@@ -757,7 +757,7 @@ public:
 
         object GetResolvedManipulators()
         {
-            boost::python::list omanips;
+            py::list omanips;
             std::vector<RobotBase::ManipulatorPtr> vmanips;
             _pconnected->GetResolvedManipulators(vmanips);
             FOREACH(itmanip, vmanips) {
@@ -826,7 +826,7 @@ public:
         }
 
         object GetBody() const {
-            return object(toPyRobot(RaveInterfaceCast<RobotBase>(_state.GetBody()),_pyenv));
+            return py::cast(toPyRobot(RaveInterfaceCast<RobotBase>(_state.GetBody()),_pyenv));
         }
 
         void Restore(PyRobotBasePtr pyrobot=PyRobotBasePtr()) {
@@ -865,7 +865,7 @@ public:
         _ParseJointInfos(ojointinfos, vjointinfos);
         std::vector<RobotBase::ManipulatorInfoConstPtr> vmanipinfos(len(omanipinfos));
         for(size_t i = 0; i < vmanipinfos.size(); ++i) {
-            PyManipulatorInfoPtr pymanip = boost::python::extract<PyManipulatorInfoPtr>(omanipinfos[i]);
+            PyManipulatorInfoPtr pymanip = omanipinfos[i].cast<PyManipulatorInfoPtr>();
             if( !pymanip ) {
                 throw OPENRAVE_EXCEPTION_FORMAT0(_("cannot cast to KinBody.ManipInfo"),ORE_InvalidArguments);
             }
@@ -873,7 +873,7 @@ public:
         }
         std::vector<RobotBase::AttachedSensorInfoConstPtr> vattachedsensorinfos(len(oattachedsensorinfos));
         for(size_t i = 0; i < vattachedsensorinfos.size(); ++i) {
-            PyAttachedSensorInfoPtr pyattachedsensor = boost::python::extract<PyAttachedSensorInfoPtr>(oattachedsensorinfos[i]);
+            PyAttachedSensorInfoPtr pyattachedsensor = oattachedsensorinfos[i].cast<PyAttachedSensorInfoPtr>();
             if( !pyattachedsensor ) {
                 throw OPENRAVE_EXCEPTION_FORMAT0(_("cannot cast to KinBody.AttachedsensorInfo"),ORE_InvalidArguments);
             }
@@ -884,7 +884,7 @@ public:
 
     object GetManipulators()
     {
-        boost::python::list manips;
+        py::list manips;
         FOREACH(it, _probot->GetManipulators()) {
             manips.append(_GetManipulator(*it));
         }
@@ -893,7 +893,7 @@ public:
 
     object GetManipulators(const string& manipname)
     {
-        boost::python::list manips;
+        py::list manips;
         FOREACH(it, _probot->GetManipulators()) {
             if( (*it)->GetName() == manipname ) {
                 manips.append(_GetManipulator(*it));
@@ -945,7 +945,7 @@ public:
 
     object GetAttachedSensors()
     {
-        boost::python::list sensors;
+        py::list sensors;
         FOREACH(itsensor, _probot->GetAttachedSensors()) {
             sensors.append(OPENRAVE_SHARED_PTR<PyAttachedSensor>(new PyAttachedSensor(*itsensor,_pyenv)));
         }
@@ -972,7 +972,7 @@ public:
 
     object GetConnectedBodies()
     {
-        boost::python::list bodies;
+        py::list bodies;
         FOREACH(itbody, _probot->GetConnectedBodies()) {
             bodies.append(OPENRAVE_SHARED_PTR<PyConnectedBody>(new PyConnectedBody(*itbody, _pyenv)));
         }
@@ -1004,7 +1004,7 @@ public:
 
     object GetController() const {
         CHECK_POINTER(_probot);
-        return object(openravepy::toPyController(_probot->GetController(),_pyenv));
+        return py::cast(openravepy::toPyController(_probot->GetController(),_pyenv));
     }
 
     bool SetController(PyControllerBasePtr pController, const string& args) {
@@ -1107,19 +1107,19 @@ public:
     {
         Vector lower, upper;
         _probot->GetAffineTranslationLimits(lower,upper);
-        return boost::python::make_tuple(toPyVector3(lower),toPyVector3(upper));
+        return py::make_tuple(toPyVector3(lower),toPyVector3(upper));
     }
     object GetAffineRotationAxisLimits() const
     {
         Vector lower, upper;
         _probot->GetAffineRotationAxisLimits(lower,upper);
-        return boost::python::make_tuple(toPyVector3(lower),toPyVector3(upper));
+        return py::make_tuple(toPyVector3(lower),toPyVector3(upper));
     }
     object GetAffineRotation3DLimits() const
     {
         Vector lower, upper;
         _probot->GetAffineRotation3DLimits(lower,upper);
-        return boost::python::make_tuple(toPyVector3(lower),toPyVector3(upper));
+        return py::make_tuple(toPyVector3(lower),toPyVector3(upper));
     }
     object GetAffineRotationQuatLimits() const
     {
@@ -1175,7 +1175,7 @@ public:
     object GetActiveDOFValues() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFValues(values);
@@ -1185,7 +1185,7 @@ public:
     object GetActiveDOFWeights() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> weights;
         _probot->GetActiveDOFWeights(weights);
@@ -1199,7 +1199,7 @@ public:
     object GetActiveDOFVelocities() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFVelocities(values);
@@ -1209,17 +1209,17 @@ public:
     object GetActiveDOFLimits() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return boost::python::make_tuple(np::array(boost::python::list()), np::array(boost::python::list())); // always need 2 since users can do lower, upper = GetDOFLimits()
+            return py::make_tuple(py::array_t<dReal>({1, 0}, nullptr), py::array_t<dReal>({1, 0}, nullptr)); // always need 2 since users can do lower, upper = GetDOFLimits()
         }
         vector<dReal> lower, upper;
         _probot->GetActiveDOFLimits(lower,upper);
-        return boost::python::make_tuple(toPyArray(lower),toPyArray(upper));
+        return py::make_tuple(toPyArray(lower),toPyArray(upper));
     }
 
     object GetActiveDOFMaxVel() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFMaxVel(values);
@@ -1229,7 +1229,7 @@ public:
     object GetActiveDOFMaxAccel() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFMaxAccel(values);
@@ -1239,7 +1239,7 @@ public:
     object GetActiveDOFMaxJerk() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFMaxJerk(values);
@@ -1249,7 +1249,7 @@ public:
     object GetActiveDOFHardMaxVel() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFHardMaxVel(values);
@@ -1259,7 +1259,7 @@ public:
     object GetActiveDOFHardMaxAccel() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFHardMaxAccel(values);
@@ -1269,7 +1269,7 @@ public:
     object GetActiveDOFHardMaxJerk() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFHardMaxJerk(values);
@@ -1279,7 +1279,7 @@ public:
     object GetActiveDOFResolutions() const
     {
         if( _probot->GetActiveDOF() == 0 ) {
-            return np::array(boost::python::list());
+            return py::array_t<dReal>({1, 0}, nullptr);
         }
         vector<dReal> values;
         _probot->GetActiveDOFResolutions(values);
@@ -1287,7 +1287,7 @@ public:
     }
 
     object GetActiveConfigurationSpecification(const std::string& interpolation="") const {
-        return object(openravepy::toPyConfigurationSpecification(_probot->GetActiveConfigurationSpecification(interpolation)));
+        return py::cast(openravepy::toPyConfigurationSpecification(_probot->GetActiveConfigurationSpecification(interpolation)));
     }
 
     object GetActiveJointIndices() {
