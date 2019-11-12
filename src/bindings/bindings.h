@@ -97,11 +97,9 @@
 #define IS_PYTHONOBJECT_NONE(o) (!!(o))
 #endif // BOOST_VERSION >= 104300
 
-namespace openravepy {
-
 namespace py = pybind11;
-using py::object;
 
+namespace openravepy {
 // char* PyString_AsString(PyObject* pystring)
 // {
 //     char *pchar = nullptr;
@@ -208,7 +206,7 @@ public:
 };
 
 template <typename T>
-inline std::vector<T> ExtractArray(const object& o)
+inline std::vector<T> ExtractArray(const py::object& o)
 {
     if( IS_PYTHONOBJECT_NONE(o) ) {
         return std::vector<T>();
@@ -221,7 +219,7 @@ inline std::vector<T> ExtractArray(const object& o)
 }
 
 template <typename T>
-inline std::set<T> ExtractSet(const object& o)
+inline std::set<T> ExtractSet(const py::object& o)
 {
     std::set<T> v;
     size_t nlen = len(o);
@@ -245,9 +243,9 @@ inline std::set<T> ExtractSet(const object& o)
 
 //     static void translate( const T& err )
 //     {
-//         object pimpl_err( err );
-//         object pyerr_class = pimpl_err.attr( "py_err_class" );
-//         object pyerr = pyerr_class( pimpl_err );
+//         py::object pimpl_err( err );
+//         py::object pyerr_class = pimpl_err.attr( "py_err_class" );
+//         py::object pyerr = pyerr_class( pimpl_err );
 //         PyErr_SetObject( pyerr_class.ptr(), py::incref( pyerr.ptr() ) );
 //     }
 
@@ -261,9 +259,9 @@ inline std::set<T> ExtractSet(const object& o)
 //             return 0;
 //         }
 
-//         object pyerr( py::handle<>( py::borrowed( py_obj ) ) );
-//         object pimpl = getattr( pyerr, "_pimpl" );
-//         object type_checker = pimpl.cast<T>();
+//         py::object pyerr( py::handle<>( py::borrowed( py_obj ) ) );
+//         py::object pimpl = getattr( pyerr, "_pimpl" );
+//         py::object type_checker = pimpl.cast<T>();
 //         if( !type_checker.check() ) {
 //             return 0;
 //         }
@@ -274,8 +272,8 @@ inline std::set<T> ExtractSet(const object& o)
 //     {
 //         typedef py::converter::rvalue_from_python_storage<T> storage_t;
 
-//         object pyerr( py::handle<>( py::borrowed( py_obj ) ) );
-//         object pimpl = getattr( pyerr, "_pimpl" );
+//         py::object pyerr( py::handle<>( py::borrowed( py_obj ) ) );
+//         py::object pimpl = getattr( pyerr, "_pimpl" );
 
 //         storage_t* the_storage = reinterpret_cast<storage_t*>( data );
 //         void* memory_chunk = the_storage->storage.bytes;
@@ -370,11 +368,11 @@ inline py::array_t<T> toPyArrayN(const T* pvalues, std::vector<npy_intp>& dims)
 }
 
 template <typename T>
-inline object toPyList(const std::vector<T>& v)
+inline py::object toPyList(const std::vector<T>& v)
 {
     py::list lvalues;
     FOREACHC(it,v) {
-        lvalues.append(object(*it));
+        lvalues.append(py::object(*it));
     }
     return std::move(lvalues);
 }

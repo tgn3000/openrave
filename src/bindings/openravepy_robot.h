@@ -16,8 +16,13 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef OPENRAVEPY_INTERNAL_ROBOT_H
 #define OPENRAVEPY_INTERNAL_ROBOT_H
+
 #define NO_IMPORT_ARRAY
+#include "openravepy_int.h"
 #include "openravepy_kinbody.h"
+#include "openravepy_attachedsensorinfo.h"
+#include "openravepy_connectedbodyinfo.h"
+#include "openravepy_manipulatorinfo.h"
 
 namespace openravepy {
 

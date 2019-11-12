@@ -16,11 +16,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef OPENRAVEPY_INTERNAL_CONFIGURATIONSPECIFICATION_H
 #define OPENRAVEPY_INTERNAL_CONFIGURATIONSPECIFICATION_H
-#define NO_IMPORT_ARRAY
-#include "openravepy_int.h"
-
 #include <openrave/xmlreaders.h>
 #include <openrave/utils.h>
+
+#define NO_IMPORT_ARRAY
+#include "openravepy_int.h"
 
 namespace openravepy {
 
@@ -39,9 +39,8 @@ public:
     PyConfigurationSpecification(const ConfigurationSpecification::Group& g) {
         _spec = ConfigurationSpecification(g);
     }
-    PyConfigurationSpecification(PyConfigurationSpecificationPtr pyspec) {
-        _spec = pyspec->_spec;
-    }
+    PyConfigurationSpecification(PyConfigurationSpecificationPtr pyspec);
+
     virtual ~PyConfigurationSpecification() {
     }
 
@@ -309,6 +308,10 @@ public:
 
     ConfigurationSpecification _spec;
 };
+
+PyConfigurationSpecification::PyConfigurationSpecification(PyConfigurationSpecificationPtr pyspec) {
+    _spec = pyspec->_spec;
+}
 
 } // namespace openravepy
 #endif // OPENRAVEPY_INTERNAL_CONFIGURATIONSPECIFICATION_H

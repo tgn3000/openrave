@@ -59,7 +59,7 @@ if( HAVE_ALL_PYTHON_HEADERS )
   # add_dependencies(${OPENRAVE_PYTHON_BINDING_NAME} libopenrave libopenrave-core)
   set_target_properties(${OPENRAVE_PYTHON_BINDING_NAME} 
     PROPERTIES PREFIX "" 
-    COMPILE_FLAGS "${OPENRAVEPY_COMPILE_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}"
+    COMPILE_FLAGS "${OPENRAVEPY_COMPILE_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} -fvisibility=hidden"
   )
   if( WIN32 )
     set_target_properties(${OPENRAVE_PYTHON_BINDING_NAME} PROPERTIES SUFFIX ".pyd")

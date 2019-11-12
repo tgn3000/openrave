@@ -16,153 +16,22 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define NO_IMPORT_ARRAY
 #include "openravepy_robot.h"
+#include "openravepy_kinbody.h"
+#include "openravepy_manipulatorinfo.h"
+#include "openravepy_attachedsensorinfo.h"
+#include "openravepy_connectedbodyinfo.h"
 
 namespace openravepy {
-
-class PyManipulatorInfo
-{
-public:
-    PyManipulatorInfo() {
-        _tLocalTool = ReturnTransform(Transform());
-        _vChuckingDirection = np::array(boost::python::list());
-        _vdirection = toPyVector3(Vector(0,0,1));
-        _vGripperJointNames = boost::python::list();
-    }
-    PyManipulatorInfo(const RobotBase::ManipulatorInfo& info) {
-        _name = ConvertStringToUnicode(info._name);
-        _sBaseLinkName = ConvertStringToUnicode(info._sBaseLinkName);
-        _sEffectorLinkName = ConvertStringToUnicode(info._sEffectorLinkName);
-        _tLocalTool = ReturnTransform(info._tLocalTool);
-        _vChuckingDirection = toPyArray(info._vChuckingDirection);
-        _vdirection = toPyVector3(info._vdirection);
-        _sIkSolverXMLId = info._sIkSolverXMLId;
-        boost::python::list vGripperJointNames;
-        FOREACHC(itname, info._vGripperJointNames) {
-            vGripperJointNames.append(ConvertStringToUnicode(*itname));
-        }
-        _vGripperJointNames = vGripperJointNames;
-    }
-
-    RobotBase::ManipulatorInfoPtr GetManipulatorInfo() const
-    {
-        RobotBase::ManipulatorInfoPtr pinfo(new RobotBase::ManipulatorInfo());
-        pinfo->_name = boost::python::extract<std::string>(_name);
-        pinfo->_sBaseLinkName = boost::python::extract<std::string>(_sBaseLinkName);
-        pinfo->_sEffectorLinkName = boost::python::extract<std::string>(_sEffectorLinkName);
-        pinfo->_tLocalTool = ExtractTransform(_tLocalTool);
-        pinfo->_vChuckingDirection = ExtractArray<dReal>(_vChuckingDirection);
-        pinfo->_vdirection = ExtractVector3(_vdirection);
-        pinfo->_sIkSolverXMLId = _sIkSolverXMLId;
-        pinfo->_vGripperJointNames = ExtractArray<std::string>(_vGripperJointNames);
-        return pinfo;
-    }
-
-    object _name, _sBaseLinkName, _sEffectorLinkName;
-    object _tLocalTool;
-    object _vChuckingDirection;
-    object _vdirection;
-    std::string _sIkSolverXMLId;
-    object _vGripperJointNames;
-};
 
 PyManipulatorInfoPtr toPyManipulatorInfo(const RobotBase::ManipulatorInfo& manipulatorinfo)
 {
     return PyManipulatorInfoPtr(new PyManipulatorInfo(manipulatorinfo));
 }
 
-class PyAttachedSensorInfo
-{
-public:
-    PyAttachedSensorInfo() {
-    }
-    PyAttachedSensorInfo(const RobotBase::AttachedSensorInfo& info) {
-        _name = ConvertStringToUnicode(info._name);
-        _linkname = ConvertStringToUnicode(info._linkname);
-        _trelative = ReturnTransform(info._trelative);
-        _sensorname = ConvertStringToUnicode(info._sensorname);
-        _sensorgeometry = toPySensorGeometry(info._sensorgeometry);
-    }
-
-    RobotBase::AttachedSensorInfoPtr GetAttachedSensorInfo() const
-    {
-        RobotBase::AttachedSensorInfoPtr pinfo(new RobotBase::AttachedSensorInfo());
-        pinfo->_name = boost::python::extract<std::string>(_name);
-        pinfo->_linkname = boost::python::extract<std::string>(_linkname);
-        pinfo->_trelative = ExtractTransform(_trelative);
-        pinfo->_sensorname = boost::python::extract<std::string>(_sensorname);
-        pinfo->_sensorgeometry = _sensorgeometry->GetGeometry();
-        return pinfo;
-    }
-
-    object _name, _linkname;
-    object _trelative;
-    object _sensorname;
-    PySensorGeometryPtr _sensorgeometry;
-};
-
 PyAttachedSensorInfoPtr toPyAttachedSensorInfo(const RobotBase::AttachedSensorInfo& attachedSensorinfo)
 {
     return PyAttachedSensorInfoPtr(new PyAttachedSensorInfo(attachedSensorinfo));
 }
-
-class PyConnectedBodyInfo
-{
-public:
-    PyConnectedBodyInfo() {
-    }
-    PyConnectedBodyInfo(const RobotBase::ConnectedBodyInfo& info, PyEnvironmentBasePtr pyenv)
-    {
-        _name = ConvertStringToUnicode(info._name);
-        _linkname = ConvertStringToUnicode(info._linkname);
-        _trelative = ReturnTransform(info._trelative);
-        _url = ConvertStringToUnicode(info._url);
-
-        boost::python::list linkInfos;
-        FOREACH(itlinkinfo, info._vLinkInfos) {
-            linkInfos.append(toPyLinkInfo(**itlinkinfo));
-        }
-        _linkInfos = linkInfos;
-
-        boost::python::list jointInfos;
-        FOREACH(itjointinfo, info._vJointInfos) {
-            jointInfos.append(toPyJointInfo(**itjointinfo, pyenv));
-        }
-        _jointInfos = jointInfos;
-
-        boost::python::list manipulatorInfos;
-        FOREACH(itmanipulatorinfo, info._vManipulatorInfos) {
-            manipulatorInfos.append(toPyManipulatorInfo(**itmanipulatorinfo));
-        }
-        _manipulatorInfos = manipulatorInfos;
-
-        boost::python::list attachedSensorInfos;
-        FOREACH(itattachedSensorinfo, info._vAttachedSensorInfos) {
-            attachedSensorInfos.append(toPyAttachedSensorInfo(**itattachedSensorinfo));
-        }
-        _attachedSensorInfos = attachedSensorInfos;
-    }
-
-    RobotBase::ConnectedBodyInfoPtr GetConnectedBodyInfo() const
-    {
-        RobotBase::ConnectedBodyInfoPtr pinfo(new RobotBase::ConnectedBodyInfo());
-        pinfo->_name = boost::python::extract<std::string>(_name);
-        pinfo->_linkname = boost::python::extract<std::string>(_linkname);
-        pinfo->_trelative = ExtractTransform(_trelative);
-        pinfo->_url = boost::python::extract<std::string>(_url);
-        // extract all the infos
-        return pinfo;
-    }
-
-    object _name;
-    object _linkname;
-    object _trelative;
-    object _url;
-    object _linkInfos;
-    object _jointInfos;
-    object _manipulatorInfos;
-    object _attachedSensorInfos;
-
-};
 
 PyConnectedBodyInfoPtr toPyConnectedBodyInfo(const RobotBase::ConnectedBodyInfo& connectedBodyInfo, PyEnvironmentBasePtr pyenv)
 {

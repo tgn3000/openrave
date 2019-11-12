@@ -17,12 +17,14 @@
 #ifndef OPENRAVEPY_INTERNAL_KINBODY_H
 #define OPENRAVEPY_INTERNAL_KINBODY_H
 
-#include "openravepy_int.h"
 #include <openrave/utils.h>
 
-namespace openravepy {
+#define NO_IMPORT_ARRAY
+#include "openravepy_int.h"
 
 using py::object;
+
+namespace openravepy {
 
 class PyStateRestoreContextBase
 {

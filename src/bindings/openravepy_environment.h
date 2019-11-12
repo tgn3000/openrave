@@ -16,12 +16,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef OPENRAVEPY_INTERNAL_ENVIRONMENT_H
 #define OPENRAVEPY_INTERNAL_ENVIRONMENT_H
-#include "openravepy_int.h"
 
 #include <openrave/utils.h>
 #include <boost/thread/once.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/multi_array.hpp>
+
+#define NO_IMPORT_ARRAY
+#include "openravepy_int.h"
 
 namespace openravepy
 {
