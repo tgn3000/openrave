@@ -35,9 +35,8 @@ if( HAVE_ALL_PYTHON_HEADERS )
   endif()
   ## openrave bindings
   add_library(${OPENRAVE_PYTHON_BINDING_NAME}
-    SHARED openravepy_int.cpp openravepy_kinbody.cpp
-    openravepy_robot.cpp
-    # openravepy_global.cpp
+    SHARED openravepy_int.cpp openravepy_kinbody.cpp openravepy_robot.cpp
+    openravepy_global.cpp
     # openravepy_collisionchecker.cpp openravepy_controller.cpp openravepy_ikparameterization.cpp 
     # openravepy_iksolver.cpp openravepy_module.cpp openravepy_physicsengine.cpp openravepy_planner.cpp 
     # openravepy_planningutils.cpp openravepy_sensor.cpp openravepy_sensorsystem.cpp openravepy_spacesampler.cpp 
