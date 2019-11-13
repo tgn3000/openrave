@@ -22,6 +22,8 @@
 
 namespace openravepy {
 
+using py::object;
+
 class PyConnectedBodyInfo
 {
 public:

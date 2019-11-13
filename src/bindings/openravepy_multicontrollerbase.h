@@ -51,7 +51,7 @@ public:
     object GetController(int dof) {
         CHECK_POINTER(_pmulticontroller);
         ControllerBasePtr pcontroller = _pmulticontroller->GetController(dof);
-        return object(openravepy::toPyController(pcontroller, _pyenv));
+        return py::cast(openravepy::toPyController(pcontroller, _pyenv));
     }
 };
 
