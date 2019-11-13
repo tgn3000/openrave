@@ -1433,7 +1433,7 @@ public:
         }
         _listStateSavers.push_back(OPENRAVE_SHARED_PTR<void>(new RobotBase::RobotStateSaver(_probot)));
     }
-};
+}; // class PyRobotBase
 
 } // namespace openravepy
 

@@ -818,9 +818,31 @@ PyInterfaceBasePtr RaveCreateInterface(PyEnvironmentBasePtr pyenv, InterfaceType
 void init_openravepy_global(py::module& m);
 void InitPlanningUtils();
 
-
 template <typename T>
-py::object GetCustomParameters(const std::map<std::string, std::vector<T> >& parameters, py::object oname=py::object(), int index=-1);
+py::object GetCustomParameters(const std::map<std::string, std::vector<T> >& parameters, py::object oname=py::object(), int index=-1)
+{
+    if( IS_PYTHONOBJECT_NONE(oname) ) {
+        py::dict oparameters;
+        FOREACHC(it, parameters) {
+            oparameters[it->first] = toPyArray(it->second);
+        }
+        return std::move(oparameters);
+    }
+    std::string name = oname.cast<std::string>();
+    typename std::map<std::string, std::vector<T> >::const_iterator it = parameters.find(name);
+    if( it != parameters.end() ) {
+        if( index >= 0 ) {
+            if( (size_t)index < it->second.size() ) {
+                return py::cast(it->second.at(index));
+            }
+            else {
+                return py::object();
+            }
+        }
+        return toPyArray(it->second);
+    }
+    return py::object();
+}
 
 } // namespace openravepy
 
