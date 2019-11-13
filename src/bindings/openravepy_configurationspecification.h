@@ -39,7 +39,10 @@ public:
     PyConfigurationSpecification(const ConfigurationSpecification::Group& g) {
         _spec = ConfigurationSpecification(g);
     }
-    PyConfigurationSpecification(PyConfigurationSpecificationPtr pyspec);
+
+    PyConfigurationSpecification(PyConfigurationSpecificationPtr pyspec) {
+        _spec = pyspec->_spec;
+    }
 
     virtual ~PyConfigurationSpecification() {
     }
@@ -249,9 +252,21 @@ public:
 //    static void ConvertGroupData(std::vector<dReal>::iterator ittargetdata, size_t targetstride, const Group& gtarget, std::vector<dReal>::const_iterator itsourcedata, size_t sourcestride, const Group& gsource, size_t numpoints, EnvironmentBaseConstPtr penv);
 //
     // source spec is the current configurationspecification spec
-    object ConvertData(PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv, bool filluninitialized = true);
+    object ConvertData(PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv, bool filluninitialized)
+    {
+        std::vector<dReal> vtargetdata(pytargetspec->_spec.GetDOF()*numpoints,0);
+        std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
+        ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, GetEnvironment(pyenv), filluninitialized);
+        return toPyArray(vtargetdata);
+    }
 
-    object ConvertDataFromPrevious(object otargetdata, PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv);
+    object ConvertDataFromPrevious(object otargetdata, PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv)
+    {
+        std::vector<dReal> vtargetdata = ExtractArray<dReal>(otargetdata);
+        std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
+        ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, GetEnvironment(pyenv), false);
+        return toPyArray(vtargetdata);
+    }
 
     py::list GetGroups()
     {
@@ -262,13 +277,24 @@ public:
         return ogroups;
     }
 
-    bool __eq__(PyConfigurationSpecificationPtr p);
+    bool __eq__(PyConfigurationSpecificationPtr p) {
+        return !!p && _spec==p->_spec;
+    }
 
-    bool __ne__(PyConfigurationSpecificationPtr p);
+    bool __ne__(PyConfigurationSpecificationPtr p) {
+        return !p || _spec!=p->_spec;
+    }
 
-    PyConfigurationSpecificationPtr __add__(PyConfigurationSpecificationPtr r);
+    PyConfigurationSpecificationPtr __add__(PyConfigurationSpecificationPtr r)
+    {
+        return PyConfigurationSpecificationPtr(new PyConfigurationSpecification(_spec + r->_spec));
+    }
 
-    PyConfigurationSpecificationPtr __iadd__(PyConfigurationSpecificationPtr r);
+    PyConfigurationSpecificationPtr __iadd__(PyConfigurationSpecificationPtr r)
+    {
+        _spec += r->_spec;
+        return shared_from_this();
+    }
 
     string __repr__() {
         std::stringstream ss;
@@ -288,45 +314,6 @@ public:
 };
 
 typedef OPENRAVE_SHARED_PTR<PyConfigurationSpecification> PyConfigurationSpecificationPtr;
-
-PyConfigurationSpecification::PyConfigurationSpecification(PyConfigurationSpecificationPtr pyspec) {
-    _spec = pyspec->_spec;
-}
-
-object PyConfigurationSpecification::ConvertData(PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv, bool filluninitialized)
-{
-    std::vector<dReal> vtargetdata(pytargetspec->_spec.GetDOF()*numpoints,0);
-    std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
-    ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, GetEnvironment(pyenv), filluninitialized);
-    return toPyArray(vtargetdata);
-}
-
-object PyConfigurationSpecification::ConvertDataFromPrevious(object otargetdata, PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv)
-{
-    std::vector<dReal> vtargetdata = ExtractArray<dReal>(otargetdata);
-    std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
-    ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, GetEnvironment(pyenv), false);
-    return toPyArray(vtargetdata);
-}
-
-bool PyConfigurationSpecification::__eq__(PyConfigurationSpecificationPtr p) {
-    return !!p && _spec==p->_spec;
-}
-
-bool PyConfigurationSpecification::__ne__(PyConfigurationSpecificationPtr p) {
-    return !p || _spec!=p->_spec;
-}
-
-PyConfigurationSpecificationPtr PyConfigurationSpecification::__add__(PyConfigurationSpecificationPtr r)
-{
-    return PyConfigurationSpecificationPtr(new PyConfigurationSpecification(_spec + r->_spec));
-}
-
-PyConfigurationSpecificationPtr PyConfigurationSpecification::__iadd__(PyConfigurationSpecificationPtr r)
-{
-    _spec += r->_spec;
-    return shared_from_this();
-}
 
 } // namespace openravepy
 #endif // OPENRAVEPY_INTERNAL_CONFIGURATIONSPECIFICATION_H
