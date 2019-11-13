@@ -254,7 +254,7 @@ public:
         if( !!ccollidinglink ) {
             collidinglink = ccollidinglink->GetParent()->GetLinks().at(ccollidinglink->GetIndex());
         }
-        return boost::python::make_tuple(ret, closestdist, boost::python::make_tuple(openravepy::toPyKinBodyLink(robotlink, _pyenv), openravepy::toPyKinBodyLink(collidinglink, _pyenv)));
+        return py::make_tuple(ret, closestdist, py::make_tuple(openravepy::toPyKinBodyLink(robotlink, _pyenv), openravepy::toPyKinBodyLink(collidinglink, _pyenv)));
     }
 
     void Reset()
@@ -329,7 +329,7 @@ public:
             return object(); // didn't find anything
         }
         else {
-           return boost::python::make_tuple(toPyArray(nn.first), nn.second);
+           return py::make_tuple(toPyArray(nn.first), nn.second);
         }
     }
     

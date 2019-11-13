@@ -20,9 +20,17 @@
 #include <boost/thread/once.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/multi_array.hpp>
+#include "openravepy_environment.h"
+#include "openravepy_viewermanager.h"
+#include "openravepy_collisionreport.h"
+#include "openravepy_robot.h"
+#include "openravepy_sensorbase.h"
+#include "openravepy_module.h"
+#include "openravepy_physicsengine.h"
 
 namespace openravepy
 {
+using py::object;
 
 #ifdef OPENRAVE_RAPIDJSON
 
@@ -32,7 +40,7 @@ object toPyObject(const rapidjson::Value& value)
     switch (value.GetType()) {
     case rapidjson::kObjectType:
         {
-            boost::python::dict d;
+            py::dict d;
             for (rapidjson::Value::ConstMemberIterator it = value.MemberBegin(); it != value.MemberEnd(); ++it) {
                 d[it->name.GetString()] = toPyObject(it->value);
             }
@@ -40,24 +48,24 @@ object toPyObject(const rapidjson::Value& value)
         }
     case rapidjson::kArrayType:
         {
-            boost::python::list l;
+            py::list l;
             for (rapidjson::Value::ConstValueIterator it = value.Begin(); it != value.End(); ++it) {
                 l.append(toPyObject(*it));
             }
             return l;
         }
     case rapidjson::kTrueType:
-        return boost::python::object(boost::python::handle<>(PyBool_FromLong(1)));
+        return py::object(py::handle<>(PyBool_FromLong(1)));
     case rapidjson::kFalseType:
-        return boost::python::object(boost::python::handle<>(PyBool_FromLong(0)));
+        return py::object(py::handle<>(PyBool_FromLong(0)));
     case rapidjson::kStringType:
         return ConvertStringToUnicode(value.GetString());
     case rapidjson::kNumberType:
         if (value.IsDouble()) {
-            return boost::python::object(boost::python::handle<>(PyFloat_FromDouble(value.GetDouble())));
+            return py::object(py::handle<>(PyFloat_FromDouble(value.GetDouble())));
         }
         else {
-            return boost::python::object(boost::python::handle<>(PyLong_FromLong(value.GetInt64())));
+            return py::object(py::handle<>(PyLong_FromLong(value.GetInt64())));
         }
     case rapidjson::kNullType:
         return object();
@@ -130,11 +138,11 @@ void toRapidJSONValue(object &obj, rapidjson::Value &value, rapidjson::Document:
     }
     else if (PyTuple_Check(obj.ptr()))
     {
-        boost::python::tuple t = boost::python::extract<boost::python::tuple>(obj);
+        py::tuple t = py::extract<py::tuple>(obj);
         value.SetArray();
         for (int i = 0; i < len(t); i++)
         {
-            boost::python::object o = boost::python::extract<boost::python::object>(t[i]);
+            py::object o = py::extract<py::object>(t[i]);
             rapidjson::Value elementValue;
             toRapidJSONValue(o, elementValue, allocator);
             value.PushBack(elementValue, allocator);
@@ -142,11 +150,11 @@ void toRapidJSONValue(object &obj, rapidjson::Value &value, rapidjson::Document:
     }
     else if (PyList_Check(obj.ptr()))
     {
-        boost::python::list l = boost::python::extract<boost::python::list>(obj);
+        py::list l = py::extract<py::list>(obj);
         value.SetArray();
         int numitems = len(l);
         for (int i = 0; i < numitems; i++) {
-            boost::python::object o = boost::python::extract<boost::python::object>(l[i]);
+            py::object o = py::extract<py::object>(l[i]);
             rapidjson::Value elementValue;
             toRapidJSONValue(o, elementValue, allocator);
             value.PushBack(elementValue, allocator);
@@ -154,20 +162,20 @@ void toRapidJSONValue(object &obj, rapidjson::Value &value, rapidjson::Document:
     }
     else if (PyDict_Check(obj.ptr()))
     {
-        boost::python::dict d = boost::python::extract<boost::python::dict>(obj);
-        boost::python::object iterator = d.iteritems();
+        py::dict d = py::extract<py::dict>(obj);
+        py::object iterator = d.iteritems();
         value.SetObject();
         int numitems = len(d);
         for (int i = 0; i < numitems; i++)
         {
             rapidjson::Value keyValue, valueValue;
-            boost::python::tuple kv = boost::python::extract<boost::python::tuple>(iterator.attr("next")());
+            py::tuple kv = py::extract<py::tuple>(iterator.attr("next")());
             {
-                boost::python::object k = boost::python::extract<object>(kv[0]);
+                py::object k = py::extract<object>(kv[0]);
                 toRapidJSONValue(k, keyValue, allocator);
             }
             {
-                boost::python::object v = boost::python::extract<object>(kv[1]);
+                py::object v = py::extract<object>(kv[1]);
                 toRapidJSONValue(v, valueValue, allocator);
             }
             value.AddMember(keyValue, valueValue, allocator);
@@ -248,16 +256,17 @@ TransformMatrix ExtractTransformMatrix(const object& oraw)
 
 object toPyArray(const TransformMatrix& t)
 {
-    boost::python::tuple shapeA = boost::python::make_tuple(4, 4);
-    np::dtype dt = sizeof(dReal)==8 ? np::dtype::get_builtin<double>() : np::dtype::get_builtin<float>();
-    np::ndarray A = np::zeros(shapeA, dt);
+    py::array_t<dReal> A;
+    A.resize({4, 4});
     for(int i = 0; i < 3; ++i) {
         for(int j = 0; j < 3; ++j) {
             A[i][j] = t.m[4*i+j];
         }
         A[i][3] = t.trans[i];
     }
-    A[3][0] = A[3][1] = A[3][2] = 0;
+    A[3][0] = 0;
+    A[3][1] = 0;
+    A[3][2] = 0;
     A[3][3] = 1;
     return std::move(A);
 }
@@ -273,330 +282,53 @@ object toPyArray(const Transform& t)
     return toPyArrayN(pdata, 7);
 }
 
-AttributesList toAttributesList(boost::python::dict odict)
+AttributesList toAttributesList(py::dict odict)
 {
     AttributesList atts;
     if( !IS_PYTHONOBJECT_NONE(odict) ) {
-        boost::python::list iterkeys = (boost::python::list)odict.iterkeys();
-        size_t num = boost::python::len(iterkeys);
-        for (size_t i = 0; i < num; i++) {
+        for(auto item : odict) {
             // Because we know they're strings, we can do this
-            std::string key = boost::python::extract<std::string>(iterkeys[i]);
-            std::string value = boost::python::extract<std::string>(odict[iterkeys[i]]);
+            std::string key = item.first.cast<std::string>();
+            std::string value = item.second.cast<std::string>();
             atts.emplace_back(key, value);
         }
     }
     return atts;
 }
 
-AttributesList toAttributesList(boost::python::list oattributes)
+AttributesList toAttributesList(py::list oattributes)
 {
     AttributesList atts;
     if( !IS_PYTHONOBJECT_NONE(oattributes) ) {
-        size_t num=len(oattributes);
+        size_t num = len(oattributes);
         for (size_t i = 0; i < num; i++) {
             // Because we know they're strings, we can do this
-            std::string key = boost::python::extract<std::string>(oattributes[i][0]);
-            std::string value = boost::python::extract<std::string>(oattributes[i][1]);
+            std::string key = oattributes[i][0].cast<std::string>();
+            std::string value = oattributes[i][1].cast<std::string>();
             atts.emplace_back(key, value);
         }
     }
     return atts;
 }
 
-AttributesList toAttributesList(boost::python::object oattributes)
+AttributesList toAttributesList(py::object oattributes)
 {
     if( !IS_PYTHONOBJECT_NONE(oattributes) ) {
-        boost::python::extract<boost::python::dict> odictextractor(oattributes);
-        if( odictextractor.check() ) {
-            return toAttributesList((boost::python::dict)odictextractor());
+        try {
+            py::dict odictextractor = oattributes.cast<py::dict>();
+            return toAttributesList((py::dict) odictextractor);
         }
-        // assume list
-        boost::python::extract<boost::python::list> olistextractor(oattributes);
-        return toAttributesList((boost::python::list)olistextractor());
+        catch(...) {
+            // assume list
+            try {
+                py::list olistextractor = oattributes.cast<py::list>();
+                return toAttributesList((py::list) olistextractor);
+            }
+            catch (...) {}            
+        }
     }
     return AttributesList();
 }
-
-/// \brief manages all the viewers created through SetViewer into a single thread
-class ViewerManager
-{
-    /// \brief info about the viewer to create or that is created
-    struct ViewerInfo
-    {
-        EnvironmentBasePtr _penv;
-        std::string _viewername;
-        ViewerBasePtr _pviewer; /// the created viewer
-        boost::condition _cond;  ///< notify when viewer thread is done processing and has initialized _pviewer
-        bool _bShowViewer; ///< true if should show the viewer when initially created
-    };
-    typedef OPENRAVE_SHARED_PTR<ViewerInfo> ViewerInfoPtr;
-public:
-    ViewerManager() {
-        _bShutdown = false;
-        _bInMain = false;
-        _threadviewer.reset(new boost::thread(boost::bind(&ViewerManager::_RunViewerThread, this)));
-    }
-
-    virtual ~ViewerManager() {
-        Destroy();
-    }
-
-    static ViewerManager& GetInstance() {
-        boost::call_once(_InitializeSingleton, _onceInitialize);
-        // Return reference to object.
-        return *_singleton;
-    }
-
-    /// \brief adds a viewer to the environment whose GUI thread will be managed by _RunViewerThread
-    ///
-    /// \param bDoNotAddIfExists if true, will not add a viewer if one already exists and is added to the manager
-    ViewerBasePtr AddViewer(EnvironmentBasePtr penv, const string &strviewer, bool bShowViewer, bool bDoNotAddIfExists=true)
-    {
-        ViewerBasePtr pviewer;
-        if( strviewer.size() > 0 ) {
-
-            if( bDoNotAddIfExists ) {
-                // check all existing viewers
-                boost::mutex::scoped_lock lock(_mutexViewer);
-                std::list<ViewerInfoPtr>::iterator itviewer = _listviewerinfos.begin();
-                while(itviewer != _listviewerinfos.end() ) {
-                    if( (*itviewer)->_penv == penv ) {
-                        if( (*itviewer)->_viewername == strviewer ) {
-                            if( !!(*itviewer)->_pviewer ) {
-                                (*itviewer)->_pviewer->Show(bShowViewer);
-                            }
-                            return (*itviewer)->_pviewer;
-                        }
-
-                        // should remove the viewer so can re-add a new one
-                        if( !!(*itviewer)->_pviewer ) {
-                            (*itviewer)->_penv->Remove((*itviewer)->_pviewer);
-                        }
-                        itviewer = _listviewerinfos.erase(itviewer);
-                    }
-                    else {
-                        ++itviewer;
-                    }
-                }
-            }
-
-            ViewerInfoPtr pinfo(new ViewerInfo());
-            pinfo->_penv = penv;
-            pinfo->_viewername = strviewer;
-            pinfo->_bShowViewer = bShowViewer;
-            if( _bInMain ) {
-                // create in this thread since viewer thread is already waiting on another viewer
-                pviewer = RaveCreateViewer(penv, strviewer);
-                if( !!pviewer ) {
-                    penv->AddViewer(pviewer);
-                    // TODO uncomment once Show posts to queue
-                    if( bShowViewer ) {
-                        pviewer->Show(1);
-                    }
-                    pinfo->_pviewer = pviewer;
-                    boost::mutex::scoped_lock lock(_mutexViewer);
-                    _listviewerinfos.push_back(pinfo);
-                    _conditionViewer.notify_all();
-                }
-            }
-            else {
-                // no viewer has been created yet, so let the viewer thread create it (if using Qt, this initializes the QApplication in the right thread
-                boost::mutex::scoped_lock lock(_mutexViewer);
-                _listviewerinfos.push_back(pinfo);
-                _conditionViewer.notify_all();
-
-                /// wait until viewer thread process it
-                pinfo->_cond.wait(_mutexViewer);
-                pviewer = pinfo->_pviewer;
-            }
-        }
-        return pviewer;
-    }
-
-    /// \brief if removed, returns true
-    bool RemoveViewer(ViewerBasePtr pviewer)
-    {
-        if( !pviewer ) {
-            return false;
-        }
-        {
-            boost::mutex::scoped_lock lock(_mutexViewer);
-            FOREACH(itviewer, _listviewerinfos) {
-                ViewerBasePtr ptestviewer = (*itviewer)->_pviewer;
-                if(ptestviewer == pviewer ) {
-                    pviewer->quitmainloop();
-                    _listviewerinfos.erase(itviewer);
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /// \brief if anything removed, returns true
-    bool RemoveViewersOfEnvironment(EnvironmentBasePtr penv)
-    {
-        if( !penv ) {
-            return false;
-        }
-        bool bremoved = false;
-        {
-            boost::mutex::scoped_lock lock(_mutexViewer);
-            std::list<ViewerInfoPtr>::iterator itinfo = _listviewerinfos.begin();
-            while(itinfo != _listviewerinfos.end() ) {
-                if( (*itinfo)->_penv == penv ) {
-                    itinfo = _listviewerinfos.erase(itinfo);
-                    bremoved = true;
-                }
-                else {
-                    ++itinfo;
-                }
-            }
-        }
-        return bremoved;
-    }
-
-    void Destroy() {
-        _bShutdown = true;
-        {
-            boost::mutex::scoped_lock lock(_mutexViewer);
-            // have to notify everyone
-            FOREACH(itinfo, _listviewerinfos) {
-                (*itinfo)->_cond.notify_all();
-            }
-            _listviewerinfos.clear();
-            _conditionViewer.notify_all();
-        }
-        if( !!_threadviewer ) {
-            _threadviewer->join();
-        }
-        _threadviewer.reset();
-    }
-
-protected:
-    void _RunViewerThread()
-    {
-        while(!_bShutdown) {
-            std::list<ViewerBasePtr> listviewers, listtempviewers;
-            bool bShowViewer = true;
-            {
-                boost::mutex::scoped_lock lock(_mutexViewer);
-                if( _listviewerinfos.size() == 0 ) {
-                    _conditionViewer.wait(lock);
-                    if( _listviewerinfos.size() == 0 ) {
-                        continue;
-                    }
-                }
-
-                listtempviewers.clear(); // viewers to add to env once lock is released
-                listviewers.clear();
-                std::list<ViewerInfoPtr>::iterator itinfo = _listviewerinfos.begin();
-                while(itinfo != _listviewerinfos.end() ) {
-                    ViewerInfoPtr pinfo = *itinfo;
-                    if( !pinfo->_pviewer ) {
-                        pinfo->_pviewer = RaveCreateViewer(pinfo->_penv, pinfo->_viewername);
-                        // have to notify other thread that viewer is present before the environment lock happens! otherwise we can get into deadlock between c++ and python
-                        pinfo->_cond.notify_all();
-                        if( !!pinfo->_pviewer ) {
-                            listtempviewers.push_back(pinfo->_pviewer);
-                            ++itinfo;
-                        }
-                        else {
-                            // erase from _listviewerinfos
-                            itinfo = _listviewerinfos.erase(itinfo);
-                        }
-                    }
-                    else {
-                        ++itinfo;
-                    }
-
-                    if( !!pinfo->_pviewer ) {
-                        if( listviewers.size() == 0 ) {
-                            bShowViewer = pinfo->_bShowViewer;
-                        }
-                        listviewers.push_back(pinfo->_pviewer);
-                    }
-                }
-            }
-
-            FOREACH(itaddviewer, listtempviewers) {
-                (*itaddviewer)->GetEnv()->AddViewer(*itaddviewer);
-            }
-
-            ViewerBasePtr puseviewer;
-            FOREACH(itviewer, listviewers) {
-                // double check if viewer is added to env
-                bool bfound = false;
-                listtempviewers.clear();
-                (*itviewer)->GetEnv()->GetViewers(listtempviewers);
-                FOREACH(itviewer2, listtempviewers) {
-                    if( *itviewer == *itviewer2 ) {
-                        bfound = true;
-                        break;
-                    }
-                }
-                if( bfound ) {
-                    puseviewer = *itviewer;
-                    break;
-                }
-                else {
-                    // viewer is not in environment any more, so erase from list
-                    listviewers.erase(itviewer);
-                    break; // break since modifying list
-                }
-            }
-
-            listtempviewers.clear();
-
-            if( !!puseviewer ) {
-                _bInMain = true;
-                try {
-                    puseviewer->main(bShowViewer);
-                }
-                catch(const std::exception& ex) {
-                    RAVELOG_ERROR_FORMAT("got exception in viewer main thread %s", ex.what());
-                }
-                catch(...) {
-                    RAVELOG_ERROR("got unknown exception in viewer main thread\n");
-                }
-
-                _bInMain = false;
-                // remove from _listviewerinfos in order to avoid running the main loop again
-                {
-                    boost::mutex::scoped_lock lock(_mutexViewer);
-                    FOREACH(itinfo, _listviewerinfos) {
-                        if( (*itinfo)->_pviewer == puseviewer ) {
-                            _listviewerinfos.erase(itinfo);
-                            break;
-                        }
-                    }
-                }
-                puseviewer.reset();
-            }
-            // just go and run the next viewer's loop, don't exit here!
-        }
-        RAVELOG_DEBUG("shutting down viewer manager thread\n");
-    }
-
-    static void _InitializeSingleton()
-    {
-        _singleton.reset(new ViewerManager());
-
-    }
-
-    OPENRAVE_SHARED_PTR<boost::thread> _threadviewer;
-    boost::mutex _mutexViewer;
-    boost::condition _conditionViewer;
-    std::list<ViewerInfoPtr> _listviewerinfos;
-
-    bool _bShutdown; ///< if true, shutdown everything
-    bool _bInMain; ///< if true, viewer thread is running a main function
-
-    static boost::scoped_ptr<ViewerManager> _singleton; ///< singleton
-    static boost::once_flag _onceInitialize; ///< makes sure initialization is atomic
-
-}; // class ViewerManager
 
 boost::scoped_ptr<ViewerManager> ViewerManager::_singleton(0);
 boost::once_flag ViewerManager::_onceInitialize = BOOST_ONCE_INIT;
@@ -647,7 +379,7 @@ object PyInterfaceBase::SendCommand(const string& in, bool releasegil, bool lock
             return object();
         }
     }
-    return object(sout.str());
+    return py::cast(sout.str());
 }
 
 #ifdef OPENRAVE_RAPIDJSON
@@ -684,7 +416,7 @@ object PyInterfaceBase::SendJSONCommand(const string& cmd, object input, bool re
 
 object PyInterfaceBase::GetReadableInterfaces()
 {
-    boost::python::dict ointerfaces;
+    py::dict ointerfaces;
     FOREACHC(it,_pbase->GetReadableInterfaces()) {
         ointerfaces[it->first] = toPyXMLReadable(it->second);
     }
@@ -720,10 +452,10 @@ object GetUserData(UserDataPtr pdata)
     else {
         SerializableDataPtr pserializable = OPENRAVE_DYNAMIC_POINTER_CAST<SerializableData>(pdata);
         if( !!pserializable ) {
-            return object(PySerializableData(pserializable));
+            return py::cast(PySerializableData(pserializable));
         }
         else if( !!pdata ) {
-            return object(PyUserData(pdata));
+            return py::cast(PyUserData(pdata));
         }
         else {
             return object();
@@ -739,20 +471,22 @@ EnvironmentBasePtr GetEnvironment(PyEnvironmentBasePtr pyenv)
 EnvironmentBasePtr GetEnvironment(object o)
 {
     if( !IS_PYTHONOBJECT_NONE(o)) {
-        extract<PyEnvironmentBasePtr> pyenv(o);
-        if( pyenv.check() ) {
+        try {
+            PyEnvironmentBasePtr pyenv = o.cast<PyEnvironmentBasePtr>();
             return ((PyEnvironmentBasePtr)pyenv)->GetEnv();
         }
+        catch (...) {}
     }
     return EnvironmentBasePtr();
 }
 
 object toPyEnvironment(object o)
 {
-    extract<PyInterfaceBasePtr> pyinterface(o);
-    if( pyinterface.check() ) {
-        return object(((PyInterfaceBasePtr)pyinterface)->GetEnv());
+    try {
+        PyInterfaceBasePtr pyinterface = o.cast<PyInterfaceBasePtr>();
+        return py::cast(((PyInterfaceBasePtr)pyinterface)->GetEnv());
     }
+    catch(...) {}
     return object();
 }
 
@@ -784,7 +518,7 @@ object RaveGetEnvironments()
 {
     std::list<EnvironmentBasePtr> listenvironments;
     OpenRAVE::RaveGetEnvironments(listenvironments);
-    boost::python::list oenvironments;
+    py::list oenvironments;
     FOREACH(it,listenvironments) {
         oenvironments.append(PyEnvironmentBasePtr(new PyEnvironmentBase(*it)));
     }
@@ -813,29 +547,29 @@ PyInterfaceBasePtr RaveCreateInterface(PyEnvironmentBasePtr pyenv, InterfaceType
     return PyInterfaceBasePtr(new PyInterfaceBase(p,pyenv));
 }
 
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(LoadURI_overloads, LoadURI, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetCamera_overloads, SetCamera, 2, 4)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(StartSimulation_overloads, StartSimulation, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(StopSimulation_overloads, StopSimulation, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetViewer_overloads, SetViewer, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetDefaultViewer_overloads, SetDefaultViewer, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CheckCollisionRays_overloads, CheckCollisionRays, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(plot3_overloads, plot3, 2, 4)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawlinestrip_overloads, drawlinestrip, 2, 4)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawlinelist_overloads, drawlinelist, 2, 4)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawarrow_overloads, drawarrow, 2, 4)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawbox_overloads, drawbox, 2, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawtrimesh_overloads, drawtrimesh, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SendCommand_overloads, SendCommand, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SendJSONCommand_overloads, SendJSONCommand, 2, 4)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Add_overloads, Add, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Save_overloads, Save, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(WriteToMemory_overloads, WriteToMemory, 1, 3)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetUserData_overloads, GetUserData, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBody_overloads, GetPublishedBody, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBodies_overloads, GetPublishedBodies, 0, 1)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBodyJointValues_overloads, GetPublishedBodyJointValues, 1, 2)
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBodyTransformsMatchingPrefix_overloads, GetPublishedBodyTransformsMatchingPrefix, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(LoadURI_overloads, LoadURI, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetCamera_overloads, SetCamera, 2, 4)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(StartSimulation_overloads, StartSimulation, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(StopSimulation_overloads, StopSimulation, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetViewer_overloads, SetViewer, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SetDefaultViewer_overloads, SetDefaultViewer, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CheckCollisionRays_overloads, CheckCollisionRays, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(plot3_overloads, plot3, 2, 4)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawlinestrip_overloads, drawlinestrip, 2, 4)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawlinelist_overloads, drawlinelist, 2, 4)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawarrow_overloads, drawarrow, 2, 4)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawbox_overloads, drawbox, 2, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(drawtrimesh_overloads, drawtrimesh, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SendCommand_overloads, SendCommand, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(SendJSONCommand_overloads, SendJSONCommand, 2, 4)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Add_overloads, Add, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(Save_overloads, Save, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(WriteToMemory_overloads, WriteToMemory, 1, 3)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetUserData_overloads, GetUserData, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBody_overloads, GetPublishedBody, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBodies_overloads, GetPublishedBodies, 0, 1)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBodyJointValues_overloads, GetPublishedBodyJointValues, 1, 2)
+// BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(GetPublishedBodyTransformsMatchingPrefix_overloads, GetPublishedBodyTransformsMatchingPrefix, 1, 2)
 
 object get_openrave_exception_unicode(openrave_exception* p)
 {
@@ -864,45 +598,44 @@ std::string get_std_runtime_error_repr(std::runtime_error* p)
 PYBIND11_MODULE(openravepy_int, m)
 {
     using namespace openravepy;
-#if BOOST_VERSION >= 103500
-    docstring_options doc_options;
-    doc_options.disable_cpp_signatures();
-    doc_options.enable_py_signatures();
-    doc_options.enable_user_defined();
-#endif
+// #if BOOST_VERSION >= 103500
+//     docstring_options doc_options;
+//     doc_options.disable_cpp_signatures();
+//     doc_options.enable_py_signatures();
+//     doc_options.enable_user_defined();
+// #endif
     // new
-    Py_Initialize();
-    np::initialize();
+    // Py_Initialize();
+    // np::initialize();
 
     // expansion of the macro `import_array()` in 
     // python3/lib/python3.7/site-packages/numpy/core/include/numpy/__multiarray_api.h
-    if (_import_array() < 0) {
-        PyErr_Print();
-        PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import");
-        return;
-    }
+    // if (_import_array() < 0) {
+    //     PyErr_Print();
+    //     PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import");
+    //     return;
+    // }
 
-    // boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
+    // py::numeric::array::set_module_and_type("numpy", "ndarray");
     // int_from_number<int>();
     // int_from_number<uint8_t>();
     // float_from_number<float>();
     // float_from_number<double>();
     init_python_bindings();
 
-    typedef return_value_policy< copy_const_reference > return_copy_const_ref;
-    class_< openrave_exception >( "_openrave_exception_", DOXY_CLASS(openrave_exception) )
-    .def( init<const std::string&>() )
-    .def( init<const openrave_exception&>() )
-    .def( "message", &openrave_exception::message, return_copy_const_ref() )
+    py::class_< openrave_exception >(m, "_openrave_exception_", DOXY_CLASS(openrave_exception) )
+    .def( py::init<const std::string&>() )
+    .def( py::init<const openrave_exception&>() )
+    .def( "message", &openrave_exception::message )
     .def("GetCode", &openrave_exception::GetCode )
-    .def( "__str__", &openrave_exception::message, return_copy_const_ref() )
+    .def( "__str__", &openrave_exception::message )
     .def( "__unicode__", get_openrave_exception_unicode)
     .def( "__repr__", get_openrave_exception_repr)
     ;
     // exception_translator<openrave_exception>();
-    class_< std::runtime_error >( "_std_runtime_error_", no_init)
-    .def( init<const std::string&>() )
-    .def( init<const std::runtime_error&>() )
+    py::class_< std::runtime_error >(m, "_std_runtime_error_")
+    .def( py::init<const std::string&>() )
+    .def( py::init<const std::runtime_error&>() )
     .def( "message", &std::runtime_error::what)
     .def( "__str__", &std::runtime_error::what)
     .def( "__unicode__", get_std_runtime_error_unicode)
@@ -910,10 +643,10 @@ PYBIND11_MODULE(openravepy_int, m)
     ;
     // exception_translator<std::runtime_error>();
     //exception_translator<std::exception>();
-    class_< boost::bad_function_call, bases<std::runtime_error> >( "_boost_bad_function_call_");
+    py::class_< boost::bad_function_call, std::runtime_error >(m, "_boost_bad_function_call_");
     // exception_translator<boost::bad_function_call>();
 
-    class_<PyEnvironmentBase, PyEnvironmentBasePtr > classenv("Environment", DOXY_CLASS(EnvironmentBase));
+    py::class_<PyEnvironmentBase, PyEnvironmentBasePtr > classenv(m, "Environment", DOXY_CLASS(EnvironmentBase));
     {
         void (PyInterfaceBase::*setuserdata1)(PyUserData) = &PyInterfaceBase::SetUserData;
         void (PyInterfaceBase::*setuserdata2)(object) = &PyInterfaceBase::SetUserData;
@@ -926,29 +659,29 @@ In python, the syntax is::\n\n\
   success = OUT is not None\n\n\n\
 The **releasegil** parameter controls whether the python Global Interpreter Lock should be released when executing this code. For calls that take a long time and if there are many threads running called from different python threads, releasing the GIL could speed up things a lot. Please keep in mind that releasing and re-acquiring the GIL also takes computation time.\n\
 Because race conditions can pop up when trying to lock the openrave environment without releasing the GIL, if lockenv=True is specified, the system can try to safely lock the openrave environment without causing a deadlock with the python GIL and other threads.\n");
-        class_<PyInterfaceBase, OPENRAVE_SHARED_PTR<PyInterfaceBase> >("Interface", DOXY_CLASS(InterfaceBase), no_init)
+        py::class_<PyInterfaceBase>(m, "Interface", DOXY_CLASS(InterfaceBase))
         .def("GetInterfaceType",&PyInterfaceBase::GetInterfaceType, DOXY_FN(InterfaceBase,GetInterfaceType))
         .def("GetXMLId",&PyInterfaceBase::GetXMLId, DOXY_FN(InterfaceBase,GetXMLId))
         .def("GetPluginName",&PyInterfaceBase::GetPluginName, DOXY_FN(InterfaceBase,GetPluginName))
         .def("GetDescription",&PyInterfaceBase::GetDescription, DOXY_FN(InterfaceBase,GetDescription))
         .def("SetDescription",&PyInterfaceBase::SetDescription, DOXY_FN(InterfaceBase,SetDescription))
         .def("GetEnv",&PyInterfaceBase::GetEnv, DOXY_FN(InterfaceBase,GetEnv))
-        .def("Clone",&PyInterfaceBase::Clone,args("ref","cloningoptions"), DOXY_FN(InterfaceBase,Clone))
-        .def("SetUserData",setuserdata1,args("data"), DOXY_FN(InterfaceBase,SetUserData))
-        .def("SetUserData",setuserdata2,args("data"), DOXY_FN(InterfaceBase,SetUserData))
-        .def("SetUserData",setuserdata3,args("key","data"), DOXY_FN(InterfaceBase,SetUserData))
-        .def("SetUserData",setuserdata4,args("key", "data"), DOXY_FN(InterfaceBase,SetUserData))
+        .def("Clone",&PyInterfaceBase::Clone,py::arg("ref"), py::arg("cloningoptions"), DOXY_FN(InterfaceBase,Clone))
+        .def("SetUserData",setuserdata1,py::arg("data"), DOXY_FN(InterfaceBase,SetUserData))
+        .def("SetUserData",setuserdata2,py::arg("data"), DOXY_FN(InterfaceBase,SetUserData))
+        .def("SetUserData",setuserdata3,py::arg("key"), py::arg("data"), DOXY_FN(InterfaceBase,SetUserData))
+        .def("SetUserData",setuserdata4,py::arg("key"), py::arg( "data"), DOXY_FN(InterfaceBase,SetUserData))
         .def("RemoveUserData", &PyInterfaceBase::RemoveUserData, DOXY_FN(InterfaceBase, RemoveUserData))
-        .def("GetUserData",&PyInterfaceBase::GetUserData, GetUserData_overloads(args("key"), DOXY_FN(InterfaceBase,GetUserData)))
-        .def("SupportsCommand",&PyInterfaceBase::SupportsCommand, args("cmd"), DOXY_FN(InterfaceBase,SupportsCommand))
-        .def("SendCommand",&PyInterfaceBase::SendCommand, SendCommand_overloads(args("cmd","releasegil","lockenv"), sSendCommandDoc.c_str()))
+        .def("GetUserData",&PyInterfaceBase::GetUserData, py::arg("key"), DOXY_FN(InterfaceBase,GetUserData))
+        .def("SupportsCommand",&PyInterfaceBase::SupportsCommand, py::arg("cmd"), DOXY_FN(InterfaceBase,SupportsCommand))
+        .def("SendCommand",&PyInterfaceBase::SendCommand, py::arg("cmd"), py::arg("releasegil"), py::arg("lockenv"), sSendCommandDoc.c_str())
 #ifdef OPENRAVE_RAPIDJSON
-        .def("SupportsJSONCommand",&PyInterfaceBase::SupportsJSONCommand, args("cmd"), DOXY_FN(InterfaceBase,SupportsJSONCommand))
-        .def("SendJSONCommand",&PyInterfaceBase::SendJSONCommand, SendJSONCommand_overloads(args("cmd","input","releasegil","lockenv"), DOXY_FN(InterfaceBase,SendJSONCommand)))
+        .def("SupportsJSONCommand",&PyInterfaceBase::SupportsJSONCommand, py::arg("cmd"), DOXY_FN(InterfaceBase,SupportsJSONCommand))
+        .def("SendJSONCommand",&PyInterfaceBase::SendJSONCommand, py::arg("cmd"), py::arg("input"), py::arg("releasegil"), py::arg("lockenv"), DOXY_FN(InterfaceBase,SendJSONCommand))
 #endif // OPENRAVE_RAPIDJSON
-        .def("GetReadableInterfaces",&PyInterfaceBase::GetReadableInterfaces,DOXY_FN(InterfaceBase,GetReadableInterfaces))
-        .def("GetReadableInterface",&PyInterfaceBase::GetReadableInterface,DOXY_FN(InterfaceBase,GetReadableInterface))
-        .def("SetReadableInterface",&PyInterfaceBase::SetReadableInterface,args("xmltag","xmlreadable"), DOXY_FN(InterfaceBase,SetReadableInterface))
+        .def("GetReadableInterfaces",&PyInterfaceBase::GetReadableInterfaces, DOXY_FN(InterfaceBase,GetReadableInterfaces))
+        .def("GetReadableInterface",&PyInterfaceBase::GetReadableInterface, DOXY_FN(InterfaceBase,GetReadableInterface))
+        .def("SetReadableInterface",&PyInterfaceBase::SetReadableInterface, py::arg("xmltag"), py::arg("xmlreadable"), DOXY_FN(InterfaceBase,SetReadableInterface))
         .def("__repr__", &PyInterfaceBase::__repr__)
         .def("__str__", &PyInterfaceBase::__str__)
         .def("__unicode__", &PyInterfaceBase::__unicode__)
@@ -1010,134 +743,134 @@ Because race conditions can pop up when trying to lock the openrave environment 
         object (PyEnvironmentBase::*readtrimeshfile2)(const std::string&,object) = &PyEnvironmentBase::ReadTrimeshURI;
         object (PyEnvironmentBase::*readtrimeshdata1)(const std::string&,const std::string&) = &PyEnvironmentBase::ReadTrimeshData;
         object (PyEnvironmentBase::*readtrimeshdata2)(const std::string&,const std::string&,object) = &PyEnvironmentBase::ReadTrimeshData;
-        scope env = classenv
-                    .def(init<optional<int> >(args("options")))
+        object env = classenv
+                    .def(py::init<int>())//(py::arg("options")))
                     .def("Reset",&PyEnvironmentBase::Reset, DOXY_FN(EnvironmentBase,Reset))
                     .def("Destroy",&PyEnvironmentBase::Destroy, DOXY_FN(EnvironmentBase,Destroy))
-                    .def("CloneSelf",&PyEnvironmentBase::CloneSelf,args("options"), DOXY_FN(EnvironmentBase,CloneSelf))
-                    .def("Clone",&PyEnvironmentBase::Clone,args("reference","options"), DOXY_FN(EnvironmentBase,Clone))
-                    .def("SetCollisionChecker",&PyEnvironmentBase::SetCollisionChecker,args("collisionchecker"), DOXY_FN(EnvironmentBase,SetCollisionChecker))
+                    .def("CloneSelf",&PyEnvironmentBase::CloneSelf,py::arg("options"), DOXY_FN(EnvironmentBase,CloneSelf))
+                    .def("Clone",&PyEnvironmentBase::Clone,py::arg("reference"), py::arg("options"), DOXY_FN(EnvironmentBase,Clone))
+                    .def("SetCollisionChecker",&PyEnvironmentBase::SetCollisionChecker,py::arg("collisionchecker"), DOXY_FN(EnvironmentBase,SetCollisionChecker))
                     .def("GetCollisionChecker",&PyEnvironmentBase::GetCollisionChecker, DOXY_FN(EnvironmentBase,GetCollisionChecker))
 
-                    .def("CheckCollision",pcolb,args("body"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcolbr,args("body","report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcolbb,args("body1","body2"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcolbbr,args("body1","body2","report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcoll,args("link"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcollr,args("link","report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcolll,args("link1","link2"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcolllr,args("link1","link2","report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcollb,args("link","body"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcollbr,args("link","body","report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcolle,args("link","bodyexcluded","linkexcluded"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-                    .def("CheckCollision",pcoller,args("link","bodyexcluded","linkexcluded","report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-                    .def("CheckCollision",pcolbe,args("body","bodyexcluded","linkexcluded"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-                    .def("CheckCollision",pcolber,args("body","bodyexcluded","linkexcluded","report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-                    .def("CheckCollision",pcolyb,args("ray","body"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcolybr,args("ray","body","report"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
-                    .def("CheckCollision",pcoly,args("ray"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; CollisionReportPtr"))
-                    .def("CheckCollision",pcolyr,args("ray"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; CollisionReportPtr"))
+                    .def("CheckCollision",pcolb,py::arg("body"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcolbr,py::arg("body"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcolbb,py::arg("body1"), py::arg("body2"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcolbbr,py::arg("body1"), py::arg("body2"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcoll,py::arg("link"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcollr,py::arg("link"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcolll,py::arg("link1"), py::arg("link2"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcolllr,py::arg("link1"), py::arg("link2"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcollb,py::arg("link"), py::arg("body"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcollbr,py::arg("link"), py::arg("body"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcolle,py::arg("link"), py::arg("bodyexcluded"), py::arg("linkexcluded"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+                    .def("CheckCollision",pcoller,py::arg("link"), py::arg("bodyexcluded"), py::arg("linkexcluded"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+                    .def("CheckCollision",pcolbe,py::arg("body"), py::arg("bodyexcluded"), py::arg("linkexcluded"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+                    .def("CheckCollision",pcolber,py::arg("body"), py::arg("bodyexcluded"), py::arg("linkexcluded"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+                    .def("CheckCollision",pcolyb,py::arg("ray"), py::arg("body"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcolybr,py::arg("ray"), py::arg("body"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
+                    .def("CheckCollision",pcoly,py::arg("ray"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; CollisionReportPtr"))
+                    .def("CheckCollision",pcolyr,py::arg("ray"), py::arg("report"), DOXY_FN(EnvironmentBase,CheckCollision "const RAY; CollisionReportPtr"))
                     .def("CheckCollisionRays",&PyEnvironmentBase::CheckCollisionRays,
-                         CheckCollisionRays_overloads(args("rays","body","front_facing_only"),
-                                                      "Check if any rays hit the body and returns their contact points along with a vector specifying if a collision occured or not. Rays is a Nx6 array, first 3 columsn are position, last 3 are direction*range."))
-                    .def("LoadURI",&PyEnvironmentBase::LoadURI,LoadURI_overloads(args("filename","atts"), DOXY_FN(EnvironmentBase,LoadURI)))
-                    .def("Load",load1,args("filename"), DOXY_FN(EnvironmentBase,Load))
-                    .def("Load",load2,args("filename","atts"), DOXY_FN(EnvironmentBase,Load))
-                    .def("LoadData",loaddata1,args("data"), DOXY_FN(EnvironmentBase,LoadData))
-                    .def("LoadData",loaddata2,args("data","atts"), DOXY_FN(EnvironmentBase,LoadData))
-                    .def("Save",&PyEnvironmentBase::Save,Save_overloads(args("filename","options","atts"), DOXY_FN(EnvironmentBase,Save)))
-                    .def("WriteToMemory",&PyEnvironmentBase::WriteToMemory,WriteToMemory_overloads(args("filetype","options","atts"), DOXY_FN(EnvironmentBase,WriteToMemory)))
-                    .def("ReadRobotURI",readrobotxmlfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadRobotURI "const std::string"))
-                    .def("ReadRobotXMLFile",readrobotxmlfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadRobotURI "const std::string"))
-                    .def("ReadRobotURI",readrobotxmlfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadRobotURI "RobotBasePtr; const std::string; const AttributesList"))
-                    .def("ReadRobotXMLFile",readrobotxmlfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadRobotURI "RobotBasePtr; const std::string; const AttributesList"))
-                    .def("ReadRobotData",readrobotxmldata1,args("data"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
-                    .def("ReadRobotXMLData",readrobotxmldata1,args("data"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
-                    .def("ReadRobotData",readrobotxmldata2,args("data","atts"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
-                    .def("ReadRobotXMLData",readrobotxmldata2,args("data","atts"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
-                    .def("ReadKinBodyURI",readkinbodyxmlfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "const std::string"))
-                    .def("ReadKinBodyXMLFile",readkinbodyxmlfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "const std::string"))
-                    .def("ReadKinBodyURI",readkinbodyxmlfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "KinBody; const std::string; const AttributesList"))
-                    .def("ReadKinBodyXMLFile",readkinbodyxmlfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "KinBody; const std::string; const AttributesList"))
-                    .def("ReadKinBodyData",readkinbodyxmldata1,args("data"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
-                    .def("ReadKinBodyXMLData",readkinbodyxmldata1,args("data"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
-                    .def("ReadKinBodyData",readkinbodyxmldata2,args("data","atts"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
-                    .def("ReadKinBodyXMLData",readkinbodyxmldata2,args("data","atts"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
-                    .def("ReadInterfaceURI",readinterfacexmlfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
-                    .def("ReadInterfaceXMLFile",readinterfacexmlfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
-                    .def("ReadInterfaceURI",readinterfacexmlfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
-                    .def("ReadInterfaceXMLFile",readinterfacexmlfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
-                    .def("ReadTrimeshURI",readtrimeshfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
-                    .def("ReadTrimeshURI",readtrimeshfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
-                    .def("ReadTrimeshFile",readtrimeshfile1,args("filename"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
-                    .def("ReadTrimeshFile",readtrimeshfile2,args("filename","atts"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
-                    .def("ReadTrimeshData",readtrimeshdata1,args("data", "formathint"), DOXY_FN(EnvironmentBase,ReadTrimeshData))
-                    .def("ReadTrimeshData",readtrimeshdata2,args("data","formathint","atts"), DOXY_FN(EnvironmentBase,ReadTrimeshData))
-                    .def("Add", &PyEnvironmentBase::Add, Add_overloads(args("interface","anonymous","cmdargs"), DOXY_FN(EnvironmentBase,Add)))
-                    .def("AddKinBody",addkinbody1,args("body"), DOXY_FN(EnvironmentBase,AddKinBody))
-                    .def("AddKinBody",addkinbody2,args("body","anonymous"), DOXY_FN(EnvironmentBase,AddKinBody))
-                    .def("AddRobot",addrobot1,args("robot"), DOXY_FN(EnvironmentBase,AddRobot))
-                    .def("AddRobot",addrobot2,args("robot","anonymous"), DOXY_FN(EnvironmentBase,AddRobot))
-                    .def("AddSensor",addsensor1,args("sensor"), DOXY_FN(EnvironmentBase,AddSensor))
-                    .def("AddSensor",addsensor2,args("sensor","anonymous"), DOXY_FN(EnvironmentBase,AddSensor))
-                    .def("AddViewer",addsensor2,args("sensor","anonymous"), DOXY_FN(EnvironmentBase,AddViewer))
-                    .def("RemoveKinBody",&PyEnvironmentBase::RemoveKinBody,args("body"), DOXY_FN(EnvironmentBase,RemoveKinBody))
-                    .def("RemoveKinBodyByName",&PyEnvironmentBase::RemoveKinBodyByName,args("name"), DOXY_FN(EnvironmentBase,RemoveKinBodyByName))
-                    .def("Remove",&PyEnvironmentBase::Remove,args("interface"), DOXY_FN(EnvironmentBase,Remove))
-                    .def("GetKinBody",&PyEnvironmentBase::GetKinBody,args("name"), DOXY_FN(EnvironmentBase,GetKinBody))
-                    .def("GetRobot",&PyEnvironmentBase::GetRobot,args("name"), DOXY_FN(EnvironmentBase,GetRobot))
-                    .def("GetSensor",&PyEnvironmentBase::GetSensor,args("name"), DOXY_FN(EnvironmentBase,GetSensor))
+                         py::arg("rays"), py::arg("body"), py::arg("front_facing_only"),
+                                                      "Check if any rays hit the body and returns their contact points along with a vector specifying if a collision occured or not. Rays is a Nx6 array, first 3 columsn are position, last 3 are direction*range.")
+                    .def("LoadURI",&PyEnvironmentBase::LoadURI, py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,LoadURI))
+                    .def("Load",load1,py::arg("filename"), DOXY_FN(EnvironmentBase,Load))
+                    .def("Load",load2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,Load))
+                    .def("LoadData",loaddata1,py::arg("data"), DOXY_FN(EnvironmentBase,LoadData))
+                    .def("LoadData",loaddata2,py::arg("data"), py::arg("atts"), DOXY_FN(EnvironmentBase,LoadData))
+                    .def("Save",&PyEnvironmentBase::Save, py::arg("filename"), py::arg("options"), py::arg("atts"), DOXY_FN(EnvironmentBase,Save))
+                    .def("WriteToMemory",&PyEnvironmentBase::WriteToMemory, py::arg("filetype"), py::arg("options"), py::arg("atts"), DOXY_FN(EnvironmentBase,WriteToMemory))
+                    .def("ReadRobotURI",readrobotxmlfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadRobotURI "const std::string"))
+                    .def("ReadRobotXMLFile",readrobotxmlfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadRobotURI "const std::string"))
+                    .def("ReadRobotURI",readrobotxmlfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadRobotURI "RobotBasePtr; const std::string; const AttributesList"))
+                    .def("ReadRobotXMLFile",readrobotxmlfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadRobotURI "RobotBasePtr; const std::string; const AttributesList"))
+                    .def("ReadRobotData",readrobotxmldata1,py::arg("data"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
+                    .def("ReadRobotXMLData",readrobotxmldata1,py::arg("data"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
+                    .def("ReadRobotData",readrobotxmldata2,py::arg("data"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
+                    .def("ReadRobotXMLData",readrobotxmldata2,py::arg("data"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadRobotData "RobotBasePtr; const std::string; const AttributesList"))
+                    .def("ReadKinBodyURI",readkinbodyxmlfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "const std::string"))
+                    .def("ReadKinBodyXMLFile",readkinbodyxmlfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "const std::string"))
+                    .def("ReadKinBodyURI",readkinbodyxmlfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "KinBody; const std::string; const AttributesList"))
+                    .def("ReadKinBodyXMLFile",readkinbodyxmlfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadKinBodyURI "KinBody; const std::string; const AttributesList"))
+                    .def("ReadKinBodyData",readkinbodyxmldata1,py::arg("data"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
+                    .def("ReadKinBodyXMLData",readkinbodyxmldata1,py::arg("data"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
+                    .def("ReadKinBodyData",readkinbodyxmldata2,py::arg("data"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
+                    .def("ReadKinBodyXMLData",readkinbodyxmldata2,py::arg("data"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadKinBodyData "KinBodyPtr; const std::string; const AttributesList"))
+                    .def("ReadInterfaceURI",readinterfacexmlfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
+                    .def("ReadInterfaceXMLFile",readinterfacexmlfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
+                    .def("ReadInterfaceURI",readinterfacexmlfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
+                    .def("ReadInterfaceXMLFile",readinterfacexmlfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadInterfaceURI "InterfaceBasePtr; InterfaceType; const std::string; const AttributesList"))
+                    .def("ReadTrimeshURI",readtrimeshfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
+                    .def("ReadTrimeshURI",readtrimeshfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
+                    .def("ReadTrimeshFile",readtrimeshfile1,py::arg("filename"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
+                    .def("ReadTrimeshFile",readtrimeshfile2,py::arg("filename"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadTrimeshURI))
+                    .def("ReadTrimeshData",readtrimeshdata1,py::arg("data"), py::arg("formathint"), DOXY_FN(EnvironmentBase,ReadTrimeshData))
+                    .def("ReadTrimeshData",readtrimeshdata2,py::arg("data"), py::arg("formathint"), py::arg("atts"), DOXY_FN(EnvironmentBase,ReadTrimeshData))
+                    .def("Add", &PyEnvironmentBase::Add, py::arg("interface"), py::arg("anonymous"), py::arg("cmdpy::arg"), DOXY_FN(EnvironmentBase,Add))
+                    .def("AddKinBody",addkinbody1,py::arg("body"), DOXY_FN(EnvironmentBase,AddKinBody))
+                    .def("AddKinBody",addkinbody2,py::arg("body"), py::arg("anonymous"), DOXY_FN(EnvironmentBase,AddKinBody))
+                    .def("AddRobot",addrobot1,py::arg("robot"), DOXY_FN(EnvironmentBase,AddRobot))
+                    .def("AddRobot",addrobot2,py::arg("robot"), py::arg("anonymous"), DOXY_FN(EnvironmentBase,AddRobot))
+                    .def("AddSensor",addsensor1,py::arg("sensor"), DOXY_FN(EnvironmentBase,AddSensor))
+                    .def("AddSensor",addsensor2,py::arg("sensor"), py::arg("anonymous"), DOXY_FN(EnvironmentBase,AddSensor))
+                    .def("AddViewer",addsensor2,py::arg("sensor"), py::arg("anonymous"), DOXY_FN(EnvironmentBase,AddViewer))
+                    .def("RemoveKinBody",&PyEnvironmentBase::RemoveKinBody,py::arg("body"), DOXY_FN(EnvironmentBase,RemoveKinBody))
+                    .def("RemoveKinBodyByName",&PyEnvironmentBase::RemoveKinBodyByName,py::arg("name"), DOXY_FN(EnvironmentBase,RemoveKinBodyByName))
+                    .def("Remove",&PyEnvironmentBase::Remove,py::arg("interface"), DOXY_FN(EnvironmentBase,Remove))
+                    .def("GetKinBody",&PyEnvironmentBase::GetKinBody,py::arg("name"), DOXY_FN(EnvironmentBase,GetKinBody))
+                    .def("GetRobot",&PyEnvironmentBase::GetRobot,py::arg("name"), DOXY_FN(EnvironmentBase,GetRobot))
+                    .def("GetSensor",&PyEnvironmentBase::GetSensor,py::arg("name"), DOXY_FN(EnvironmentBase,GetSensor))
                     .def("GetBodyFromEnvironmentId",&PyEnvironmentBase::GetBodyFromEnvironmentId, DOXY_FN(EnvironmentBase,GetBodyFromEnvironmentId))
-                    .def("AddModule",&PyEnvironmentBase::AddModule,args("module","args"), DOXY_FN(EnvironmentBase,AddModule))
-                    .def("LoadProblem",&PyEnvironmentBase::AddModule,args("module","args"), DOXY_FN(EnvironmentBase,AddModule))
-                    .def("RemoveProblem",&PyEnvironmentBase::RemoveProblem,args("prob"), DOXY_FN(EnvironmentBase,RemoveProblem))
+                    .def("AddModule",&PyEnvironmentBase::AddModule,py::arg("module"), py::arg("args"), DOXY_FN(EnvironmentBase,AddModule))
+                    .def("LoadProblem",&PyEnvironmentBase::AddModule,py::arg("module"), py::arg("args"), DOXY_FN(EnvironmentBase,AddModule))
+                    .def("RemoveProblem",&PyEnvironmentBase::RemoveProblem,py::arg("prob"), DOXY_FN(EnvironmentBase,RemoveProblem))
                     .def("GetModules",&PyEnvironmentBase::GetModules, DOXY_FN(EnvironmentBase,GetModules))
                     .def("GetLoadedProblems",&PyEnvironmentBase::GetModules, DOXY_FN(EnvironmentBase,GetModules))
-                    .def("SetPhysicsEngine",&PyEnvironmentBase::SetPhysicsEngine,args("physics"), DOXY_FN(EnvironmentBase,SetPhysicsEngine))
+                    .def("SetPhysicsEngine",&PyEnvironmentBase::SetPhysicsEngine,py::arg("physics"), DOXY_FN(EnvironmentBase,SetPhysicsEngine))
                     .def("GetPhysicsEngine",&PyEnvironmentBase::GetPhysicsEngine, DOXY_FN(EnvironmentBase,GetPhysicsEngine))
-                    .def("RegisterBodyCallback",&PyEnvironmentBase::RegisterBodyCallback,args("callback"), DOXY_FN(EnvironmentBase,RegisterBodyCallback))
-                    .def("RegisterCollisionCallback",&PyEnvironmentBase::RegisterCollisionCallback,args("callback"), DOXY_FN(EnvironmentBase,RegisterCollisionCallback))
+                    .def("RegisterBodyCallback",&PyEnvironmentBase::RegisterBodyCallback,py::arg("callback"), DOXY_FN(EnvironmentBase,RegisterBodyCallback))
+                    .def("RegisterCollisionCallback",&PyEnvironmentBase::RegisterCollisionCallback,py::arg("callback"), DOXY_FN(EnvironmentBase,RegisterCollisionCallback))
                     .def("HasRegisteredCollisionCallbacks",&PyEnvironmentBase::HasRegisteredCollisionCallbacks,DOXY_FN(EnvironmentBase,HasRegisteredCollisionCallbacks))
-                    .def("StepSimulation",&PyEnvironmentBase::StepSimulation,args("timestep"), DOXY_FN(EnvironmentBase,StepSimulation))
-                    .def("StartSimulation",&PyEnvironmentBase::StartSimulation,StartSimulation_overloads(args("timestep","realtime"), DOXY_FN(EnvironmentBase,StartSimulation)))
-                    .def("StopSimulation",&PyEnvironmentBase::StopSimulation, StopSimulation_overloads(args("shutdownthread"), DOXY_FN(EnvironmentBase,StopSimulation)))
+                    .def("StepSimulation",&PyEnvironmentBase::StepSimulation,py::arg("timestep"), DOXY_FN(EnvironmentBase,StepSimulation))
+                    .def("StartSimulation",&PyEnvironmentBase::StartSimulation, py::arg("timestep"), py::arg("realtime"), DOXY_FN(EnvironmentBase,StartSimulation))
+                    .def("StopSimulation",&PyEnvironmentBase::StopSimulation, py::arg("shutdownthread"), DOXY_FN(EnvironmentBase,StopSimulation))
                     .def("GetSimulationTime",&PyEnvironmentBase::GetSimulationTime, DOXY_FN(EnvironmentBase,GetSimulationTime))
                     .def("IsSimulationRunning",&PyEnvironmentBase::IsSimulationRunning, DOXY_FN(EnvironmentBase,IsSimulationRunning))
                     .def("Lock",Lock1,"Locks the environment mutex.")
-                    .def("Lock",Lock2,args("timeout"), "Locks the environment mutex with a timeout.")
+                    .def("Lock",Lock2,py::arg("timeout"), "Locks the environment mutex with a timeout.")
                     .def("Unlock",&PyEnvironmentBase::Unlock,"Unlocks the environment mutex.")
                     .def("TryLock",&PyEnvironmentBase::TryLock,"Tries to locks the environment mutex, returns false if it failed.")
-                    .def("LockPhysics",Lock1,args("lock"), "Locks the environment mutex.")
-                    .def("LockPhysics",Lock2,args("lock","timeout"), "Locks the environment mutex with a timeout.")
-                    .def("SetViewer",&PyEnvironmentBase::SetViewer,SetViewer_overloads(args("viewername","showviewer"), "Attaches the viewer and starts its thread"))
-                    .def("SetDefaultViewer",&PyEnvironmentBase::SetDefaultViewer,SetDefaultViewer_overloads(args("showviewer"), "Attaches the default viewer (controlled by environment variables and internal settings) and starts its thread"))
+                    .def("LockPhysics",Lock1,/*py::arg("lock"), */"Locks the environment mutex.")
+                    .def("LockPhysics",Lock2,/*py::arg("lock"), */py::arg("timeout"), "Locks the environment mutex with a timeout.")
+                    .def("SetViewer",&PyEnvironmentBase::SetViewer, py::arg("viewername"), py::arg("showviewer"), "Attaches the viewer and starts its thread")
+                    .def("SetDefaultViewer",&PyEnvironmentBase::SetDefaultViewer, py::arg("showviewer"), "Attaches the default viewer (controlled by environment variables and internal settings) and starts its thread")
                     .def("GetViewer",&PyEnvironmentBase::GetViewer, DOXY_FN(EnvironmentBase,GetViewer))
-                    .def("plot3",&PyEnvironmentBase::plot3,plot3_overloads(args("points","pointsize","colors","drawstyle"), DOXY_FN(EnvironmentBase,plot3 "const float; int; int; float; const float; int, bool")))
-                    .def("drawlinestrip",&PyEnvironmentBase::drawlinestrip,drawlinestrip_overloads(args("points","linewidth","colors","drawstyle"), DOXY_FN(EnvironmentBase,drawlinestrip "const float; int; int; float; const float")))
-                    .def("drawlinelist",&PyEnvironmentBase::drawlinelist,drawlinelist_overloads(args("points","linewidth","colors","drawstyle"), DOXY_FN(EnvironmentBase,drawlinelist "const float; int; int; float; const float")))
-                    .def("drawarrow",&PyEnvironmentBase::drawarrow,drawarrow_overloads(args("p1","p2","linewidth","color"), DOXY_FN(EnvironmentBase,drawarrow)))
-                    .def("drawbox",&PyEnvironmentBase::drawbox,drawbox_overloads(args("pos","extents","color"), DOXY_FN(EnvironmentBase,drawbox)))
-                    .def("drawplane",drawplane1,args("transform","extents","texture"), DOXY_FN(EnvironmentBase,drawplane))
-                    .def("drawplane",drawplane2,args("transform","extents","texture"), DOXY_FN(EnvironmentBase,drawplane))
-                    .def("drawtrimesh",&PyEnvironmentBase::drawtrimesh,drawtrimesh_overloads(args("points","indices","colors"), DOXY_FN(EnvironmentBase,drawtrimesh "const float; int; const int; int; const boost::multi_array")))
+                    .def("plot3",&PyEnvironmentBase::plot3, py::arg("points"), py::arg("pointsize"), py::arg("colors"), py::arg("drawstyle"), DOXY_FN(EnvironmentBase,plot3 "const float; int; int; float; const float; int, bool"))
+                    .def("drawlinestrip",&PyEnvironmentBase::drawlinestrip, py::arg("points"), py::arg("linewidth"), py::arg("colors"), py::arg("drawstyle"), DOXY_FN(EnvironmentBase,drawlinestrip "const float; int; int; float; const float"))
+                    .def("drawlinelist",&PyEnvironmentBase::drawlinelist, py::arg("points"), py::arg("linewidth"), py::arg("colors"), py::arg("drawstyle"), DOXY_FN(EnvironmentBase,drawlinelist "const float; int; int; float; const float"))
+                    .def("drawarrow",&PyEnvironmentBase::drawarrow, py::arg("p1"), py::arg("p2"), py::arg("linewidth"), py::arg("color"), DOXY_FN(EnvironmentBase,drawarrow))
+                    .def("drawbox",&PyEnvironmentBase::drawbox, py::arg("pos"), py::arg("extents"), py::arg("color"), DOXY_FN(EnvironmentBase,drawbox))
+                    .def("drawplane",drawplane1,py::arg("transform"), py::arg("extents"), py::arg("texture"), DOXY_FN(EnvironmentBase,drawplane))
+                    .def("drawplane",drawplane2,py::arg("transform"), py::arg("extents"), py::arg("texture"), DOXY_FN(EnvironmentBase,drawplane))
+                    .def("drawtrimesh",&PyEnvironmentBase::drawtrimesh, py::arg("points"), py::arg("indices"), py::arg("colors"), DOXY_FN(EnvironmentBase,drawtrimesh "const float; int; const int; int; const boost::multi_array"))
                     .def("GetRobots",&PyEnvironmentBase::GetRobots, DOXY_FN(EnvironmentBase,GetRobots))
                     .def("GetBodies",&PyEnvironmentBase::GetBodies, DOXY_FN(EnvironmentBase,GetBodies))
                     .def("GetSensors",&PyEnvironmentBase::GetSensors, DOXY_FN(EnvironmentBase,GetSensors))
                     .def("UpdatePublishedBodies",&PyEnvironmentBase::UpdatePublishedBodies, DOXY_FN(EnvironmentBase,UpdatePublishedBodies))
-                    .def("GetPublishedBody",&PyEnvironmentBase::GetPublishedBody, GetPublishedBody_overloads(args("name", "timeout"), DOXY_FN(EnvironmentBase,GetPublishedBody)))
-                    .def("GetPublishedBodies",&PyEnvironmentBase::GetPublishedBodies, GetPublishedBodies_overloads(args("timeout"), DOXY_FN(EnvironmentBase,GetPublishedBodies)))
-                    .def("GetPublishedBodyJointValues",&PyEnvironmentBase::GetPublishedBodyJointValues, GetPublishedBodyJointValues_overloads(args("name", "timeout"), DOXY_FN(EnvironmentBase,GetPublishedBodyJointValues)))
-                    .def("GetPublishedBodyTransformsMatchingPrefix",&PyEnvironmentBase::GetPublishedBodyTransformsMatchingPrefix, GetPublishedBodyTransformsMatchingPrefix_overloads(args("prefix", "timeout"), DOXY_FN(EnvironmentBase,GetPublishedBodyTransformsMatchingPrefix)))
-                    .def("Triangulate",&PyEnvironmentBase::Triangulate,args("body"), DOXY_FN(EnvironmentBase,Triangulate))
-                    .def("TriangulateScene",&PyEnvironmentBase::TriangulateScene,args("options","name"), DOXY_FN(EnvironmentBase,TriangulateScene))
-                    .def("SetDebugLevel",&PyEnvironmentBase::SetDebugLevel,args("level"), DOXY_FN(EnvironmentBase,SetDebugLevel))
+                    .def("GetPublishedBody",&PyEnvironmentBase::GetPublishedBody, py::arg("name"), py::arg( "timeout"), DOXY_FN(EnvironmentBase,GetPublishedBody))
+                    .def("GetPublishedBodies",&PyEnvironmentBase::GetPublishedBodies, py::arg("timeout"), DOXY_FN(EnvironmentBase,GetPublishedBodies))
+                    .def("GetPublishedBodyJointValues",&PyEnvironmentBase::GetPublishedBodyJointValues, py::arg("name"), py::arg( "timeout"), DOXY_FN(EnvironmentBase,GetPublishedBodyJointValues))
+                    .def("GetPublishedBodyTransformsMatchingPrefix",&PyEnvironmentBase::GetPublishedBodyTransformsMatchingPrefix, py::arg("prefix"), py::arg("timeout"), DOXY_FN(EnvironmentBase,GetPublishedBodyTransformsMatchingPrefix))
+                    .def("Triangulate",&PyEnvironmentBase::Triangulate,py::arg("body"), DOXY_FN(EnvironmentBase,Triangulate))
+                    .def("TriangulateScene",&PyEnvironmentBase::TriangulateScene,py::arg("options"), py::arg("name"), DOXY_FN(EnvironmentBase,TriangulateScene))
+                    .def("SetDebugLevel",&PyEnvironmentBase::SetDebugLevel,py::arg("level"), DOXY_FN(EnvironmentBase,SetDebugLevel))
                     .def("GetDebugLevel",&PyEnvironmentBase::GetDebugLevel, DOXY_FN(EnvironmentBase,GetDebugLevel))
                     .def("GetHomeDirectory",&PyEnvironmentBase::GetHomeDirectory, DOXY_FN(EnvironmentBase,GetHomeDirectory))
-                    .def("SetUserData",setuserdata1,args("data"), DOXY_FN(InterfaceBase,SetUserData))
-                    .def("SetUserData",setuserdata2,args("data"), DOXY_FN(InterfaceBase,SetUserData))
+                    .def("SetUserData",setuserdata1,py::arg("data"), DOXY_FN(InterfaceBase,SetUserData))
+                    .def("SetUserData",setuserdata2,py::arg("data"), DOXY_FN(InterfaceBase,SetUserData))
                     .def("GetUserData",&PyEnvironmentBase::GetUserData, DOXY_FN(InterfaceBase,GetUserData))
                     .def("GetUnit",&PyEnvironmentBase::GetUnit, DOXY_FN(EnvironmentBase,GetUnit))
-                    .def("SetUnit",&PyEnvironmentBase::SetUnit, args("unitname","unitmult"),  DOXY_FN(EnvironmentBase,SetUnit))
+                    .def("SetUnit",&PyEnvironmentBase::SetUnit, py::arg("unitname"), py::arg("unitmult"),  DOXY_FN(EnvironmentBase,SetUnit))
                     .def("__enter__",&PyEnvironmentBase::__enter__)
                     .def("__exit__",&PyEnvironmentBase::__exit__)
                     .def("__eq__",&PyEnvironmentBase::__eq__)
@@ -1147,7 +880,7 @@ Because race conditions can pop up when trying to lock the openrave environment 
                     .def("__unicode__",&PyEnvironmentBase::__unicode__)
         ;
 
-        object selectionoptions = enum_<EnvironmentBase::SelectionOptions>("SelectionOptions" DOXY_ENUM(SelectionOptions))
+        object selectionoptions = py::enum_<EnvironmentBase::SelectionOptions>(m, "SelectionOptions" DOXY_ENUM(SelectionOptions))
                                   .value("NoRobots",EnvironmentBase::SO_NoRobots)
                                   .value("Robots",EnvironmentBase::SO_Robots)
                                   .value("Everything",EnvironmentBase::SO_Everything)
@@ -1158,36 +891,36 @@ Because race conditions can pop up when trying to lock the openrave environment 
     }
 
     {
-        scope options = class_<DummyStruct>("options")
-                        .add_static_property("returnTransformQuaternion",GetReturnTransformQuaternions,SetReturnTransformQuaternions);
+        object options = py::class_<DummyStruct>(m, "options")
+                        .def_property_static("returnTransformQuaternion",GetReturnTransformQuaternions,SetReturnTransformQuaternions);
     }
 
-    scope().attr("__version__") = OPENRAVE_VERSION_STRING;
-    scope().attr("__author__") = "Rosen Diankov";
-    scope().attr("__copyright__") = "2009-2012 Rosen Diankov (rosen.diankov@gmail.com)";
-    scope().attr("__license__") = "Lesser GPL";
-    scope().attr("__docformat__") = "restructuredtext";
+    m.attr("__version__") = OPENRAVE_VERSION_STRING;
+    m.attr("__author__") = "Rosen Diankov";
+    m.attr("__copyright__") = "2009-2012 Rosen Diankov (rosen.diankov@gmail.com)";
+    m.attr("__license__") = "Lesser GPL";
+    m.attr("__docformat__") = "restructuredtext";
 
-    openravepy::init_openravepy_global();
+    openravepy::init_openravepy_global(m);
     openravepy::InitPlanningUtils();
 
-    openravepy::init_openravepy_collisionchecker();
-    openravepy::init_openravepy_controller();
-    openravepy::init_openravepy_ikparameterization();
-    openravepy::init_openravepy_iksolver();
-    openravepy::init_openravepy_kinbody();
-    openravepy::init_openravepy_robot();
-    openravepy::init_openravepy_module();
-    openravepy::init_openravepy_physicsengine();
-    openravepy::init_openravepy_planner();
-    openravepy::init_openravepy_trajectory();
-    openravepy::init_openravepy_sensor();
-    openravepy::init_openravepy_sensorsystem();
-    openravepy::init_openravepy_spacesampler();
-    openravepy::init_openravepy_viewer();
+    openravepy::init_openravepy_collisionchecker(m);
+    openravepy::init_openravepy_controller(m);
+    openravepy::init_openravepy_ikparameterization(m);
+    openravepy::init_openravepy_iksolver(m);
+    openravepy::init_openravepy_kinbody(m);
+    openravepy::init_openravepy_robot(m);
+    openravepy::init_openravepy_module(m);
+    openravepy::init_openravepy_physicsengine(m);
+    openravepy::init_openravepy_planner(m);
+    openravepy::init_openravepy_trajectory(m);
+    openravepy::init_openravepy_sensor(m);
+    openravepy::init_openravepy_sensorsystem(m);
+    openravepy::init_openravepy_spacesampler(m);
+    openravepy::init_openravepy_viewer(m);
 
-    def("RaveGetEnvironmentId",openravepy::RaveGetEnvironmentId,DOXY_FN1(RaveGetEnvironmentId));
-    def("RaveGetEnvironment",openravepy::RaveGetEnvironment,DOXY_FN1(RaveGetEnvironment));
-    def("RaveGetEnvironments",openravepy::RaveGetEnvironments,DOXY_FN1(RaveGetEnvironments));
-    def("RaveCreateInterface",openravepy::RaveCreateInterface,args("env","type","name"),DOXY_FN1(RaveCreateInterface));
+    m.def("RaveGetEnvironmentId",openravepy::RaveGetEnvironmentId,DOXY_FN1(RaveGetEnvironmentId));
+    m.def("RaveGetEnvironment",openravepy::RaveGetEnvironment,DOXY_FN1(RaveGetEnvironment));
+    m.def("RaveGetEnvironments",openravepy::RaveGetEnvironments,DOXY_FN1(RaveGetEnvironments));
+    m.def("RaveCreateInterface",openravepy::RaveCreateInterface,py::arg("env"), py::arg("type"), py::arg("name"),DOXY_FN1(RaveCreateInterface));
 }

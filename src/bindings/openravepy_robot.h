@@ -21,8 +21,13 @@
 #include "openravepy_int.h"
 #include "openravepy_kinbody.h"
 #include "openravepy_attachedsensorinfo.h"
+#include "openravepy_configurationspecification.h"
 #include "openravepy_connectedbodyinfo.h"
 #include "openravepy_manipulatorinfo.h"
+#include "openravepy_joint.h"
+#include "openravepy_link.h"
+#include "openravepy_jointinfo.h"
+#include "openravepy_linkinfo.h"
 
 namespace openravepy {
 
@@ -1429,5 +1434,7 @@ public:
         _listStateSavers.push_back(OPENRAVE_SHARED_PTR<void>(new RobotBase::RobotStateSaver(_probot)));
     }
 };
+
+} // namespace openravepy
 
 #endif // OPENRAVEPY_INTERNAL_ROBOT_H

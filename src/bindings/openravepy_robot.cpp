@@ -43,7 +43,7 @@ class ManipulatorInfo_pickle_suite : public pickle_suite
 public:
     static boost::python::tuple getstate(const PyManipulatorInfo& r)
     {
-        return boost::python::make_tuple(r._name, r._sBaseLinkName, r._sEffectorLinkName, r._tLocalTool, r._vChuckingDirection, r._vdirection, r._sIkSolverXMLId, r._vGripperJointNames);
+        return py::make_tuple(r._name, r._sBaseLinkName, r._sEffectorLinkName, r._tLocalTool, r._vChuckingDirection, r._vdirection, r._sIkSolverXMLId, r._vGripperJointNames);
     }
     static void setstate(PyManipulatorInfo& r, boost::python::tuple state) {
         r._name = state[0];

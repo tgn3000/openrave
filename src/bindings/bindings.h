@@ -372,7 +372,7 @@ inline py::object toPyList(const std::vector<T>& v)
 {
     py::list lvalues;
     FOREACHC(it,v) {
-        lvalues.append(py::object(*it));
+        lvalues.append(py::cast(*it));
     }
     return std::move(lvalues);
 }
@@ -411,6 +411,6 @@ inline py::array_t<T> toPyArray(const boost::array<T,N>& v)
 
 #endif // OPENRAVE_BININGS_PYARRAY
 
-} // openravepy
+} // namespace openravepy
 
 #endif // OPENRAVE_BOOST_PYTHON_BINDINGS

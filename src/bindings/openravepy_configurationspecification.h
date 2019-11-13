@@ -83,7 +83,7 @@ public:
 
     void AddVelocityGroups(bool adddeltatime)
     {
-        RAVELOG_WARN("openravepy AddVelocityGroups is deprecated, use AddDerivativeGroups\n");
+        // RAVELOG_WARN("openravepy AddVelocityGroups is deprecated, use AddDerivativeGroups\n");
         _spec.AddDerivativeGroups(1,adddeltatime);
     }
 
@@ -131,7 +131,7 @@ public:
         std::vector<dReal> vdata = ExtractArray<dReal>(odata);
         Transform t;
         if( !IS_PYTHONOBJECT_NONE(otransform) ) {
-            t = openravepy::ExtractTransform(otransform);
+            t = ::openravepy::ExtractTransform(otransform);
         }
         if( _spec.ExtractTransform(t,vdata.begin(), GetKinBody(pybody)) ) {
             return ReturnTransform(t);
@@ -170,7 +170,7 @@ public:
         std::vector<int> vindices = ExtractArray<int>(oindices);
         std::vector<dReal> vdata = ExtractArray<dReal>(odata);
         std::vector<dReal> values(vindices.size(),0);
-        bool bfound = _spec.ExtractJointValues(values.begin(),vdata.begin(),openravepy::GetKinBody(pybody),vindices,timederivative);
+        bool bfound = _spec.ExtractJointValues(values.begin(),vdata.begin(), GetKinBody(pybody),vindices,timederivative);
         if( bfound ) {
             return toPyArray(values);
         }
@@ -200,7 +200,7 @@ public:
         OPENRAVE_ASSERT_OP(vvalues.size(),==,vindices.size());
         OPENRAVE_ASSERT_OP(vdata.size(),>=,vvalues.size());
         OPENRAVE_ASSERT_OP((int)vdata.size(),==,_spec.GetDOF());
-        if( !_spec.InsertJointValues(vdata.begin(), vvalues.begin(), openravepy::GetKinBody(pybody), vindices, timederivative) ) {
+        if( !_spec.InsertJointValues(vdata.begin(), vvalues.begin(), GetKinBody(pybody), vindices, timederivative) ) {
             return false;
         }
         // copy the value back, this is wasteful, but no other way to do it unless vdata pointer pointed directly to odata
@@ -225,14 +225,14 @@ public:
     py::list ExtractUsedBodies(PyEnvironmentBasePtr pyenv)
     {
         std::vector<KinBodyPtr> vusedbodies;
-        _spec.ExtractUsedBodies(openravepy::GetEnvironment(pyenv), vusedbodies);
+        _spec.ExtractUsedBodies(GetEnvironment(pyenv), vusedbodies);
         py::list obodies;
         FOREACHC(itbody, vusedbodies) {
             if( (*itbody)->IsRobot() ) {
-                obodies.append(openravepy::toPyRobot(RaveInterfaceCast<RobotBase>(*itbody), pyenv));
+                obodies.append(toPyRobot(RaveInterfaceCast<RobotBase>(*itbody), pyenv));
             }
             else {
-                obodies.append(openravepy::toPyKinBody(*itbody, pyenv));
+                obodies.append(toPyKinBody(*itbody, pyenv));
             }
         }
         return obodies;
@@ -241,7 +241,7 @@ public:
     object ExtractUsedIndices(PyKinBodyPtr pybody)
     {
         std::vector<int> useddofindices, usedconfigindices;
-        _spec.ExtractUsedIndices(openravepy::GetKinBody(pybody), useddofindices, usedconfigindices);
+        _spec.ExtractUsedIndices(GetKinBody(pybody), useddofindices, usedconfigindices);
         return py::make_tuple(toPyArray(useddofindices), toPyArray(usedconfigindices));
     }
 
@@ -249,21 +249,9 @@ public:
 //    static void ConvertGroupData(std::vector<dReal>::iterator ittargetdata, size_t targetstride, const Group& gtarget, std::vector<dReal>::const_iterator itsourcedata, size_t sourcestride, const Group& gsource, size_t numpoints, EnvironmentBaseConstPtr penv);
 //
     // source spec is the current configurationspecification spec
-    object ConvertData(PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv, bool filluninitialized = true)
-    {
-        std::vector<dReal> vtargetdata(pytargetspec->_spec.GetDOF()*numpoints,0);
-        std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
-        ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, openravepy::GetEnvironment(pyenv), filluninitialized);
-        return toPyArray(vtargetdata);
-    }
+    object ConvertData(PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv, bool filluninitialized = true);
 
-    object ConvertDataFromPrevious(object otargetdata, PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv)
-    {
-        std::vector<dReal> vtargetdata = ExtractArray<dReal>(otargetdata);
-        std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
-        ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, openravepy::GetEnvironment(pyenv), false);
-        return toPyArray(vtargetdata);
-    }
+    object ConvertDataFromPrevious(object otargetdata, PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv);
 
     py::list GetGroups()
     {
@@ -274,23 +262,13 @@ public:
         return ogroups;
     }
 
-    bool __eq__(PyConfigurationSpecificationPtr p) {
-        return !!p && _spec==p->_spec;
-    }
-    bool __ne__(PyConfigurationSpecificationPtr p) {
-        return !p || _spec!=p->_spec;
-    }
+    bool __eq__(PyConfigurationSpecificationPtr p);
 
-    PyConfigurationSpecificationPtr __add__(PyConfigurationSpecificationPtr r)
-    {
-        return PyConfigurationSpecificationPtr(new PyConfigurationSpecification(_spec + r->_spec));
-    }
+    bool __ne__(PyConfigurationSpecificationPtr p);
 
-    PyConfigurationSpecificationPtr __iadd__(PyConfigurationSpecificationPtr r)
-    {
-        _spec += r->_spec;
-        return shared_from_this();
-    }
+    PyConfigurationSpecificationPtr __add__(PyConfigurationSpecificationPtr r);
+
+    PyConfigurationSpecificationPtr __iadd__(PyConfigurationSpecificationPtr r);
 
     string __repr__() {
         std::stringstream ss;
@@ -309,8 +287,45 @@ public:
     ConfigurationSpecification _spec;
 };
 
+typedef OPENRAVE_SHARED_PTR<PyConfigurationSpecification> PyConfigurationSpecificationPtr;
+
 PyConfigurationSpecification::PyConfigurationSpecification(PyConfigurationSpecificationPtr pyspec) {
     _spec = pyspec->_spec;
+}
+
+object PyConfigurationSpecification::ConvertData(PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv, bool filluninitialized)
+{
+    std::vector<dReal> vtargetdata(pytargetspec->_spec.GetDOF()*numpoints,0);
+    std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
+    ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, GetEnvironment(pyenv), filluninitialized);
+    return toPyArray(vtargetdata);
+}
+
+object PyConfigurationSpecification::ConvertDataFromPrevious(object otargetdata, PyConfigurationSpecificationPtr pytargetspec, object osourcedata, size_t numpoints, PyEnvironmentBasePtr pyenv)
+{
+    std::vector<dReal> vtargetdata = ExtractArray<dReal>(otargetdata);
+    std::vector<dReal> vsourcedata = ExtractArray<dReal>(osourcedata);
+    ConfigurationSpecification::ConvertData(vtargetdata.begin(), pytargetspec->_spec, vsourcedata.begin(), _spec, numpoints, GetEnvironment(pyenv), false);
+    return toPyArray(vtargetdata);
+}
+
+bool PyConfigurationSpecification::__eq__(PyConfigurationSpecificationPtr p) {
+    return !!p && _spec==p->_spec;
+}
+
+bool PyConfigurationSpecification::__ne__(PyConfigurationSpecificationPtr p) {
+    return !p || _spec!=p->_spec;
+}
+
+PyConfigurationSpecificationPtr PyConfigurationSpecification::__add__(PyConfigurationSpecificationPtr r)
+{
+    return PyConfigurationSpecificationPtr(new PyConfigurationSpecification(_spec + r->_spec));
+}
+
+PyConfigurationSpecificationPtr PyConfigurationSpecification::__iadd__(PyConfigurationSpecificationPtr r)
+{
+    _spec += r->_spec;
+    return shared_from_this();
 }
 
 } // namespace openravepy

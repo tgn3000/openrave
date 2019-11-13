@@ -14,6 +14,9 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#ifndef OPENRAVEPY_INTERNAL_MODULE_H
+#define OPENRAVEPY_INTERNAL_MODULE_H
+
 #define NO_IMPORT_ARRAY
 #include "openravepy_int.h"
 
@@ -60,16 +63,18 @@ PyModuleBasePtr RaveCreateModule(PyEnvironmentBasePtr pyenv, const std::string& 
     return PyModuleBasePtr(new PyModuleBase(p,pyenv));
 }
 
-void init_openravepy_module()
+void init_openravepy_module(py::module& m)
 {
-    class_<PyModuleBase, OPENRAVE_SHARED_PTR<PyModuleBase>, bases<PyInterfaceBase> >("Module", DOXY_CLASS(ModuleBase), no_init)
+    py::class_<PyModuleBase, OPENRAVE_SHARED_PTR<PyModuleBase>, PyInterfaceBase >(m, "Module", DOXY_CLASS(ModuleBase))
     .def("SimulationStep",&PyModuleBase::SimulationStep, DOXY_FN(ModuleBase,"SimulationStep"))
     .def("Destroy",&PyModuleBase::Destroy, DOXY_FN(ModuleBase,"Destroy"))
     ;
 
-    def("RaveCreateModule",openravepy::RaveCreateModule,args("env","name"),DOXY_FN1(RaveCreateModule));
-    def("RaveCreateProblem",openravepy::RaveCreateModule,args("env","name"),DOXY_FN1(RaveCreateModule));
-    def("RaveCreateProblemInstance",openravepy::RaveCreateModule,args("env","name"),DOXY_FN1(RaveCreateModule));
+    m.def("RaveCreateModule",openravepy::RaveCreateModule, py::arg("env"), py::arg("name"), DOXY_FN1(RaveCreateModule));
+    m.def("RaveCreateProblem",openravepy::RaveCreateModule, py::arg("env"), py::arg("name"), DOXY_FN1(RaveCreateModule));
+    m.def("RaveCreateProblemInstance",openravepy::RaveCreateModule, py::arg("env"), py::arg("name"), DOXY_FN1(RaveCreateModule));
 }
 
-}
+} // namespace openravepy
+
+#endif // OPENRAVEPY_INTERNAL_MODULE_H

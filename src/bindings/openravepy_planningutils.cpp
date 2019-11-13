@@ -326,7 +326,7 @@ class DHParameter_pickle_suite : public pickle_suite
 public:
     static boost::python::tuple getinitargs(const PyDHParameter& p)
     {
-        return boost::python::make_tuple(object(), p.parentindex, p.transform, p.d, p.a, p.theta, p.alpha);
+        return py::make_tuple(object(), p.parentindex, p.transform, p.d, p.a, p.theta, p.alpha);
     }
 };
 

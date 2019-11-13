@@ -59,8 +59,62 @@
 }
 
 // using namespace boost::python;
-using namespace std;
 using namespace OpenRAVE;
+using namespace std;
+// using OpenRAVE::Transform;
+// using OpenRAVE::TransformMatrix;
+// using OpenRAVE::XMLReadablePtr;
+// using OpenRAVE::IkParameterization;
+// using OpenRAVE::RaveVector;
+// using OpenRAVE::Vector;
+// using OpenRAVE::dReal;
+// using OpenRAVE::RaveTransform;
+// /*
+// using OpenRAVE::
+// */
+// using OpenRAVE::openrave_exception;
+// using OpenRAVE::ORE_InvalidArguments;
+// using OpenRAVE::RaveTransformMatrix;
+// using OpenRAVE::AttributesList;
+// using OpenRAVE::PLUGININFO;
+// using OpenRAVE::GraphHandlePtr;
+// using OpenRAVE::KinBody;
+// using OpenRAVE::GeometryType;
+// using OpenRAVE::ElectricMotorActuatorInfoPtr;
+// using OpenRAVE::UserDataPtr;
+// using OpenRAVE::SerializableDataPtr;
+// using OpenRAVE::RAY;
+// using OpenRAVE::AABB;
+// using OpenRAVE::KinBodyPtr;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::ElectricMotorActuatorInfo;
+// using OpenRAVE::ConfigurationSpecification;
+// using OpenRAVE::InterfaceBasePtr;
+// using OpenRAVE::InterfaceType;
+// using OpenRAVE::UserData;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
+// using OpenRAVE::TriMesh;
 
 namespace openravepy {
 
@@ -550,7 +604,7 @@ public:
 
 py::object toPyGraphHandle(const GraphHandlePtr p);
 py::object toPyUserData(UserDataPtr p);
-void init_openravepy_ikparameterization();
+void init_openravepy_ikparameterization(py::module& m);
 py::object toPyAABB(const AABB& ab);
 py::object toPyRay(const RAY& r);
 RAY ExtractRay(py::object o);
@@ -671,7 +725,7 @@ void UnlockEnvironment(PyEnvironmentBasePtr);
 int RaveGetEnvironmentId(PyEnvironmentBasePtr pyenv);
 PyEnvironmentBasePtr RaveGetEnvironment(int id);
 
-void init_openravepy_collisionchecker();
+void init_openravepy_collisionchecker(py::module& m);
 CollisionCheckerBasePtr GetCollisionChecker(PyCollisionCheckerBasePtr);
 PyInterfaceBasePtr toPyCollisionChecker(CollisionCheckerBasePtr, PyEnvironmentBasePtr);
 CollisionReportPtr GetCollisionReport(py::object);
@@ -679,15 +733,15 @@ CollisionReportPtr GetCollisionReport(PyCollisionReportPtr);
 PyCollisionReportPtr toPyCollisionReport(CollisionReportPtr, PyEnvironmentBasePtr);
 void UpdateCollisionReport(PyCollisionReportPtr, PyEnvironmentBasePtr);
 void UpdateCollisionReport(py::object, PyEnvironmentBasePtr);
-void init_openravepy_controller();
+void init_openravepy_controller(py::module& m);
 ControllerBasePtr GetController(PyControllerBasePtr);
 PyInterfaceBasePtr toPyController(ControllerBasePtr, PyEnvironmentBasePtr);
-void init_openravepy_iksolver();
+void init_openravepy_iksolver(py::module& m);
 IkSolverBasePtr GetIkSolver(py::object);
 IkSolverBasePtr GetIkSolver(PyIkSolverBasePtr);
 PyInterfaceBasePtr toPyIkSolver(IkSolverBasePtr, PyEnvironmentBasePtr);
 py::object toPyIkSolver(IkSolverBasePtr, py::object);
-void init_openravepy_kinbody();
+void init_openravepy_kinbody(py::module& m);
 KinBodyPtr GetKinBody(py::object);
 KinBodyPtr GetKinBody(PyKinBodyPtr);
 PyEnvironmentBasePtr GetPyEnvFromPyKinBody(py::object okinbody);
@@ -701,36 +755,36 @@ py::object toPyKinBodyJoint(KinBody::JointPtr pjoint, PyEnvironmentBasePtr);
 KinBody::JointPtr GetKinBodyJoint(py::object);
 std::string reprPyKinBodyJoint(py::object);
 std::string strPyKinBodyJoint(py::object);
-void init_openravepy_module();
+void init_openravepy_module(py::module& m);
 ModuleBasePtr GetModule(PyModuleBasePtr);
 PyInterfaceBasePtr toPyModule(ModuleBasePtr, PyEnvironmentBasePtr);
-void init_openravepy_physicsengine();
+void init_openravepy_physicsengine(py::module& m);
 PhysicsEngineBasePtr GetPhysicsEngine(PyPhysicsEngineBasePtr);
 PyInterfaceBasePtr toPyPhysicsEngine(PhysicsEngineBasePtr, PyEnvironmentBasePtr);
-void init_openravepy_planner();
+void init_openravepy_planner(py::module& m);
 PlannerBasePtr GetPlanner(PyPlannerBasePtr);
 PyInterfaceBasePtr toPyPlanner(PlannerBasePtr, PyEnvironmentBasePtr);
 PlannerBase::PlannerParametersPtr GetPlannerParameters(py::object);
 PlannerBase::PlannerParametersConstPtr GetPlannerParametersConst(py::object);
 
 py::object toPyPlannerParameters(PlannerBase::PlannerParametersPtr params);
-void init_openravepy_robot();
+void init_openravepy_robot(py::module& m);
 RobotBasePtr GetRobot(py::object);
 RobotBasePtr GetRobot(PyRobotBasePtr);
 PyInterfaceBasePtr toPyRobot(RobotBasePtr, PyEnvironmentBasePtr);
 RobotBase::ManipulatorPtr GetRobotManipulator(py::object);
 py::object toPyRobotManipulator(RobotBase::ManipulatorPtr, PyEnvironmentBasePtr);
-void init_openravepy_sensor();
+void init_openravepy_sensor(py::module& m);
 SensorBasePtr GetSensor(PySensorBasePtr);
 PyInterfaceBasePtr toPySensor(SensorBasePtr, PyEnvironmentBasePtr);
 py::object toPySensorData(SensorBasePtr, PyEnvironmentBasePtr);
-void init_openravepy_sensorsystem();
+void init_openravepy_sensorsystem(py::module& m);
 SensorSystemBasePtr GetSensorSystem(PySensorSystemBasePtr);
 PyInterfaceBasePtr toPySensorSystem(SensorSystemBasePtr, PyEnvironmentBasePtr);
-void init_openravepy_spacesampler();
+void init_openravepy_spacesampler(py::module& m);
 SpaceSamplerBasePtr GetSpaceSampler(PySpaceSamplerBasePtr);
 PyInterfaceBasePtr toPySpaceSampler(SpaceSamplerBasePtr, PyEnvironmentBasePtr);
-void init_openravepy_trajectory();
+void init_openravepy_trajectory(py::module& m);
 TrajectoryBasePtr GetTrajectory(py::object);
 TrajectoryBasePtr GetTrajectory(PyTrajectoryBasePtr);
 PyInterfaceBasePtr toPyTrajectory(TrajectoryBasePtr, PyEnvironmentBasePtr);
@@ -739,7 +793,7 @@ PyEnvironmentBasePtr toPyEnvironment(PyTrajectoryBasePtr);
 // input can be class derived from PyInterfaceBase
 py::object toPyEnvironment(py::object opyinterface);
 PyEnvironmentBasePtr toPyEnvironment(PyKinBodyPtr);
-void init_openravepy_viewer();
+void init_openravepy_viewer(py::module& m);
 ViewerBasePtr GetViewer(PyViewerBasePtr);
 PyInterfaceBasePtr toPyViewer(ViewerBasePtr, PyEnvironmentBasePtr);
 
@@ -761,8 +815,12 @@ PyAttachedSensorInfoPtr toPyAttachedSensorInfo(const RobotBase::AttachedSensorIn
 PyConnectedBodyInfoPtr toPyConnectedBodyInfo(const RobotBase::ConnectedBodyInfo& connectedBodyInfo, PyEnvironmentBasePtr pyenv);
 
 PyInterfaceBasePtr RaveCreateInterface(PyEnvironmentBasePtr pyenv, InterfaceType type, const std::string& name);
-void init_openravepy_global();
+void init_openravepy_global(py::module& m);
 void InitPlanningUtils();
+
+
+template <typename T>
+py::object GetCustomParameters(const std::map<std::string, std::vector<T> >& parameters, py::object oname=py::object(), int index=-1);
 
 } // namespace openravepy
 

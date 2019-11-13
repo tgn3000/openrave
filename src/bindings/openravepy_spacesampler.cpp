@@ -55,12 +55,12 @@ public:
         if( type == SDT_Real ) {
             vector<dReal> vlower, vupper;
             _pspacesampler->GetLimits(vlower,vupper);
-            return boost::python::make_tuple(toPyArray(vlower),toPyArray(vupper));
+            return py::make_tuple(toPyArray(vlower),toPyArray(vupper));
         }
         else if( type == SDT_Uint32 ) {
             vector<uint32_t> vlower, vupper;
             _pspacesampler->GetLimits(vlower,vupper);
-            return boost::python::make_tuple(toPyArray(vlower),toPyArray(vupper));
+            return py::make_tuple(toPyArray(vlower),toPyArray(vupper));
         }
         throw OPENRAVE_EXCEPTION_FORMAT(_("%d sampling type not supported"),type,ORE_InvalidArguments);
     }

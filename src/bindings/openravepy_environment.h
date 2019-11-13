@@ -24,9 +24,14 @@
 
 #define NO_IMPORT_ARRAY
 #include "openravepy_int.h"
+#include "openravepy_kinbody.h"
+#include "openravepy_viewermanager.h"
+#include "openravepy_collisioncheckerbase.h"
 
 namespace openravepy
 {
+
+using py::object;
 
 class PyEnvironmentBase : public OPENRAVE_ENABLE_SHARED_FROM_THIS<PyEnvironmentBase>
 {

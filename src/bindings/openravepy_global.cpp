@@ -144,7 +144,7 @@ class Ray_pickle_suite : public pickle_suite
 public:
     static boost::python::tuple getinitargs(const PyRay& r)
     {
-        return boost::python::make_tuple(toPyVector3(r.r.pos),toPyVector3(r.r.dir));
+        return py::make_tuple(toPyVector3(r.r.pos),toPyVector3(r.r.dir));
     }
 };
 
@@ -203,7 +203,7 @@ class AABB_pickle_suite : public pickle_suite
 public:
     static boost::python::tuple getinitargs(const PyAABB& ab)
     {
-        return boost::python::make_tuple(toPyVector3(ab.ab.pos),toPyVector3(ab.ab.extents));
+        return py::make_tuple(toPyVector3(ab.ab.pos),toPyVector3(ab.ab.extents));
     }
 };
 
@@ -365,7 +365,7 @@ class TriMesh_pickle_suite : public pickle_suite
 public:
     static boost::python::tuple getinitargs(const PyTriMesh& r)
     {
-        return boost::python::make_tuple(r.vertices,r.indices);
+        return py::make_tuple(r.vertices,r.indices);
     }
 };
 
@@ -376,7 +376,7 @@ public:
     {
         std::stringstream ss;
         ss << pyspec._spec;
-        return boost::python::make_tuple(ss.str());
+        return py::make_tuple(ss.str());
     }
 };
 
@@ -539,7 +539,7 @@ object RaveGetPluginInfo()
     std::list< std::pair<std::string, PLUGININFO> > listplugins;
     OpenRAVE::RaveGetPluginInfo(listplugins);
     FOREACH(itplugin, listplugins) {
-        plugins.append(boost::python::make_tuple(itplugin->first,object(OPENRAVE_SHARED_PTR<PyPluginInfo>(new PyPluginInfo(itplugin->second)))));
+        plugins.append(py::make_tuple(itplugin->first,object(OPENRAVE_SHARED_PTR<PyPluginInfo>(new PyPluginInfo(itplugin->second)))));
     }
     return std::move(plugins);
 }
@@ -758,7 +758,7 @@ object ExtractAxisFromQuat(object oquat, int iaxis)
 object normalizeAxisRotation(object axis, object quat)
 {
     std::pair<dReal, Vector > res = normalizeAxisRotation(ExtractVector3(axis), ExtractVector4(quat));
-    return boost::python::make_tuple(res.first,toPyVector4(res.second));
+    return py::make_tuple(res.first,toPyVector4(res.second));
 }
 
 object MultiplyQuat(object oquat1, object oquat2)
