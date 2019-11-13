@@ -17,6 +17,9 @@
 #define NO_IMPORT_ARRAY
 #include "openravepy_int.h"
 #include "openravepy_collisionreport.h"
+#include "openravepy_collisioncheckerbase.h"
+#include "openravepy_kinbody.h"
+#include "openravepy_environment.h"
 
 namespace openravepy {
 
@@ -35,10 +38,14 @@ CollisionReportPtr GetCollisionReport(object o)
     if( IS_PYTHONOBJECT_NONE(o) ) {
         return CollisionReportPtr();
     }
-    extract<PyCollisionReportPtr> pyreport(o);
-    if( pyreport.check() ) {
-        return ((PyCollisionReportPtr)pyreport)->report;
+
+    try {
+        PyCollisionReportPtr pyreport = o.cast<PyCollisionReportPtr>();
+        if(pyreport != nullptr) {
+            return pyreport->report;
+        }
     }
+    catch(...) {}
     return CollisionReportPtr();
 }
 
@@ -66,10 +73,13 @@ void UpdateCollisionReport(PyCollisionReportPtr p, PyEnvironmentBasePtr pyenv)
 
 void UpdateCollisionReport(object o, PyEnvironmentBasePtr pyenv)
 {
-    extract<PyCollisionReportPtr> pyreport(o);
-    if( pyreport.check() ) {
-        return UpdateCollisionReport((PyCollisionReportPtr)pyreport,pyenv);
+    try {
+        PyCollisionReportPtr pyreport = o.cast<PyCollisionReportPtr>();
+        if(pyreport != nullptr) {
+            UpdateCollisionReport(pyreport, pyenv);
+        }
     }
+    catch(...) {}
 }
 
 PyCollisionCheckerBasePtr RaveCreateCollisionChecker(PyEnvironmentBasePtr pyenv, const std::string& name)
@@ -81,11 +91,9 @@ PyCollisionCheckerBasePtr RaveCreateCollisionChecker(PyEnvironmentBasePtr pyenv,
     return PyCollisionCheckerBasePtr(new PyCollisionCheckerBase(p,pyenv));
 }
 
-BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CheckCollisionRays_overloads, CheckCollisionRays, 2, 3)
-
-void init_openravepy_collisionchecker()
+void init_openravepy_collisionchecker(py::module& m)
 {
-    enum_<CollisionOptions>("CollisionOptions" DOXY_ENUM(CollisionOptions))
+    py::enum_<CollisionOptions>(m, "CollisionOptions" DOXY_ENUM(CollisionOptions))
     .value("Distance",CO_Distance)
     .value("UseTolerance",CO_UseTolerance)
     .value("Contacts",CO_Contacts)
@@ -94,19 +102,19 @@ void init_openravepy_collisionchecker()
     .value("AllLinkCollisions", CO_AllLinkCollisions)
     .value("AllGeometryContacts", CO_AllGeometryContacts)
     ;
-    enum_<CollisionAction>("CollisionAction" DOXY_ENUM(CollisionAction))
+    py::enum_<CollisionAction>(m, "CollisionAction" DOXY_ENUM(CollisionAction))
     .value("DefaultAction",CA_DefaultAction)
     .value("Ignore",CA_Ignore)
     ;
 
-    class_<PyCollisionReport::PYCONTACT, OPENRAVE_SHARED_PTR<PyCollisionReport::PYCONTACT> >("Contact", DOXY_CLASS(CollisionReport::CONTACT))
+    py::class_<PyCollisionReport::PYCONTACT, OPENRAVE_SHARED_PTR<PyCollisionReport::PYCONTACT> >(m, "Contact", DOXY_CLASS(CollisionReport::CONTACT))
     .def_readonly("pos",&PyCollisionReport::PYCONTACT::pos)
     .def_readonly("norm",&PyCollisionReport::PYCONTACT::norm)
     .def_readonly("depth",&PyCollisionReport::PYCONTACT::depth)
     .def("__str__",&PyCollisionReport::PYCONTACT::__str__)
     .def("__unicode__",&PyCollisionReport::PYCONTACT::__unicode__)
     ;
-    class_<PyCollisionReport, OPENRAVE_SHARED_PTR<PyCollisionReport> >("CollisionReport", DOXY_CLASS(CollisionReport))
+    py::class_<PyCollisionReport, OPENRAVE_SHARED_PTR<PyCollisionReport> >(m, "CollisionReport", DOXY_CLASS(CollisionReport))
     .def_readonly("options",&PyCollisionReport::options)
     .def_readonly("plink1",&PyCollisionReport::plink1)
     .def_readonly("plink2",&PyCollisionReport::plink2)
@@ -141,44 +149,44 @@ void init_openravepy_collisionchecker()
     bool (PyCollisionCheckerBase::*pcolter)(object, PyCollisionReportPtr) = &PyCollisionCheckerBase::CheckCollisionTriMesh;
     bool (PyCollisionCheckerBase::*pcolobb)(object, object, PyCollisionReportPtr) = &PyCollisionCheckerBase::CheckCollisionOBB;
 
-    class_<PyCollisionCheckerBase, OPENRAVE_SHARED_PTR<PyCollisionCheckerBase>, bases<PyInterfaceBase> >("CollisionChecker", DOXY_CLASS(CollisionCheckerBase), no_init)
+    py::class_<PyCollisionCheckerBase, OPENRAVE_SHARED_PTR<PyCollisionCheckerBase>, PyInterfaceBase >(m, "CollisionChecker", DOXY_CLASS(CollisionCheckerBase))
     .def("InitEnvironment", &PyCollisionCheckerBase::InitEnvironment, DOXY_FN(CollisionCheckerBase, InitEnvironment))
     .def("DestroyEnvironment", &PyCollisionCheckerBase::DestroyEnvironment, DOXY_FN(CollisionCheckerBase, DestroyEnvironment))
     .def("InitKinBody", &PyCollisionCheckerBase::InitKinBody, DOXY_FN(CollisionCheckerBase, InitKinBody))
     .def("RemoveKinBody", &PyCollisionCheckerBase::RemoveKinBody, DOXY_FN(CollisionCheckerBase, RemoveKinBody))
     .def("SetGeometryGroup", &PyCollisionCheckerBase::SetGeometryGroup, DOXY_FN(CollisionCheckerBase, SetGeometryGroup))
-    .def("SetBodyGeometryGroup", &PyCollisionCheckerBase::SetBodyGeometryGroup, args("body", "groupname"), DOXY_FN(CollisionCheckerBase, SetBodyGeometryGroup))
+    .def("SetBodyGeometryGroup", &PyCollisionCheckerBase::SetBodyGeometryGroup, py::arg("body"), py::arg("groupname"), DOXY_FN(CollisionCheckerBase, SetBodyGeometryGroup))
     .def("GetGeometryGroup", &PyCollisionCheckerBase::GetGeometryGroup, DOXY_FN(CollisionCheckerBase, GetGeometryGroup))
     .def("SetCollisionOptions",&PyCollisionCheckerBase::SetCollisionOptions, DOXY_FN(CollisionCheckerBase,SetCollisionOptions "int"))
     .def("GetCollisionOptions",&PyCollisionCheckerBase::GetCollisionOptions, DOXY_FN(CollisionCheckerBase,GetCollisionOptions))
-    .def("CheckCollision",pcolb,args("body"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcolbr,args("body","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcolbb,args("body1","body2"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcolbbr,args("body1","body2","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcoll,args("link"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcollr,args("link","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcolll,args("link1","link2"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcolllr,args("link1","link2","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcollb,args("link","body"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcollbr,args("link","body","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcolle,args("link","bodyexcluded","linkexcluded"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-    .def("CheckCollision",pcoller,args("link","bodyexcluded","linkexcluded","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-    .def("CheckCollision",pcolbe,args("body","bodyexcluded","linkexcluded"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-    .def("CheckCollision",pcolber,args("body","bodyexcluded","linkexcluded","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
-    .def("CheckCollision",pcolyb,args("ray","body"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcolybr,args("ray","body","report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollision",pcoly,args("ray"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; CollisionReportPtr"))
-    .def("CheckCollision",pcolyr,args("ray", "report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; CollisionReportPtr"))
-    .def("CheckCollisionTriMesh",pcolter,args("trimesh", "report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const TriMesh; CollisionReportPtr"))
-    .def("CheckCollisionTriMesh",pcoltbr,args("trimesh", "body", "report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const TriMesh; KinBodyConstPtr; CollisionReportPtr"))
-    .def("CheckCollisionOBB", pcolobb, args("aabb", "pose", "report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const AABB; const Transform; CollisionReport"))
-    .def("CheckSelfCollision",&PyCollisionCheckerBase::CheckSelfCollision,args("linkbody", "report"), DOXY_FN(CollisionCheckerBase,CheckSelfCollision "KinBodyConstPtr, CollisionReportPtr"))
+    .def("CheckCollision",pcolb,py::arg("body"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcolbr,py::arg("body"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcolbb,py::arg("body1"), py::arg("body2"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcolbbr,py::arg("body1"), py::arg("body2"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcoll,py::arg("link"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcollr,py::arg("link"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcolll,py::arg("link1"), py::arg("link2"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcolllr,py::arg("link1"), py::arg("link2"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBody::LinkConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcollb,py::arg("link"), py::arg("body"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcollbr,py::arg("link"), py::arg("body"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcolle,py::arg("link"), py::arg("bodyexcluded"), py::arg("linkexcluded"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+    .def("CheckCollision",pcoller,py::arg("link"), py::arg("bodyexcluded"), py::arg("linkexcluded"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBody::LinkConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+    .def("CheckCollision",pcolbe,py::arg("body"), py::arg("bodyexcluded"), py::arg("linkexcluded"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+    .def("CheckCollision",pcolber,py::arg("body"), py::arg("bodyexcluded"), py::arg("linkexcluded"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "KinBodyConstPtr; const std::vector; const std::vector; CollisionReportPtr"))
+    .def("CheckCollision",pcolyb,py::arg("ray"), py::arg("body"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcolybr,py::arg("ray"), py::arg("body"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollision",pcoly,py::arg("ray"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; CollisionReportPtr"))
+    .def("CheckCollision",pcolyr,py::arg("ray"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const RAY; CollisionReportPtr"))
+    .def("CheckCollisionTriMesh",pcolter,py::arg("trimesh"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const TriMesh; CollisionReportPtr"))
+    .def("CheckCollisionTriMesh",pcoltbr,py::arg("trimesh"), py::arg("body"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const TriMesh; KinBodyConstPtr; CollisionReportPtr"))
+    .def("CheckCollisionOBB", pcolobb, py::arg("aabb"), py::arg("pose"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckCollision "const AABB; const Transform; CollisionReport"))
+    .def("CheckSelfCollision",&PyCollisionCheckerBase::CheckSelfCollision,py::arg("linkbody"), py::arg("report"), DOXY_FN(CollisionCheckerBase,CheckSelfCollision "KinBodyConstPtr, CollisionReportPtr"))
     .def("CheckCollisionRays",&PyCollisionCheckerBase::CheckCollisionRays,
-         CheckCollisionRays_overloads(args("rays","body","front_facing_only"),
-                                      "Check if any rays hit the body and returns their contact points along with a vector specifying if a collision occured or not. Rays is a Nx6 array, first 3 columns are position, last 3 are direction*range. The return value is: (N array of hit points, Nx6 array of hit position and surface normals."))
+         py::arg("rays"), py::arg("body"), py::arg("front_facing_only"),
+                                      "Check if any rays hit the body and returns their contact points along with a vector specifying if a collision occured or not. Rays is a Nx6 array, first 3 columns are position, last 3 are direction*range. The return value is: (N array of hit points, Nx6 array of hit position and surface normals.")
     ;
 
-    def("RaveCreateCollisionChecker",openravepy::RaveCreateCollisionChecker,args("env","name"),DOXY_FN1(RaveCreateCollisionChecker));
+    m.def("RaveCreateCollisionChecker", openravepy::RaveCreateCollisionChecker, py::arg("env"), py::arg("name"), DOXY_FN1(RaveCreateCollisionChecker));
 }
 
 }
