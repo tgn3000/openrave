@@ -40,14 +40,14 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 # include search path
 include_directories(
 	/usr/local /usr/local/include
-	${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/3rdparty 
+	${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty 
 )
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_PREFIX_PATH "${MY_INSTALL_CMAKE_DIR}")
 
 # required packages
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../modules-cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../modules-cmake")
 find_package(PkgConfig REQUIRED)
 find_package(LibXml2 REQUIRED)
 # message(STATUS "LIBXML2_INCLUDE_DIR = ${LIBXML2_INCLUDE_DIR}")
