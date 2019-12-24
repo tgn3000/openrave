@@ -1,12 +1,15 @@
 ###########################################
 # fclrave openrave plugin
 ###########################################
-find_package(PkgConfig QUIET)
-if(PKG_CONFIG_FOUND)
-  pkg_check_modules(FCL fcl)
-else()
-  message("PackageConfig is supposed to be installed...")
-endif()
+
+# find_package(PkgConfig QUIET)
+# if(PKG_CONFIG_FOUND)
+#   pkg_check_modules(FCL fcl)
+# else()
+#   message("PackageConfig is supposed to be installed...")
+# endif()
+
+find_package(fcl REQUIRED)
 
 if(NARROW_COLLISION_CACHING)
   add_definitions(-DNARROW_COLLISION_CACHING)
@@ -30,7 +33,7 @@ endif()
 
 
 if( FCL_FOUND )
-  STRING( REGEX REPLACE "[0-9]+.([0-9]+).[0-9]+" "\\1" FCL_MINOR_VERSION ${FCL_VERSION})
+  string(REGEX REPLACE "[0-9]+.([0-9]+).[0-9]+" "\\1" FCL_MINOR_VERSION ${FCL_VERSION})
 
   if(FCL_MINOR_VERSION GREATER "4")
     set(CMAKE_REQUIRED_INCLUDES ${FCL_INCLUDE_DIRS} ${FCL_INCLUDEDIR})

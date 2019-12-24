@@ -89,7 +89,7 @@ if( MSVC )
 else()
   install(TARGETS openrave_core DESTINATION lib${LIB_SUFFIX} COMPONENT ${COMPONENT_PREFIX}base)
 endif()
-install(FILES openrave-core.h DESTINATION include/openrave COMPONENT ${COMPONENT_PREFIX}dev)
+install(FILES openrave-core.h DESTINATION include COMPONENT ${COMPONENT_PREFIX}dev)
 
 if( OPT_CBINDINGS )
   add_library(openrave_core_c SHARED openrave-core_c.cpp)

@@ -49,7 +49,7 @@ if (Qt5Gui_FOUND AND Qt5Core_FOUND AND Qt5Widgets_FOUND AND Qt5OpenGL_FOUND AND 
   endif()
 
   # Debug.
-  if (NOT QT_QTOPENGL_FOUND )
+  if (NOT Qt5OpenGL_FOUND )
       message(STATUS "QTOPENGL library NOT FOUND!!!")
   endif()
   

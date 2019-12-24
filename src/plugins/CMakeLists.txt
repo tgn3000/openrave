@@ -44,12 +44,19 @@ endif()
 if( OPT_QTCOIN_VIEWER )
   set(PLUGINS ${PLUGINS} qtcoinrave)
 endif()
+# https://bitbucket.org/odedevs/ode/src/default/
+set(OPT_ODE_COLLISION ON)
 if( OPT_ODE_COLLISION )
   set(PLUGINS ${PLUGINS} oderave)
 endif()
+# https://github.com/danfis/libccd
+# https://github.com/rdiankov/fcl
+set(OPT_FCL_COLLISION ON)
 if( OPT_FCL_COLLISION )
   set(PLUGINS ${PLUGINS} fclrave)
 endif()
+
+message(STATUS "PLUGINS = ${PLUGINS}")
 
 foreach(PLUGIN ${PLUGINS})
   string(TOUPPER ${PLUGIN} PLUGIN_UPPER)

@@ -2,6 +2,13 @@
 # oderave openrave plugin
 ###########################################
 include(${CMAKE_CURRENT_SOURCE_DIR}/FindODE.cmake)
+find_package(ode QUIET)
+
+set(ODE_LIBRARY_FOUND CACHE BOOL OFF)
+if(DEFINED ODE_INCLUDE_DIRS AND DEFINED ODE_LIBRARY_DIRS)
+  set(ODE_LIBRARY_FOUND ON)
+endif()
+
 if(ODE_LIBRARY_FOUND)
   link_directories(${OPENRAVE_LINK_DIRS} ${ODE_LINK_DIRS})
 
@@ -32,6 +39,7 @@ if(ODE_LIBRARY_FOUND)
   add_library(oderave SHARED oderave.cpp odecollision.h odephysics.h odespace.h odecontroller.h plugindefs.h)
   
   # test for ode version 0.10
+  include(CheckCXXSourceCompiles)
   check_cxx_source_compiles("
     #include <ode/ode.h>
 

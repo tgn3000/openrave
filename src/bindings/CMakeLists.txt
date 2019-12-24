@@ -58,7 +58,7 @@ if( HAVE_ALL_PYTHON_HEADERS )
   # PRIVATE boost_assertion_failed)
   # add_dependencies(${OPENRAVE_PYTHON_BINDING_NAME} libopenrave libopenrave-core)
   set_target_properties(${OPENRAVE_PYTHON_BINDING_NAME} 
-    PROPERTIES PREFIX "" 
+    PROPERTIES PREFIX "" SUFFIX ""
     COMPILE_FLAGS "${OPENRAVEPY_COMPILE_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}"
   )
   if( WIN32 )
