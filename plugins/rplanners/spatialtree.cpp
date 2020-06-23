@@ -212,51 +212,40 @@ ExtendType SpatialTree::Extend(const std::vector<dReal>& vTargetConfig,
         }
 
         // necessary to pass in _constraintreturn since _neighstatefn can have constraints and it can change the interpolation. Use _constraintreturn->_bHasRampDeviatedFromInterpolation to figure out if something changed.
-        if( _fromgoal ) {
-            if( params->CheckPathAllConstraints(_vNewConfig, _vCurConfig, {}, {}, 0, IT_OpenEnd, 0xffff|CFO_FillCheckedConfiguration, _constraintreturn) != 0 ) {
-                return bHasAdded ? ET_Sucess : ET_Failed;
-            }
-        }
-        else {
-            if( params->CheckPathAllConstraints(_vCurConfig, _vNewConfig, {}, {}, 0, IT_OpenStart, 0xffff|CFO_FillCheckedConfiguration, _constraintreturn) != 0 ) {
-                return bHasAdded ? ET_Sucess : ET_Failed;
-            }
+        if( params->CheckPathAllConstraints(
+                _fromgoal ? _vNewConfig : _vCurConfig,
+                _fromgoal ? _vCurConfig : _vNewConfig,
+                {}, {}, 0,
+                _fromgoal ? IT_OpenEnd : IT_OpenStart,
+                0xffff | CFO_FillCheckedConfiguration,
+                _constraintreturn) != 0 
+        ) {
+            return bHasAdded ? ET_Sucess : ET_Failed;
         }
 
         int iAdded = 0;
         if( _constraintreturn->_bHasRampDeviatedFromInterpolation ) {
             // Since the path checked by CheckPathAllConstraints can be different from a straight line segment connecting _vNewConfig and _vCurConfig, we add all checked configurations along the checked segment to the tree.
-            if( _fromgoal ) {
-                // Need to add nodes to the tree starting from the one closest to the nearest neighbor. Since _fromgoal is true, the closest one is the last config in _constraintreturn->_configurations
-                for(int iconfig = ((int)_constraintreturn->_configurations.size()) - _dof; iconfig >= 0; iconfig -= _dof) {
-                    std::copy(_constraintreturn->_configurations.begin() + iconfig, _constraintreturn->_configurations.begin() + iconfig + _dof, _vNewConfig.begin());
-                    SimpleNodePtr pnewnode = _InsertNode(pnode, _vNewConfig, 0); ///< set userdata to 0
-                    if( !!pnewnode ) {
-                        bHasAdded = true;
-                        pnode = pnewnode;
-                        lastnode = pnode;
-                        ++iAdded;
-                    }
-                    else {
-                        // RAVELOG_DEBUG_FORMAT("_constraintreturn has %d configurations, numadded=%d, _fromgoal=%d", (_constraintreturn->_configurations.size()/_dof)%iAdded%_fromgoal);
-                        break;
-                    }
+            std::vector<dReal>& configurations = _constraintreturn->_configurations;
+            const int configsize = configurations.size();
+
+            for(int iconfig = _fromgoal ? (configsize - _dof) : 0;
+                _fromgoal ? (iconfig >= 0) : (iconfig+_dof-1 < configsize);
+                iconfig += _fromgoal ? (-_dof) : _dof
+            ) {
+                _vNewConfig = std::vector<dReal>(
+                    begin(configurations) + iconfig,
+                    begin(configurations) + iconfig + _dof
+                );
+                SimpleNodePtr pnewnode = _InsertNode(pnode, _vNewConfig, 0); ///< set userdata to 0
+                if( !!pnewnode ) {
+                    bHasAdded = true;
+                    pnode = pnewnode;
+                    lastnode = pnode;
+                    ++iAdded;
                 }
-            }
-            else {
-                for(int iconfig = 0; iconfig+_dof-1 < (int)_constraintreturn->_configurations.size(); iconfig += _dof) {
-                    std::copy(_constraintreturn->_configurations.begin() + iconfig, _constraintreturn->_configurations.begin() + iconfig + _dof, _vNewConfig.begin());
-                    SimpleNodePtr pnewnode = _InsertNode(pnode, _vNewConfig, 0); ///< set userdata to 0
-                    if( !!pnewnode ) {
-                        bHasAdded = true;
-                        pnode = pnewnode;
-                        lastnode = pnode;
-                        ++iAdded;
-                    }
-                    else {
-                        // RAVELOG_DEBUG_FORMAT("_constraintreturn has %d configurations, numadded=%d, _fromgoal=%d", (_constraintreturn->_configurations.size()/_dof)%iAdded%_fromgoal);
-                        break;
-                    }
+                else {
+                    break;
                 }
             }
         }

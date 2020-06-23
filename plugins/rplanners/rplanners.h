@@ -234,7 +234,9 @@ private:
     // cache
     std::vector<SimpleNodePtr> _vchildcache;
     std::set<SimpleNodePtr> _setchildcache;
-    std::vector<dReal> _vNewConfig, _vDeltaConfig, _vCurConfig;
+    std::vector<dReal> _vNewConfig;
+    std::vector<dReal> _vDeltaConfig;
+    std::vector<dReal> _vCurConfig;
     mutable std::vector<dReal> _vTempConfig;
     ConstraintFilterReturnPtr _constraintreturn;
 
