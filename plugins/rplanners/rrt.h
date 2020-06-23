@@ -65,7 +65,7 @@ Uses the Rapidly-Exploring Random Trees Algorithm.\n\
             return false;
         }
 
-        _vecInitialNodes.resize(0);
+        _vecInitialNodes.clear();
         _sampleConfig.resize(params->GetDOF());
         // TODO perhaps distmetricfn should take into number of revolutions of circular joints
         _treeForward.Init(shared_planner(), params->GetDOF(), params->_distmetricfn, params->_fStepLength, params->_distmetricfn(params->_vConfigLowerLimit, params->_vConfigUpperLimit));
@@ -235,11 +235,11 @@ Some python code to display data::\n\
 
     struct GOALPATH
     {
-        GOALPATH() : startindex(-1), goalindex(-1), length(0) {
-        }
-        vector<dReal> qall;
-        int startindex, goalindex;
-        dReal length;
+        GOALPATH() {}
+        std::vector<dReal> qall;
+        int startindex = -1;
+        int goalindex = -1;
+        dReal length = 0;
     };
 
     virtual bool InitPlan(RobotBasePtr pbase, PlannerParametersConstPtr pparams)
@@ -252,25 +252,26 @@ Some python code to display data::\n\
             return false;
         }
 
-        _fGoalBiasProb = dReal(0.01);
+        _fGoalBiasProb = 0.01;
         PlannerParameters::StateSaver savestate(_parameters);
         CollisionOptionsStateSaver optionstate(GetEnv()->GetCollisionChecker(),GetEnv()->GetCollisionChecker()->GetCollisionOptions()|CO_ActiveDOFs,false);
 
         // TODO perhaps distmetricfn should take into number of revolutions of circular joints
-        _treeBackward.Init(shared_planner(), _parameters->GetDOF(), _parameters->_distmetricfn, _parameters->_fStepLength, _parameters->_distmetricfn(_parameters->_vConfigLowerLimit, _parameters->_vConfigUpperLimit));
+        const size_t dof = _parameters->GetDOF();
+        _treeBackward.Init(shared_planner(), dof, _parameters->_distmetricfn, _parameters->_fStepLength, _parameters->_distmetricfn(_parameters->_vConfigLowerLimit, _parameters->_vConfigUpperLimit));
 
         //read in all goals
-        if( (_parameters->vgoalconfig.size() % _parameters->GetDOF()) != 0 ) {
+        if( (_parameters->vgoalconfig.size() % dof) != 0 ) {
             RAVELOG_ERROR_FORMAT("env=%d, BirrtPlanner::InitPlan - Error: goals are improperly specified", GetEnv()->GetId());
             _parameters.reset();
             return false;
         }
 
-        vector<dReal> vgoal(_parameters->GetDOF());
-        _vecGoalNodes.resize(0);
+        std::vector<dReal> vgoal(dof);
+        _vecGoalNodes.clear();
         _nValidGoals = 0;
-        for(size_t igoal = 0; igoal < _parameters->vgoalconfig.size(); igoal += _parameters->GetDOF()) {
-            std::copy(_parameters->vgoalconfig.begin()+igoal,_parameters->vgoalconfig.begin()+igoal+_parameters->GetDOF(),vgoal.begin());
+        for(size_t igoal = 0; igoal < _parameters->vgoalconfig.size(); igoal += dof) {
+            std::copy(_parameters->vgoalconfig.begin()+igoal,_parameters->vgoalconfig.begin()+igoal+dof,vgoal.begin());
             int ret = _parameters->CheckPathAllConstraints(vgoal,vgoal,std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenStart);
             if( ret == 0 ) {
                 _vecGoalNodes.push_back(_treeBackward.InsertNode(NULL, vgoal, _vecGoalNodes.size()));
@@ -295,7 +296,7 @@ Some python code to display data::\n\
             _parameters->_nMaxIterations = 10000;
         }
 
-        _vgoalpaths.resize(0);
+        _vgoalpaths.clear();
         if( _vgoalpaths.capacity() < _parameters->_minimumgoalpaths ) {
             _vgoalpaths.reserve(_parameters->_minimumgoalpaths);
         }
@@ -366,7 +367,7 @@ Some python code to display data::\n\
                 }
             }
 
-            _sampleConfig.resize(0);
+            _sampleConfig.clear();
             if( (bSampleGoal || _uniformsampler->SampleSequenceOneReal() < _fGoalBiasProb) && _nValidGoals > 0 ) {
                 bSampleGoal = false;
                 // sample goal as early as possible
@@ -466,18 +467,20 @@ Some python code to display data::\n\
             return OPENRAVE_PLANNER_STATUS(description, PS_Failed);
         }
 
-        vector<GOALPATH>::iterator itbest = _vgoalpaths.begin();
-        FOREACH(itpath,_vgoalpaths) {
-            if( itpath->length < itbest->length ) {
-                itbest = itpath;
+        // std::vector<GOALPATH>::iterator itbest = _vgoalpaths.begin();
+        size_t ibestpath = 0;
+        for(size_t ipath = 0; ipath < _vgoalpaths.size(); ++ipath) {
+            if(_vgoalpaths[ipath].length < _vgoalpaths[ibestpath].length) {
+                ibestpath = ipath;
             }
         }
-        _goalindex = itbest->goalindex;
-        _startindex = itbest->startindex;
+        const GOALPATH& bestpath = _vgoalpaths.at(ibestpath);
+        _goalindex = bestpath.goalindex;
+        _startindex = bestpath.startindex;
         if( ptraj->GetConfigurationSpecification().GetDOF() == 0 ) {
             ptraj->Init(_parameters->_configurationspecification);
         }
-        ptraj->Insert(ptraj->GetNumWaypoints(), itbest->qall, _parameters->_configurationspecification);
+        ptraj->Insert(ptraj->GetNumWaypoints(), bestpath.qall, _parameters->_configurationspecification);
         std::string description = str(boost::format(_("env=%d, plan success, iters=%d, path=%d points, computation time=%fs\n"))%GetEnv()->GetId()%progress._iteration%ptraj->GetNumWaypoints()%(0.001f*(float)(utils::GetMilliTime()-basetime)));
         RAVELOG_DEBUG(description);
         PlannerStatus status = _ProcessPostPlanners(_robot,ptraj);
@@ -489,7 +492,7 @@ Some python code to display data::\n\
     virtual void _ExtractPath(GOALPATH& goalpath, NodeBase* iConnectedForward, NodeBase* iConnectedBackward)
     {
         const int dof = _parameters->GetDOF();
-        _cachedpath.resize(0);
+        _cachedpath.clear();
 
         // add nodes from the forward tree
         SimpleNode* pforward = (SimpleNode*)iConnectedForward;
@@ -603,7 +606,7 @@ public:
         //read in all goals
         int goal_index = 0;
         vector<dReal> vgoal(_parameters->GetDOF());
-        _vecGoals.resize(0);
+        _vecGoals.clear();
         while(_parameters->vgoalconfig.size() > 0) {
             for(int i = 0; i < _parameters->GetDOF(); i++) {
                 if(goal_index < (int)_parameters->vgoalconfig.size())
@@ -795,7 +798,7 @@ public:
         }
 
         const int dof = _parameters->GetDOF();
-        _cachedpath.resize(0);
+        _cachedpath.clear();
 
         // add nodes from the forward tree
         SimpleNode* pforward = (SimpleNode*)bestGoalNode;
