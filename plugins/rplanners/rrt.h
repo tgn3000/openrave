@@ -82,7 +82,7 @@ protected:
     SpatialTree _treeBackward;
     dReal _fGoalBiasProb;
     std::vector< SimpleNodePtr > _vecGoalNodes;
-    size_t _nValidGoals; ///< num valid goals
+    size_t _nValidGoals = 0; ///< num valid goals
     std::vector<GOALPATH> _vgoalpaths;
 };
 

@@ -17,19 +17,6 @@
 #include <boost/algorithm/string.hpp>
 #include "rrt.h"
 
-RrtPlanner::RrtPlanner(EnvironmentBasePtr penv) : PlannerBase(penv), _treeForward(0)
-{
-    __description = "\
-:Interface Author:  Rosen Diankov\n\n\
-Uses the Rapidly-Exploring Random Trees Algorithm.\n\
-";
-    RegisterCommand("GetGoalIndex",boost::bind(&RrtPlanner::GetGoalIndexCommand,this,_1,_2),
-                    "returns the goal index of the plan");
-    RegisterCommand("GetInitGoalIndices",boost::bind(&RrtPlanner::GetInitGoalIndicesCommand,this,_1,_2),
-                    "returns the start and goal indices");
-    _filterreturn.reset(new ConstraintFilterReturn());
-}
-
 bool RrtPlanner::_InitPlan(RobotBasePtr pbase, PlannerParametersPtr params)
 {
     params->Validate();
@@ -169,43 +156,6 @@ void RrtPlanner::_SimpleOptimizePath(std::deque<dReal>& path, int numiterations)
     }
 }
 
-bool RrtPlanner::GetGoalIndexCommand(std::ostream& os, std::istream& is)
-{
-    os << _goalindex;
-    return !!os;
-}
-
-bool RrtPlanner::GetInitGoalIndicesCommand(std::ostream& os, std::istream& is)
-{
-    os << _startindex << " " << _goalindex;
-    return !!os;
-}
-
-RrtPlannerPtr RrtPlanner::shared_planner() {
-    return boost::static_pointer_cast<RrtPlanner>(shared_from_this());
-}
-
-RrtPlannerConstPtr RrtPlanner::shared_planner_const() const {
-    return boost::static_pointer_cast<RrtPlanner const>(shared_from_this());
-}
-
-BirrtPlanner::BirrtPlanner(EnvironmentBasePtr penv) : RrtPlanner(penv), _treeBackward(1)
-{
-    __description += "Bi-directional RRTs. See\n\n\
-- J.J. Kuffner and S.M. LaValle. RRT-Connect: An efficient approach to single-query path planning. In Proc. IEEE Int'l Conf. on Robotics and Automation (ICRA'2000), pages 995-1001, San Francisco, CA, April 2000.";
-    RegisterCommand("DumpTree", boost::bind(&BirrtPlanner::_DumpTreeCommand,this,_1,_2),
-                    "dumps the source and goal trees to $OPENRAVE_HOME/birrtdump.txt. The first N values are the DOF values, the last value is the parent index.\n\
-Some python code to display data::\n\
-\n\
-sourcetree=loadtxt(os.path.join(RaveGetHomeDirectory(),'sourcetree.txt'),delimiter=' ,')\n\
-hs=env.plot3(sourcetree,5,[1,0,0])\n\
-sourcedist = abs(sourcetree[:,0]-x[0]) + abs(sourcetree[:,1]-x[1])\n\
-robot.SetActiveDOFValues(sourcetree[argmin(sourcedist)])\n\
-\n\
-");
-    _nValidGoals = 0;
-}
-
 bool BirrtPlanner::InitPlan(RobotBasePtr pbase, PlannerParametersConstPtr pparams)
 {
     EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
@@ -281,7 +231,10 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
 
     // the main planning loop
     PlannerParameters::StateSaver savestate(_parameters);
-    CollisionOptionsStateSaver optionstate(GetEnv()->GetCollisionChecker(),GetEnv()->GetCollisionChecker()->GetCollisionOptions()|CO_ActiveDOFs,false);
+    auto penv = GetEnv();
+    const int envId = penv->GetId();
+    auto pcc = penv->GetCollisionChecker();
+    CollisionOptionsStateSaver optionstate(pcc, pcc->GetCollisionOptions() | CO_ActiveDOFs, false);
 
     SpatialTreeBase* TreeA = &_treeForward;
     SpatialTreeBase* TreeB = &_treeBackward;
@@ -291,15 +244,16 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
 
     bool bSampleGoal = true;
     PlannerProgress progress;
-    PlannerAction callbackaction=PA_None;
+    PlannerAction callbackaction = PA_None;
     while(_vgoalpaths.size() < _parameters->_minimumgoalpaths && iter < 3*_parameters->_nMaxIterations) {
-        RAVELOG_VERBOSE_FORMAT("env=%d, iter=%d, forward=%d, backward=%d", GetEnv()->GetId()%(iter/3)%_treeForward.GetNumNodes()%_treeBackward.GetNumNodes());
+        RAVELOG_VERBOSE_FORMAT("env=%d, iter=%d, forward=%d, backward=%d", 
+                               envId % (iter/3) % _treeForward.GetNumNodes() % _treeBackward.GetNumNodes());
         ++iter;
 
         // have to check callbacks at the beginning since code can continue
         callbackaction = _CallCallbacks(progress);
         if( callbackaction ==  PA_Interrupt ) {
-            return OPENRAVE_PLANNER_STATUS(str(boost::format("env=%d, Planning was interrupted")%GetEnv()->GetId()), PS_Interrupted);
+            return OPENRAVE_PLANNER_STATUS(str(boost::format("env=%d, Planning was interrupted")%envId), PS_Interrupted);
         }
         else if( callbackaction == PA_ReturnWithAnySolution ) {
             if( !_vgoalpaths.empty() ) {
@@ -308,26 +262,25 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
         }
 
         if( _parameters->_nMaxPlanningTime > 0 ) {
-            uint32_t elapsedtime = utils::GetMilliTime()-basetime;
+            const uint32_t elapsedtime = utils::GetMilliTime()-basetime;
             if( elapsedtime >= _parameters->_nMaxPlanningTime ) {
-                RAVELOG_DEBUG_FORMAT("env=%d, time exceeded (%dms) so breaking. iter=%d < %d", GetEnv()->GetId()%elapsedtime%(iter/3)%_parameters->_nMaxIterations);
+                RAVELOG_DEBUG_FORMAT("env=%d, time exceeded (%dms) so breaking. iter=%d < %d", envId%elapsedtime%(iter/3)%_parameters->_nMaxIterations);
                 break;
             }
         }
 
-
         if( !!_parameters->_samplegoalfn ) {
-            vector<dReal> vgoal;
+            std::vector<dReal> vgoal;
             if( _parameters->_samplegoalfn(vgoal) ) {
-                RAVELOG_VERBOSE(str(boost::format("env=%d, inserting new goal index %d")%GetEnv()->GetId()%_vecGoalNodes.size()));
+                RAVELOG_VERBOSE(str(boost::format("env=%d, inserting new goal index %d")%envId%_vecGoalNodes.size()));
                 _vecGoalNodes.push_back(_treeBackward.InsertNode(NULL, vgoal, _vecGoalNodes.size()));
                 _nValidGoals++;
             }
         }
         if( !!_parameters->_sampleinitialfn ) {
-            vector<dReal> vinitial;
+            std::vector<dReal> vinitial;
             if( _parameters->_sampleinitialfn(vinitial) ) {
-                RAVELOG_VERBOSE(str(boost::format("env=%d, inserting new initial %d")%GetEnv()->GetId()%_vecInitialNodes.size()));
+                RAVELOG_VERBOSE(str(boost::format("env=%d, inserting new initial %d")%envId%_vecInitialNodes.size()));
                 _vecInitialNodes.push_back(_treeForward.InsertNode(NULL,vinitial, _vecInitialNodes.size()));
             }
         }
@@ -374,7 +327,7 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
         if( et == ET_Failed ) {
             // necessary to increment iterator in case spaces are not connected
             if( iter > 3*_parameters->_nMaxIterations ) {
-                RAVELOG_WARN_FORMAT("env=%d, iterations exceeded", GetEnv()->GetId());
+                RAVELOG_WARN_FORMAT("env=%d, iterations exceeded", envId);
                 break;
             }
             continue;
@@ -386,18 +339,14 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
             // connected, process goal
             _vgoalpaths.emplace_back();
             GOALPATH& lastpath = _vgoalpaths.back();
-            if(TreeA == &_treeForward) {
-                _ExtractPath(lastpath, iConnectedA, iConnectedB);
-            }
-            else {
-                _ExtractPath(lastpath, iConnectedB, iConnectedA);
-            }
+            (TreeA == &_treeForward) ? _ExtractPath(lastpath, iConnectedA, iConnectedB)
+                                     : _ExtractPath(lastpath, iConnectedB, iConnectedA);
             const int goalindex = lastpath.goalindex;
             const int startindex = lastpath.startindex;
             if( IS_DEBUGLEVEL(Level_Debug) ) {
                 std::stringstream ss;
                 ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
-                ss << "env=" << GetEnv()->GetId() << ", found a goal, start index=" << startindex << " goal index=" << goalindex << ", path length=" << lastpath.length << ", startvalues=[";
+                ss << "env=" << envId << ", found a goal, start index=" << startindex << " goal index=" << goalindex << ", path length=" << lastpath.length << ", startvalues=[";
                 for(int i = 0; i < _parameters->GetDOF(); ++i) {
                     ss << lastpath.qall.at(i) << ", ";
                 }
@@ -416,10 +365,10 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
             _treeBackward.InvalidateNodesWithParent(_vecGoalNodes.at(goalindex));
         }
 
-        swap(TreeA, TreeB);
+        std::swap(TreeA, TreeB);
         iter += 3;
         if( iter > 3*_parameters->_nMaxIterations ) {
-            RAVELOG_WARN_FORMAT("env=%d, iterations exceeded %d", GetEnv()->GetId()%_parameters->_nMaxIterations);
+            RAVELOG_WARN_FORMAT("env=%d, iterations exceeded %d", envId%_parameters->_nMaxIterations);
             break;
         }
 
@@ -427,7 +376,8 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
     }
 
     if( _vgoalpaths.empty() ) {
-        std::string description = str(boost::format(_("env=%d, plan failed in %fs, iter=%d, nMaxIterations=%d"))%GetEnv()->GetId()%(0.001f*(float)(utils::GetMilliTime()-basetime))%(iter/3)%_parameters->_nMaxIterations);
+        const std::string description = str(boost::format(_("env=%d, plan failed in %fs, iter=%d, nMaxIterations=%d"))
+                                            % envId % (0.001*(utils::GetMilliTime()-basetime)) % (iter/3) % _parameters->_nMaxIterations);
         RAVELOG_WARN(description);
         return OPENRAVE_PLANNER_STATUS(description, PS_Failed);
     }
@@ -446,7 +396,8 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
         ptraj->Init(_parameters->_configurationspecification);
     }
     ptraj->Insert(ptraj->GetNumWaypoints(), bestpath.qall, _parameters->_configurationspecification);
-    const std::string description = str(boost::format(_("env=%d, plan success, iters=%d, path=%d points, computation time=%fs\n"))%GetEnv()->GetId()%progress._iteration%ptraj->GetNumWaypoints()%(0.001f*(float)(utils::GetMilliTime()-basetime)));
+    const std::string description = str(boost::format(_("env=%d, plan success, iters=%d, path=%d points, computation time=%fs\n"))
+                                        % envId % progress._iteration % ptraj->GetNumWaypoints() % (0.001*(utils::GetMilliTime()-basetime)));
     RAVELOG_DEBUG(description);
     PlannerStatus status = _ProcessPostPlanners(_robot,ptraj);
     //TODO should use accessor to change description
@@ -514,20 +465,9 @@ void BirrtPlanner::_ExtractPath(GOALPATH& goalpath, SimpleNodePtr iConnectedForw
     // take distance scaled with respect to velocities with the first and last points only!
     // this is because rrt paths can initially be very complex but simplify down to something simpler.
     std::vector<dReal> vdiff(goalpath.qall.begin(), goalpath.qall.begin()+dof);
-    _parameters->_diffstatefn(vdiff, std::vector<dReal>(goalpath.qall.end()-dof, goalpath.qall.end()));
+    const std::vector<dReal> lastpoint(goalpath.qall.end()-dof, goalpath.qall.end());
+    _parameters->_diffstatefn(vdiff, lastpoint);
     for(size_t i = 0; i < dof; ++i) {
         goalpath.length += RaveFabs(vdiff[i])*vivel[i];
     }
-}
-
-bool BirrtPlanner::_DumpTreeCommand(std::ostream& os, std::istream& is) {
-    std::string filename = RaveGetHomeDirectory() + string("/birrtdump.txt");
-    getline(is, filename);
-    boost::trim(filename);
-    RAVELOG_VERBOSE_FORMAT("dumping rrt tree to %s", filename);
-    ofstream f(filename.c_str());
-    f << std::setprecision(std::numeric_limits<dReal>::digits10+1);
-    _treeForward.DumpTree(f);
-    _treeBackward.DumpTree(f);
-    return true;
 }

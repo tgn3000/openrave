@@ -3,7 +3,7 @@
 ###########################################
 add_subdirectory(rampoptimizer)
 add_subdirectory(ParabolicPathSmooth)
-add_library(rplanners SHARED constraintparabolicsmoother.cpp cubicretimer.cpp linearretimer.cpp linearsmoother.cpp mergewaypoints.cpp parabolicretimer.cpp parabolicsmoother.cpp linearshortcutadvanced.cpp randomized-astar.cpp rplanners.h spatialtree.cpp rplanners.cpp rrt.h rrt.cpp basicrrt.cpp workspacetrajectorytracker.cpp manipconstraints2.h parabolicretimer2.cpp parabolicsmoother2.cpp)
+add_library(rplanners SHARED constraintparabolicsmoother.cpp cubicretimer.cpp linearretimer.cpp linearsmoother.cpp mergewaypoints.cpp parabolicretimer.cpp parabolicsmoother.cpp linearshortcutadvanced.cpp randomized-astar.cpp rplanners.h spatialtree.cpp rplanners.cpp rrt.h rrt.cpp rrt_setget.cpp basicrrt.cpp workspacetrajectorytracker.cpp manipconstraints2.h parabolicretimer2.cpp parabolicsmoother2.cpp)
 
 target_link_libraries(rplanners libopenrave ParabolicPathSmooth rampoptimizer)
 target_link_libraries(rplanners PRIVATE boost_assertion_failed)
