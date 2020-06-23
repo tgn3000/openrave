@@ -88,62 +88,10 @@ Uses the Rapidly-Exploring Random Trees Algorithm.\n\
         return true;
     }
 
-//    /// \brief simple path optimization given a path of dof values
-//    virtual void _SimpleOptimizePath(std::deque<dReal>& path, int numiterations)
-//    {
-//        if( path.size() <= 2 ) {
-//            return;
-//        }
-//        PlannerParametersConstPtr params = GetParameters();
-//
-//        typename list<Node*>::iterator startNode, endNode;
-//        if( !_filterreturn ) {
-//            _filterreturn.reset(new ConstraintFilterReturn());
-//        }
-//        int dof = GetParameters()->GetDOF();
-//        int nrejected = 0;
-//        int i = numiterations;
-//        while(i > 0 && nrejected < (int)path.size()+4 ) {
-//            --i;
-//
-//            // pick a random node on the path, and a random jump ahead
-//            int endIndex = 2+(_uniformsampler->SampleSequenceOneUInt32()%((int)path.size()-2));
-//            int startIndex = _uniformsampler->SampleSequenceOneUInt32()%(endIndex-1);
-//
-//            startNode = path.begin();
-//            advance(startNode, startIndex);
-//            endNode = startNode;
-//            advance(endNode, endIndex-startIndex);
-//            nrejected++;
-//
-//            // check if the nodes can be connected by a straight line
-//            _filterreturn->Clear();
-//            if ( params->CheckPathAllConstraints(*startNode, *endNode, std::vector<dReal>(), std::vector<dReal>(), 0, IT_Open, 0xffff|CFO_FillCheckedConfiguration, _filterreturn) != 0 ) {
-//                if( nrejected++ > (int)path.size()+8 ) {
-//                    break;
-//                }
-//                continue;
-//            }
-//
-//            ++startNode;
-//            OPENRAVE_ASSERT_OP(_filterreturn->_configurations.size()%dof,==,0);
-//            for(std::vector<dReal>::iterator itvalues = _filterreturn->_configurations.begin(); itvalues != _filterreturn->_configurations.end(); itvalues += dof) {
-//                path.insert(startNode, std::vector<dReal>(itvalues,itvalues+dof));
-//            }
-//            // splice out in-between nodes in path
-//            path.erase(startNode, endNode);
-//            nrejected = 0;
-//
-//            if( path.size() <= 2 ) {
-//                return;
-//            }
-//        }
-//    }
-
     /// \brief simple path optimization given a path of dof values. Every _parameters->GetDOF() are one point in the path
     virtual void _SimpleOptimizePath(std::deque<dReal>& path, int numiterations)
     {
-        PlannerParametersConstPtr params = GetParameters();
+        PlannerParametersConstPtr params = this->GetParameters();
         const int dof = params->GetDOF();
         if( (int)path.size() <= 2*dof ) {
             return;
@@ -471,18 +419,25 @@ Some python code to display data::\n\
             if( et == ET_Connected ) {
                 // connected, process goal
                 _vgoalpaths.push_back(GOALPATH());
-                _ExtractPath(_vgoalpaths.back(), TreeA == &_treeForward ? iConnectedA : iConnectedB, TreeA == &_treeBackward ? iConnectedA : iConnectedB);
-                int goalindex = _vgoalpaths.back().goalindex;
-                int startindex = _vgoalpaths.back().startindex;
+                auto& lastpath = _vgoalpaths.back();
+                if(TreeA == &_treeForward) {
+                    _ExtractPath(lastpath, iConnectedA, iConnectedB);
+                }
+                else {
+                    _ExtractPath(lastpath, iConnectedB, iConnectedA);
+                }
+                const int goalindex = lastpath.goalindex;
+                const int startindex = lastpath.startindex;
                 if( IS_DEBUGLEVEL(Level_Debug) ) {
-                    stringstream ss; ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
-                    ss << "env=" << GetEnv()->GetId() << ", found a goal, start index=" << startindex << " goal index=" << goalindex << ", path length=" << _vgoalpaths.back().length << ", startvalues=[";
+                    std::stringstream ss;
+                    ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
+                    ss << "env=" << GetEnv()->GetId() << ", found a goal, start index=" << startindex << " goal index=" << goalindex << ", path length=" << lastpath.length << ", startvalues=[";
                     for(int i = 0; i < _parameters->GetDOF(); ++i) {
-                        ss << _vgoalpaths.back().qall.at(i) << ", ";
+                        ss << lastpath.qall.at(i) << ", ";
                     }
                     ss << "]; goalvalues=[";
                     for(int i = 0; i < _parameters->GetDOF(); ++i) {
-                        ss << _vgoalpaths.back().qall.at(_vgoalpaths.back().qall.size()-_parameters->GetDOF()+i) << ", ";
+                        ss << lastpath.qall.at(lastpath.qall.size()-_parameters->GetDOF()+i) << ", ";
                     }
                     ss << "];";
                     RAVELOG_DEBUG(ss.str());
@@ -533,56 +488,6 @@ Some python code to display data::\n\
 
     virtual void _ExtractPath(GOALPATH& goalpath, NodeBase* iConnectedForward, NodeBase* iConnectedBackward)
     {
-//        list< std::vector<dReal> > vecnodes;
-//
-//        // add nodes from the forward tree
-//        SimpleNode* pforward = (SimpleNode*)iConnectedForward;
-//        goalpath.startindex = -1;
-//        while(1) {
-//            vecnodes.push_front(pforward);
-//            if(!pforward->rrtparent) {
-//                goalpath.startindex = pforward->_userdata;
-//                break;
-//            }
-//            pforward = pforward->rrtparent;
-//        }
-//
-//        // add nodes from the backward tree
-//        goalpath.goalindex = -1;
-//        SimpleNode *pbackward = (SimpleNode*)iConnectedBackward;
-//        while(1) {
-//            vecnodes.push_back(pbackward);
-//            if(!pbackward->rrtparent) {
-//                goalpath.goalindex = pbackward->_userdata;
-//                break;
-//            }
-//            pbackward = pbackward->rrtparent;
-//        }
-//
-//        BOOST_ASSERT( goalpath.goalindex >= 0 && goalpath.goalindex < (int)_vecGoalNodes.size() );
-//        _SimpleOptimizePath(vecnodes,10);
-//        const int dof = _parameters->GetDOF();
-//        goalpath.qall.resize(vecnodes.size()*dof);
-//        list<SimpleNode*>::iterator itprev = vecnodes.begin();
-//        list<SimpleNode*>::iterator itnext = itprev; itnext++;
-//        goalpath.length = 0;
-//        vector<dReal>::iterator itq = goalpath.qall.begin();
-//        std::copy((*itprev)->q, (*itprev)->q+dof, itq);
-//        itq += dof;
-//        vector<dReal> vivel(dof,1.0);
-//        for(size_t i = 0; i < vivel.size(); ++i) {
-//            if( _parameters->_vConfigVelocityLimit.at(i) != 0 ) {
-//                vivel[i] = 1/_parameters->_vConfigVelocityLimit.at(i);
-//            }
-//        }
-//
-//        while(itnext != vecnodes.end()) {
-//            std::copy((*itnext)->q, (*itnext)->q+dof, itq);
-//            itprev=itnext;
-//            ++itnext;
-//            itq += dof;
-//        }
-
         const int dof = _parameters->GetDOF();
         _cachedpath.resize(0);
 
@@ -598,6 +503,17 @@ Some python code to display data::\n\
             }
             pforward = pforward->rrtparent;
         }
+
+        std::stringstream ss;
+        ss << std::setprecision(16);
+        for(auto it = _cachedpath.begin(); it != _cachedpath.end(); advance(it, dof)) {
+            auto jt = it;
+            for(int i = 0; i < dof; ++i, ++jt) {
+                ss << *jt << ", ";
+            }
+            ss << std::endl;
+        }
+        RAVELOG_WARN_FORMAT("%s", ss.str());
 
         // add nodes from the backward tree
         goalpath.goalindex = -1;

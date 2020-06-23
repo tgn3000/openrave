@@ -556,23 +556,22 @@ public:
     {
         o << _numnodes << endl;
         // first organize all nodes into a vector struct with indices
-        std::vector<NodePtr> vnodes; vnodes.reserve(_numnodes);
-        FOREACHC(itchildren, _vsetLevelNodes) {
-            vnodes.insert(vnodes.end(), itchildren->begin(), itchildren->end());
+        std::vector<NodePtr> vnodes;
+        vnodes.reserve(_numnodes);
+        for(const std::set<NodePtr>& sLevelNodes : _vsetLevelNodes) {
+            vnodes.insert(end(vnodes), begin(sLevelNodes), end(sLevelNodes));
         }
         // there's a bug here when using FOREACHC
-        //FOREACHC(itnode,vnodes) {
-        for(size_t inode = 0; inode < vnodes.size(); ++inode) {
-            NodePtr node = vnodes[inode];
+        for(const NodePtr& node : vnodes) {
             for(int i = 0; i < _dof; ++i) {
                 o << node->q[i] << ",";
             }
-            typename std::vector<NodePtr>::iterator itnode = find(vnodes.begin(), vnodes.end(), node->rrtparent);
-            if( itnode == vnodes.end() ) {
+            auto itnode = find(begin(vnodes), end(vnodes), node->rrtparent);
+            if( itnode == end(vnodes) ) {
                 o << "-1" << endl;
             }
             else {
-                o << (size_t)(itnode-vnodes.begin()) << endl;
+                o << (size_t)(itnode - begin(vnodes)) << endl;
             }
         }
     }
