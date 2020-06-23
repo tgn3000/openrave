@@ -97,7 +97,7 @@ Uses the Rapidly-Exploring Random Trees Algorithm.\n\
             return;
         }
 
-        deque<dReal>::iterator startNode, endNode, itconfig;
+        std::deque<dReal>::iterator startNode, endNode, itconfig;
         if( !_filterreturn ) {
             _filterreturn.reset(new ConstraintFilterReturn());
         }
@@ -108,8 +108,8 @@ Uses the Rapidly-Exploring Random Trees Algorithm.\n\
             --curiter;
 
             // pick a random node on the path, and a random jump ahead
-            int endIndex = 2+(_uniformsampler->SampleSequenceOneUInt32()%((int)path.size()/dof-2));
-            int startIndex = _uniformsampler->SampleSequenceOneUInt32()%(endIndex-1);
+            const int endIndex = 2+(_uniformsampler->SampleSequenceOneUInt32()%((int)path.size()/dof-2));
+            const int startIndex = _uniformsampler->SampleSequenceOneUInt32()%(endIndex-1);
 
             startNode = path.begin();
             advance(startNode, startIndex*dof);
@@ -321,7 +321,8 @@ Some python code to display data::\n\
 
         SpatialTreeBase* TreeA = &_treeForward;
         SpatialTreeBase* TreeB = &_treeBackward;
-        SimpleNodePtr iConnectedA=NULL, iConnectedB=NULL;
+        SimpleNodePtr iConnectedA = NULL;
+        SimpleNodePtr iConnectedB = NULL;
         int iter = 0;
 
         bool bSampleGoal = true;
@@ -373,8 +374,8 @@ Some python code to display data::\n\
                 // sample goal as early as possible
                 uint32_t bestgoalindex = -1;
                 for(size_t testiter = 0; testiter < _vecGoalNodes.size()*3; ++testiter) {
-                    uint32_t sampleindex = _uniformsampler->SampleSequenceOneUInt32();
-                    uint32_t goalindex = sampleindex%_vecGoalNodes.size();
+                    const uint32_t sampleindex = _uniformsampler->SampleSequenceOneUInt32();
+                    const uint32_t goalindex = sampleindex % _vecGoalNodes.size();
                     if( !_vecGoalNodes.at(goalindex) ) {
                         continue; // dummy
                     }
@@ -419,8 +420,8 @@ Some python code to display data::\n\
 
             if( et == ET_Connected ) {
                 // connected, process goal
-                _vgoalpaths.push_back(GOALPATH());
-                auto& lastpath = _vgoalpaths.back();
+                _vgoalpaths.emplace_back();
+                GOALPATH& lastpath = _vgoalpaths.back();
                 if(TreeA == &_treeForward) {
                     _ExtractPath(lastpath, iConnectedA, iConnectedB);
                 }
@@ -507,17 +508,6 @@ Some python code to display data::\n\
             pforward = pforward->rrtparent;
         }
 
-        std::stringstream ss;
-        ss << std::setprecision(16);
-        for(auto it = _cachedpath.begin(); it != _cachedpath.end(); advance(it, dof)) {
-            auto jt = it;
-            for(int i = 0; i < dof; ++i, ++jt) {
-                ss << *jt << ", ";
-            }
-            ss << std::endl;
-        }
-        RAVELOG_WARN_FORMAT("%s", ss.str());
-
         // add nodes from the backward tree
         goalpath.goalindex = -1;
         SimpleNodePtr pbackward = iConnectedBackward;
@@ -531,15 +521,29 @@ Some python code to display data::\n\
             pbackward = pbackward->rrtparent;
         }
 
+        std::stringstream ss;
+        ss << std::setprecision(16);
+        ss << "jvals = [";
+        for(auto it = _cachedpath.begin(); it != _cachedpath.end(); advance(it, dof)) {
+            auto jt = it;
+            ss << "[";
+            for(int i = 0; i < dof; ++i, ++jt) {
+                ss << *jt << ", ";
+            }
+            ss << "], " << std::endl;
+        }
+        ss << "]" << std::endl;
+        RAVELOG_WARN_FORMAT("%s", ss.str());
+
         BOOST_ASSERT( goalpath.goalindex >= 0 && goalpath.goalindex < (int)_vecGoalNodes.size() );
         _SimpleOptimizePath(_cachedpath,10);
         goalpath.qall.resize(_cachedpath.size());
         std::copy(_cachedpath.begin(), _cachedpath.end(), goalpath.qall.begin());
         goalpath.length = 0;
-        vector<dReal> vivel(dof,1.0);
-        for(size_t i = 0; i < vivel.size(); ++i) {
+        std::vector<dReal> vivel(dof,1.0);
+        for(size_t i = 0; i < dof; ++i) {
             if( _parameters->_vConfigVelocityLimit.at(i) != 0 ) {
-                vivel[i] = 1/_parameters->_vConfigVelocityLimit.at(i);
+                vivel[i] = 1.0/_parameters->_vConfigVelocityLimit[i];
             }
         }
 
@@ -547,8 +551,8 @@ Some python code to display data::\n\
         // this is because rrt paths can initially be very complex but simplify down to something simpler.
         std::vector<dReal> vdiff(goalpath.qall.begin(), goalpath.qall.begin()+dof);
         _parameters->_diffstatefn(vdiff, std::vector<dReal>(goalpath.qall.end()-dof, goalpath.qall.end()));
-        for(size_t i = 0; i < vdiff.size(); ++i) {
-            goalpath.length += RaveFabs(vdiff.at(i))*vivel.at(i);
+        for(size_t i = 0; i < dof; ++i) {
+            goalpath.length += RaveFabs(vdiff[i])*vivel[i];
         }
     }
 
@@ -560,7 +564,7 @@ Some python code to display data::\n\
         std::string filename = RaveGetHomeDirectory() + string("/birrtdump.txt");
         getline(is, filename);
         boost::trim(filename);
-        RAVELOG_VERBOSE(str(boost::format("dumping rrt tree to %s")%filename));
+        RAVELOG_VERBOSE_FORMAT("dumping rrt tree to %s", filename);
         ofstream f(filename.c_str());
         f << std::setprecision(std::numeric_limits<dReal>::digits10+1);
         _treeForward.DumpTree(f);
@@ -874,7 +878,7 @@ public:
             return OPENRAVE_PLANNER_STATUS(PS_Failed);
         }
         EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
-        vector<dReal> vSampleConfig;
+        std::vector<dReal> vSampleConfig;
 
         PlannerParameters::StateSaver savestate(_parameters);
         CollisionOptionsStateSaver optionstate(GetEnv()->GetCollisionChecker(),GetEnv()->GetCollisionChecker()->GetCollisionOptions()|CO_ActiveDOFs,false);

@@ -248,11 +248,11 @@ public:
         bool bchanged=true;
         while(bchanged) {
             bchanged=false;
-            FOREACHC(itchildren, _vsetLevelNodes) {
-                FOREACHC(itchild, *itchildren) {
-                    if( _setchildcache.find(*itchild) == _setchildcache.end() && _setchildcache.find((*itchild)->rrtparent) != _setchildcache.end() ) {
-                        (*itchild)->_usenn = 0;
-                        _setchildcache.insert(*itchild);
+            for(std::set<NodePtr>& sLevelNodes : _vsetLevelNodes) {
+                for(NodePtr node : sLevelNodes) {
+                    if( _setchildcache.find(node) == _setchildcache.end() && _setchildcache.find(node->rrtparent) != _setchildcache.end() ) {
+                        node->_usenn = 0;
+                        _setchildcache.insert(node);
                         bchanged=true;
                     }
                 }
@@ -272,7 +272,7 @@ public:
         if( _vchildcache.capacity() == 0 ) {
             _vchildcache.reserve(128);
         }
-        _vchildcache.resize(0); _vchildcache.push_back(parent);
+        _vchildcache.clear(); _vchildcache.push_back(parent);
         _setchildcache.clear(); _setchildcache.insert(parent);
         int numruns=0;
         bool bchanged=true;
@@ -594,7 +594,7 @@ public:
 
     void GetNodesVector(std::vector<SimpleNodePtr>& vnodes)
     {
-        vnodes.resize(0);
+        vnodes.clear();
         if( (int)vnodes.capacity() < _numnodes ) {
             vnodes.reserve(_numnodes);
         }
@@ -642,12 +642,8 @@ private:
     }
 
     inline int _EncodeLevel(int level) const {
-        if( level <= 0 ) {
-            return -2*level;
-        }
-        else {
-            return 2*level+1;
-        }
+        level <<= 1;
+        return (level > 0) ? (level + 1) : (-level);
     }
 
     std::pair<NodePtr, dReal> _FindNearestNode(const std::vector<dReal>& vquerystate) const
@@ -669,8 +665,8 @@ private:
         if( _vCurrentLevelNodes[0].first->_usenn ) {
             bestnode = _vCurrentLevelNodes[0];
         }
-        while(_vCurrentLevelNodes.size() > 0 ) {
-            _vNextLevelNodes.resize(0);
+        while(!_vCurrentLevelNodes.empty() ) {
+            _vNextLevelNodes.clear();
             //RAVELOG_VERBOSE_FORMAT("level %d (%f) has %d nodes", currentlevel%fLevelBound%_vCurrentLevelNodes.size());
             dReal minchilddist=std::numeric_limits<dReal>::infinity();
             FOREACH(itcurrentnode, _vCurrentLevelNodes) {
@@ -687,7 +683,7 @@ private:
                 }
             }
 
-            _vCurrentLevelNodes.resize(0);
+            _vCurrentLevelNodes.clear();
             dReal ftestbound = minchilddist + fLevelBound;
             FOREACH(itnode, _vNextLevelNodes) {
                 if( itnode->second < ftestbound ) {
@@ -749,7 +745,7 @@ private:
         int enclevel = _EncodeLevel(currentlevel);
         if( enclevel < (int)_vsetLevelNodes.size() ) {
             // build the level below
-            _vNextLevelNodes.resize(0); // for currentlevel-1
+            _vNextLevelNodes.clear(); // for currentlevel-1
             FOREACHC(itcurrentnode, vCurrentLevelNodes) {
                 if( itcurrentnode->second <= fLevelBound ) {
                     if( !closestNodeInRange ) {
@@ -787,7 +783,7 @@ private:
                 }
             }
 
-            if( _vNextLevelNodes.size() > 0 ) {
+            if( !_vNextLevelNodes.empty() ) {
                 _vCurrentLevelNodes.swap(_vNextLevelNodes); // invalidates vCurrentLevelNodes
                 // note that after _Insert call, _vCurrentLevelNodes could be complete lost/reset
                 int nParentFound = _InsertRecursive(nodein, _vCurrentLevelNodes, currentlevel-1, fLevelBound*_fBaseInv);
@@ -908,7 +904,7 @@ private:
             _vvCacheNodes.resize(_maxlevel-_minlevel+1);
         }
         FOREACH(it, _vvCacheNodes) {
-            it->resize(0);
+            it->clear();
         }
         _vvCacheNodes.at(0).push_back(proot);
         bool bRemoved = _Remove(removenode, _vvCacheNodes, _maxlevel, _fMaxLevelBound);
@@ -940,7 +936,7 @@ private:
             vvCoverSetNodes.resize(coverindex+(_maxlevel-_minlevel)+1);
         }
         std::vector<NodePtr>& vNextLevelNodes = vvCoverSetNodes[coverindex];
-        vNextLevelNodes.resize(0);
+        vNextLevelNodes.clear();
 
         bool bfound = false;
         FOREACH(itcurrentnode, vvCoverSetNodes.at(coverindex-1)) {
@@ -950,7 +946,7 @@ private:
                 while(itchild != (*itcurrentnode)->_vchildren.end() ) {
                     dReal curdist = _ComputeDistance(removenode, *itchild);
                     if( *itchild == removenode ) {
-                        //vNextLevelNodes.resize(0);
+                        //vNextLevelNodes.clear();
                         vNextLevelNodes.push_back(*itchild);
                         itchild = (*itcurrentnode)->_vchildren.erase(itchild);
                         if( (*itcurrentnode)->_hasselfchild && _ComputeDistance(*itcurrentnode, *itchild) <= _mindistance) {
@@ -1061,13 +1057,14 @@ private:
     dReal _fMaxLevelBound; // pow(_base, _maxlevel)
 
     // cache
-    vector<NodePtr> _vchildcache;
+    std::vector<NodePtr> _vchildcache;
     set<NodePtr> _setchildcache;
-    vector<dReal> _vNewConfig, _vDeltaConfig, _vCurConfig;
-    mutable vector<dReal> _vTempConfig;
+    std::vector<dReal> _vNewConfig, _vDeltaConfig, _vCurConfig;
+    mutable std::vector<dReal> _vTempConfig;
     ConstraintFilterReturnPtr _constraintreturn;
 
-    mutable std::vector< std::pair<NodePtr, dReal> > _vCurrentLevelNodes, _vNextLevelNodes;
+    mutable std::vector< std::pair<NodePtr, dReal> > _vCurrentLevelNodes;
+    mutable std::vector< std::pair<NodePtr, dReal> > _vNextLevelNodes;
     mutable std::vector< std::vector<NodePtr> > _vvCacheNodes;
 };
 
