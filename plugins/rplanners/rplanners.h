@@ -154,7 +154,8 @@ public:
 
     virtual ExtendType Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr& lastnode, bool bOneStep=false);
 
-    virtual int GetNumNodes() const ;
+    virtual int GetNumNodes() const;
+    virtual bool empty() const;
 
     virtual const std::vector<dReal>& GetVectorConfig(SimpleNodePtr nodebase) const;
 

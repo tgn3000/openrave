@@ -20,44 +20,51 @@
 bool RrtPlanner::_InitPlan(RobotBasePtr pbase, PlannerParametersPtr params)
 {
     params->Validate();
-    _goalindex = -1;
-    _startindex = -1;
-    EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
+    _goalindex = _startindex = -1;
+    const auto penv = this->GetEnv();
+    const int envId = penv->GetId();
+    const EnvironmentMutex::scoped_lock lock(penv->GetMutex());
     if( !_uniformsampler ) {
-        _uniformsampler = RaveCreateSpaceSampler(GetEnv(),"mt19937");
+        _uniformsampler = RaveCreateSpaceSampler(penv, "mt19937");
     }
     _robot = pbase;
 
     _uniformsampler->SetSeed(params->_nRandomGeneratorSeed);
-    FOREACH(it, params->_listInternalSamplers) {
-        (*it)->SetSeed(params->_nRandomGeneratorSeed);
+    for(const SpaceSamplerBasePtr& psampler : params->_listInternalSamplers) {
+        psampler->SetSeed(params->_nRandomGeneratorSeed);
     }
 
-    PlannerParameters::StateSaver savestate(params);
-    CollisionOptionsStateSaver optionstate(GetEnv()->GetCollisionChecker(),GetEnv()->GetCollisionChecker()->GetCollisionOptions()|CO_ActiveDOFs,false);
+    const PlannerParameters::StateSaver savestate(params);
+    const auto pcc = penv->GetCollisionChecker();
+    const CollisionOptionsStateSaver optionstate(pcc, pcc->GetCollisionOptions() | CO_ActiveDOFs, false);
+    const int dof = params->GetDOF();
 
-    if( (int)params->vinitialconfig.size() % params->GetDOF() ) {
-        RAVELOG_ERROR_FORMAT("env=%d, initial config wrong dim: %d %% %d != 0", GetEnv()->GetId()%params->vinitialconfig.size()%params->GetDOF());
+    const std::vector<dReal>& vinitialconfig_ = params->vinitialconfig;
+    const int configsize = vinitialconfig_.size();
+
+    if( configsize % dof ) {
+        RAVELOG_ERROR_FORMAT("env=%d, initial config wrong dim: %d %% %d != 0", envId % configsize % dof);
         return false;
     }
 
     _vecInitialNodes.clear();
-    _sampleConfig.resize(params->GetDOF());
+    _sampleConfig.resize(dof);
     // TODO perhaps distmetricfn should take into number of revolutions of circular joints
-    _treeForward.Init(shared_planner(), params->GetDOF(), params->_distmetricfn, params->_fStepLength, params->_distmetricfn(params->_vConfigLowerLimit, params->_vConfigUpperLimit));
-    std::vector<dReal> vinitialconfig(params->GetDOF());
-    for(size_t index = 0; index < params->vinitialconfig.size(); index += params->GetDOF()) {
-        std::copy(params->vinitialconfig.begin()+index,params->vinitialconfig.begin()+index+params->GetDOF(),vinitialconfig.begin());
+    _treeForward.Init(shared_planner(), dof, params->_distmetricfn, params->_fStepLength, params->_distmetricfn(params->_vConfigLowerLimit, params->_vConfigUpperLimit));
+    std::vector<dReal> vinitialconfig(dof);
+
+    for(auto it = begin(vinitialconfig_); it != end(vinitialconfig_); advance(it, dof)) {
+        vinitialconfig = std::vector<dReal>(it, it + dof);
         _filterreturn->Clear();
-        if( params->CheckPathAllConstraints(vinitialconfig,vinitialconfig, {}, {}, 0, IT_OpenStart, CFO_FillCollisionReport, _filterreturn) != 0 ) {
-            RAVELOG_DEBUG_FORMAT("env=%d, initial configuration for rrt does not satisfy constraints: %s", GetEnv()->GetId()%_filterreturn->_report.__str__());
+        if( !!params->CheckPathAllConstraints(vinitialconfig, vinitialconfig, {}, {}, 0, IT_OpenStart, CFO_FillCollisionReport, _filterreturn) ) {
+            RAVELOG_DEBUG_FORMAT("env=%d, initial configuration for rrt does not satisfy constraints: %s", envId % _filterreturn->_report.__str__());
             continue;
         }
         _vecInitialNodes.push_back(_treeForward.InsertNode(NULL, vinitialconfig, _vecInitialNodes.size()));
     }
 
-    if( _treeForward.GetNumNodes() == 0 && !params->_sampleinitialfn ) {
-        RAVELOG_WARN_FORMAT("env=%d, no initial configurations", GetEnv()->GetId());
+    if( _treeForward.empty() && !params->_sampleinitialfn ) {
+        RAVELOG_WARN_FORMAT("env=%d, no initial configurations", envId);
         return false;
     }
 
@@ -65,118 +72,80 @@ bool RrtPlanner::_InitPlan(RobotBasePtr pbase, PlannerParametersPtr params)
 }
 
 /// \brief simple path optimization given a path of dof values. Every _parameters->GetDOF() are one point in the path
-void RrtPlanner::_SimpleOptimizePath(std::deque<dReal>& path, int numiterations)
+void RrtPlanner::_SimpleOptimizePath(std::deque<dReal>& path, int niter)
 {
-    PlannerParametersConstPtr params = this->GetParameters();
+    const PlannerParametersConstPtr params = this->GetParameters();
     const int dof = params->GetDOF();
-    if( (int)path.size() <= 2*dof ) {
+    const int npath = path.size();
+    if( npath <= 2 * dof ) {
         return;
     }
 
-    std::deque<dReal>::iterator startNode, endNode, itconfig;
     if( !_filterreturn ) {
         _filterreturn.reset(new ConstraintFilterReturn());
     }
-    int nrejected = 0;
-    int curiter = numiterations;
+
     std::vector<dReal> vstart(dof), vend(dof), vdiff0(dof), vdiff1(dof);
-    while(curiter > 0 && nrejected < (int)path.size()+4*dof ) {
-        --curiter;
-
+    for(int curiter = niter, nrejected = 0; curiter > 0 && nrejected < npath + 4 * dof; --curiter, ++nrejected) {
         // pick a random node on the path, and a random jump ahead
-        const int endIndex = 2+(_uniformsampler->SampleSequenceOneUInt32()%((int)path.size()/dof-2));
-        const int startIndex = _uniformsampler->SampleSequenceOneUInt32()%(endIndex-1);
+        // e.g. npath=102, dof=6, npath/dof-2=15, endIndex in 2+[0,14]=[2, 16], 0<=startIndex<=endIndex-2
+        const int endIndex = 2 + (_uniformsampler->SampleSequenceOneUInt32() % (npath / dof - 2));
+        const int startIndex = _uniformsampler->SampleSequenceOneUInt32() % (endIndex - 1);
+        const int dist = endIndex - startIndex;
 
-        startNode = path.begin();
-        advance(startNode, startIndex*dof);
-        endNode = startNode;
-        advance(endNode, (endIndex-startIndex)*dof);
-        nrejected++;
+        std::deque<dReal>::const_iterator itstart = path.begin();
+        advance(itstart, startIndex * dof);
+        std::deque<dReal>::const_iterator itend = itstart;
+        advance(itend, dist * dof); ///< itend = begin(path) + endIndex*dof
 
         // check if the nodes are in a straight line and if yes, then check different node
-        std::copy(startNode, startNode+dof, vstart.begin());
-        std::copy(endNode-dof, endNode, vend.begin());
-        vdiff0 = vend;
+        vstart = std::vector<dReal>(itstart, itstart + dof); //?? std::copy(itstart, itstart+dof, vstart.begin());
+        vdiff0 = vend = std::vector<dReal>(itend - dof, itend); //?? // std::copy(itend-dof, itend, vend.begin());
         params->_diffstatefn(vdiff0, vstart);
-        bool bcolinear = true;
+
         // take the midpoint since that is the most stable and check if it is collinear
-        {
-            itconfig = startNode + ((endIndex-startIndex)/2)*dof;
-            std::copy(itconfig, itconfig+dof, vdiff1.begin());
-            params->_diffstatefn(vdiff1, vstart);
-            dReal dotproduct=0,x0length2=0,x1length2=0;
-            for(int idof = 0; idof < dof; ++idof) {
-                dotproduct += vdiff0[idof]*vdiff1[idof];
-                x0length2 += vdiff0[idof]*vdiff0[idof];
-                x1length2 += vdiff1[idof]*vdiff1[idof];
-            }
-            if( RaveFabs(dotproduct * dotproduct - x0length2*x1length2) > g_fEpsilonDotProduct ) {
-                //RAVELOG_INFO_FORMAT("env=%d, colinear: %.15e, %.15e", GetEnv()->GetId()%RaveFabs(dotproduct * dotproduct - x0length2*x1length2)%(dotproduct/RaveSqrt(x0length2*x1length2)));
-                bcolinear = false;
-                break;
-            }
-        }
+        const std::deque<dReal>::const_iterator itconfig = itstart + dist / 2 * dof;
+        vdiff1 = std::vector<dReal>(itconfig, itconfig + dof);
+        params->_diffstatefn(vdiff1, vstart);
 
-        if( bcolinear ) {
-            continue;
+        dReal dotproduct = 0, x0length2 = 0, x1length2 = 0;
+        for(int idof = 0; idof < dof; ++idof) {
+            dotproduct += vdiff0[idof] * vdiff1[idof];
+            x0length2  += vdiff0[idof] * vdiff0[idof];
+            x1length2  += vdiff1[idof] * vdiff1[idof];
         }
-
-        // check if the nodes can be connected by a straight line
-        _filterreturn->Clear();
-        if ( params->CheckPathAllConstraints(vstart, vend, {}, {}, 0, IT_Open, 0xffff|CFO_FillCheckedConfiguration, _filterreturn) != 0 ) {
-            if( nrejected++ > (int)path.size()+8 ) {
-                break;
-            }
-            continue;
-        }
-
-        startNode += dof;
-        OPENRAVE_ASSERT_OP(_filterreturn->_configurations.size()%dof,==,0);
-        // need to copy _filterreturn->_configurations between startNode and endNode
-        size_t ioffset=endNode-startNode;
-        if( ioffset > 0 ) {
-            if( ioffset <= _filterreturn->_configurations.size() ) {
-                std::copy(_filterreturn->_configurations.begin(), _filterreturn->_configurations.begin()+ioffset, startNode);
-            }
-            else {
-                std::copy(_filterreturn->_configurations.begin(), _filterreturn->_configurations.end(), startNode);
-                // have to remove nodes
-                path.erase(startNode+_filterreturn->_configurations.size(), endNode);
-            }
-        }
-        if( ioffset < _filterreturn->_configurations.size() ) {
-            // insert the rest of the continue
-            path.insert(endNode, _filterreturn->_configurations.begin()+ioffset, _filterreturn->_configurations.end());
-        }
-
-        nrejected = 0;
-        if( (int)path.size() <= 2*dof ) {
-            return;
+        if( RaveFabs(dotproduct * dotproduct - x0length2*x1length2) > g_fEpsilonDotProduct ) {
+            return; // not colinear
         }
     }
 }
 
 bool BirrtPlanner::InitPlan(RobotBasePtr pbase, PlannerParametersConstPtr pparams)
 {
-    EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
+    const auto penv = this->GetEnv();
+    const int envId = penv->GetId();
+    const EnvironmentMutex::scoped_lock lock(penv->GetMutex());
     _parameters.reset(new RRTParameters());
     _parameters->copy(pparams);
-    if( !RrtPlanner::_InitPlan(pbase,_parameters) ) {
+    if( !RrtPlanner::_InitPlan(pbase, _parameters) ) { // call base class's method
         _parameters.reset();
         return false;
     }
 
     _fGoalBiasProb = 0.01;
-    PlannerParameters::StateSaver savestate(_parameters);
-    CollisionOptionsStateSaver optionstate(GetEnv()->GetCollisionChecker(),GetEnv()->GetCollisionChecker()->GetCollisionOptions()|CO_ActiveDOFs,false);
+    const PlannerParameters::StateSaver savestate(_parameters);
+    auto pcc = penv->GetCollisionChecker();
+    const CollisionOptionsStateSaver optionstate(pcc, pcc->GetCollisionOptions() | CO_ActiveDOFs, false);
 
     // TODO perhaps distmetricfn should take into number of revolutions of circular joints
     const size_t dof = _parameters->GetDOF();
-    _treeBackward.Init(shared_planner(), dof, _parameters->_distmetricfn, _parameters->_fStepLength, _parameters->_distmetricfn(_parameters->_vConfigLowerLimit, _parameters->_vConfigUpperLimit));
+    _treeBackward.Init(shared_planner(), dof, _parameters->_distmetricfn, _parameters->_fStepLength, 
+                       _parameters->_distmetricfn(_parameters->_vConfigLowerLimit, _parameters->_vConfigUpperLimit));
 
     //read in all goals
-    if( (_parameters->vgoalconfig.size() % dof) != 0 ) {
-        RAVELOG_ERROR_FORMAT("env=%d, BirrtPlanner::InitPlan - Error: goals are improperly specified", GetEnv()->GetId());
+    const std::vector<dReal>& vgoalconfig_ = _parameters->vgoalconfig;
+    if( ((int) vgoalconfig_.size() % dof) != 0 ) {
+        RAVELOG_ERROR_FORMAT("env=%d, BirrtPlanner::InitPlan - Error: goals are improperly specified", envId);
         _parameters.reset();
         return false;
     }
@@ -184,24 +153,24 @@ bool BirrtPlanner::InitPlan(RobotBasePtr pbase, PlannerParametersConstPtr pparam
     std::vector<dReal> vgoal(dof);
     _vecGoalNodes.clear();
     _nValidGoals = 0;
-    for(size_t igoal = 0; igoal < _parameters->vgoalconfig.size(); igoal += dof) {
-        std::copy(_parameters->vgoalconfig.begin()+igoal,_parameters->vgoalconfig.begin()+igoal+dof,vgoal.begin());
-        int ret = _parameters->CheckPathAllConstraints(vgoal,vgoal,{}, {}, 0, IT_OpenStart);
+    for(auto it = begin(vgoalconfig_); it != end(vgoalconfig_); advance(it, dof)) {
+        vgoal = std::vector<dReal>(it, it + dof);
+        const int ret = _parameters->CheckPathAllConstraints(vgoal, vgoal, {}, {}, 0, IT_OpenStart);
         if( ret == 0 ) {
             _vecGoalNodes.push_back(_treeBackward.InsertNode(NULL, vgoal, _vecGoalNodes.size()));
             _nValidGoals++;
         }
         else {
-            RAVELOG_WARN_FORMAT("env=%d, goal %d fails constraints with 0x%x", GetEnv()->GetId()%igoal%ret);
+            RAVELOG_WARN_FORMAT("env=%d, goal %d fails constraints with 0x%x", envId % (std::distance(begin(vgoalconfig_), it)/dof) % ret);
             if( IS_DEBUGLEVEL(Level_Verbose) ) {
-                int ret = _parameters->CheckPathAllConstraints(vgoal,vgoal,{}, {}, 0, IT_OpenStart);
+                /*const int ret = */_parameters->CheckPathAllConstraints(vgoal, vgoal, {}, {}, 0, IT_OpenStart);
             }
             _vecGoalNodes.push_back(NULL); // have to push back dummy or else indices will be messed up
         }
     }
 
-    if( _treeBackward.GetNumNodes() == 0 && !_parameters->_samplegoalfn ) {
-        RAVELOG_WARN_FORMAT("env=%d, no goals specified", GetEnv()->GetId());
+    if( _treeBackward.empty() && !_parameters->_samplegoalfn ) {
+        RAVELOG_WARN_FORMAT("env=%d, no goals specified", envId);
         _parameters.reset();
         return false;
     }
@@ -214,27 +183,27 @@ bool BirrtPlanner::InitPlan(RobotBasePtr pbase, PlannerParametersConstPtr pparam
     if( _vgoalpaths.capacity() < _parameters->_minimumgoalpaths ) {
         _vgoalpaths.reserve(_parameters->_minimumgoalpaths);
     }
-    RAVELOG_DEBUG_FORMAT("env=%d, BiRRT Planner Initialized, initial=%d, goal=%d, step=%f", GetEnv()->GetId()%_vecInitialNodes.size()%_treeBackward.GetNumNodes()%_parameters->_fStepLength);
+    RAVELOG_DEBUG_FORMAT("env=%d, BiRRT Planner Initialized, initial=%d, goal=%d, step=%f",
+                         envId % _vecInitialNodes.size() % _treeBackward.GetNumNodes() % _parameters->_fStepLength);
     return true;
 }
 
 PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoptions)
 {
-    _goalindex = -1;
-    _startindex = -1;
+    _goalindex = _startindex = -1;
+    const auto penv = GetEnv();
+    const int envId = penv->GetId();
     if(!_parameters) {
-        return OPENRAVE_PLANNER_STATUS(str(boost::format("env=%d, BirrtPlanner::PlanPath - Error, planner not initialized")%GetEnv()->GetId()), PS_Failed);
+        return OPENRAVE_PLANNER_STATUS(str(boost::format("env=%d, BirrtPlanner::PlanPath - Error, planner not initialized") % envId), PS_Failed);
     }
 
-    EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
-    uint32_t basetime = utils::GetMilliTime();
+    const EnvironmentMutex::scoped_lock lock(penv->GetMutex());
+    const uint32_t basetime = utils::GetMilliTime();
 
     // the main planning loop
-    PlannerParameters::StateSaver savestate(_parameters);
-    auto penv = GetEnv();
-    const int envId = penv->GetId();
-    auto pcc = penv->GetCollisionChecker();
-    CollisionOptionsStateSaver optionstate(pcc, pcc->GetCollisionOptions() | CO_ActiveDOFs, false);
+    const PlannerParameters::StateSaver savestate(_parameters);
+    const auto pcc = penv->GetCollisionChecker();
+    const CollisionOptionsStateSaver optionstate(pcc, pcc->GetCollisionOptions() | CO_ActiveDOFs, false);
 
     SpatialTreeBase* TreeA = &_treeForward;
     SpatialTreeBase* TreeB = &_treeBackward;
@@ -262,9 +231,10 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
         }
 
         if( _parameters->_nMaxPlanningTime > 0 ) {
-            const uint32_t elapsedtime = utils::GetMilliTime()-basetime;
+            const uint32_t elapsedtime = utils::GetMilliTime() - basetime;
             if( elapsedtime >= _parameters->_nMaxPlanningTime ) {
-                RAVELOG_DEBUG_FORMAT("env=%d, time exceeded (%dms) so breaking. iter=%d < %d", envId%elapsedtime%(iter/3)%_parameters->_nMaxIterations);
+                RAVELOG_DEBUG_FORMAT("env=%d, time exceeded (%dms) so breaking. iter=%d < %d",
+                                     envId % elapsedtime % (iter/3) % _parameters->_nMaxIterations);
                 break;
             }
         }
@@ -272,35 +242,34 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
         if( !!_parameters->_samplegoalfn ) {
             std::vector<dReal> vgoal;
             if( _parameters->_samplegoalfn(vgoal) ) {
-                RAVELOG_VERBOSE(str(boost::format("env=%d, inserting new goal index %d")%envId%_vecGoalNodes.size()));
+                RAVELOG_VERBOSE_FORMAT("env=%d, inserting new goal index %d", envId % _vecGoalNodes.size());
                 _vecGoalNodes.push_back(_treeBackward.InsertNode(NULL, vgoal, _vecGoalNodes.size()));
                 _nValidGoals++;
             }
         }
+
         if( !!_parameters->_sampleinitialfn ) {
             std::vector<dReal> vinitial;
             if( _parameters->_sampleinitialfn(vinitial) ) {
-                RAVELOG_VERBOSE(str(boost::format("env=%d, inserting new initial %d")%envId%_vecInitialNodes.size()));
-                _vecInitialNodes.push_back(_treeForward.InsertNode(NULL,vinitial, _vecInitialNodes.size()));
+                RAVELOG_VERBOSE_FORMAT("env=%d, inserting new initial %d", envId % _vecInitialNodes.size());
+                _vecInitialNodes.push_back(_treeForward.InsertNode(NULL, vinitial, _vecInitialNodes.size()));
             }
         }
 
         _sampleConfig.clear();
         if( (bSampleGoal || _uniformsampler->SampleSequenceOneReal() < _fGoalBiasProb) && _nValidGoals > 0 ) {
-            bSampleGoal = false;
-            // sample goal as early as possible
+            bSampleGoal = false; ///< true when first enters this while loop
             uint32_t bestgoalindex = -1;
-            for(size_t testiter = 0; testiter < _vecGoalNodes.size()*3; ++testiter) {
-                const uint32_t sampleindex = _uniformsampler->SampleSequenceOneUInt32();
-                const uint32_t goalindex = sampleindex % _vecGoalNodes.size();
+            for(size_t testiter = 0; testiter < _vecGoalNodes.size() * 3; ++testiter) {
+                const uint32_t goalindex = _uniformsampler->SampleSequenceOneUInt32() % _vecGoalNodes.size();
                 if( !_vecGoalNodes.at(goalindex) ) {
-                    continue; // dummy
+                    continue; // dummy: we pushed back NULL before as it violated constraints
                 }
                 // make sure goal is not already found
                 bool bfound = false;
-                FOREACHC(itgoalpath,_vgoalpaths) {
-                    if( goalindex == (uint32_t)itgoalpath->goalindex ) {
-                        bfound = true;
+                for(const GOALPATH& goalpath : _vgoalpaths) {
+                    bfound = goalindex == (uint32_t)goalpath.goalindex;
+                    if( bfound ) {
                         break;
                     }
                 }
@@ -347,12 +316,13 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
                 std::stringstream ss;
                 ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
                 ss << "env=" << envId << ", found a goal, start index=" << startindex << " goal index=" << goalindex << ", path length=" << lastpath.length << ", startvalues=[";
-                for(int i = 0; i < _parameters->GetDOF(); ++i) {
+                const int dof = _parameters->GetDOF();
+                for(int i = 0; i < dof; ++i) {
                     ss << lastpath.qall.at(i) << ", ";
                 }
                 ss << "]; goalvalues=[";
-                for(int i = 0; i < _parameters->GetDOF(); ++i) {
-                    ss << lastpath.qall.at(lastpath.qall.size()-_parameters->GetDOF()+i) << ", ";
+                for(int i = 0; i < dof; ++i) {
+                    ss << lastpath.qall.at(lastpath.qall.size()-dof+i) << ", ";
                 }
                 ss << "];";
                 RAVELOG_DEBUG(ss.str());
@@ -382,7 +352,6 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
         return OPENRAVE_PLANNER_STATUS(description, PS_Failed);
     }
 
-    // std::vector<GOALPATH>::iterator itbest = _vgoalpaths.begin();
     size_t ibestpath = 0;
     for(size_t ipath = 0; ipath < _vgoalpaths.size(); ++ipath) {
         if(_vgoalpaths[ipath].length < _vgoalpaths[ibestpath].length) {
@@ -405,36 +374,26 @@ PlannerStatus BirrtPlanner::PlanPath(TrajectoryBasePtr ptraj, int planningoption
     return status;
 }
 
-void BirrtPlanner::_ExtractPath(GOALPATH& goalpath, SimpleNodePtr iConnectedForward, SimpleNodePtr iConnectedBackward)
+void BirrtPlanner::_ExtractPath(GOALPATH& goalpath, SimpleNodePtr pforward, SimpleNodePtr pbackward)
 {
     const int dof = _parameters->GetDOF();
     _cachedpath.clear();
 
     // add nodes from the forward tree
-    SimpleNodePtr pforward = iConnectedForward;
-    goalpath.startindex = -1;
-    while(true) {
-        _cachedpath.insert(_cachedpath.begin(), pforward->q, pforward->q+dof);
-        //vecnodes.push_front(pforward);
-        if(!pforward->rrtparent) {
-            goalpath.startindex = pforward->_userdata;
-            break;
-        }
+    _cachedpath.insert(_cachedpath.begin(), pforward->q, pforward->q+dof);
+    while(pforward->rrtparent) {
         pforward = pforward->rrtparent;
+        _cachedpath.insert(_cachedpath.begin(), pforward->q, pforward->q+dof);
     }
+    goalpath.startindex = pforward->_userdata;
 
     // add nodes from the backward tree
-    goalpath.goalindex = -1;
-    SimpleNodePtr pbackward = iConnectedBackward;
-    while(true) {
-        //vecnodes.push_back(pbackward);
-        _cachedpath.insert(_cachedpath.end(), pbackward->q, pbackward->q+dof);
-        if(!pbackward->rrtparent) {
-            goalpath.goalindex = pbackward->_userdata;
-            break;
-        }
+    _cachedpath.insert(_cachedpath.end(), pbackward->q, pbackward->q+dof);
+    while(pbackward->rrtparent) {
         pbackward = pbackward->rrtparent;
+        _cachedpath.insert(_cachedpath.end(), pbackward->q, pbackward->q+dof);
     }
+    goalpath.goalindex = pbackward->_userdata;
 
     std::stringstream ss;
     ss << std::setprecision(16);
@@ -452,20 +411,20 @@ void BirrtPlanner::_ExtractPath(GOALPATH& goalpath, SimpleNodePtr iConnectedForw
 
     BOOST_ASSERT( goalpath.goalindex >= 0 && goalpath.goalindex < (int)_vecGoalNodes.size() );
     _SimpleOptimizePath(_cachedpath,10);
-    goalpath.qall.resize(_cachedpath.size());
-    std::copy(_cachedpath.begin(), _cachedpath.end(), goalpath.qall.begin());
+
+    std::vector<dReal>& qall = goalpath.qall;
+    qall = std::vector<dReal>(begin(_cachedpath), end(_cachedpath));
     goalpath.length = 0;
-    std::vector<dReal> vivel(dof,1.0);
+    std::vector<dReal> vivel(dof);
     for(size_t i = 0; i < dof; ++i) {
-        if( _parameters->_vConfigVelocityLimit.at(i) != 0 ) {
-            vivel[i] = 1.0/_parameters->_vConfigVelocityLimit[i];
-        }
+        const dReal veli = _parameters->_vConfigVelocityLimit.at(i);
+        vivel[i] = (veli == 0.0) ? 1.0 : (1.0/veli);
     }
 
     // take distance scaled with respect to velocities with the first and last points only!
     // this is because rrt paths can initially be very complex but simplify down to something simpler.
-    std::vector<dReal> vdiff(goalpath.qall.begin(), goalpath.qall.begin()+dof);
-    const std::vector<dReal> lastpoint(goalpath.qall.end()-dof, goalpath.qall.end());
+    std::vector<dReal> vdiff(qall.begin(), qall.begin() + dof);
+    const std::vector<dReal> lastpoint(qall.end() - dof, qall.end());
     _parameters->_diffstatefn(vdiff, lastpoint);
     for(size_t i = 0; i < dof; ++i) {
         goalpath.length += RaveFabs(vdiff[i])*vivel[i];

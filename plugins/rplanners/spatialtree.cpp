@@ -293,6 +293,10 @@ int SpatialTree::GetNumNodes() const {
     return _numnodes;
 }
 
+bool SpatialTree::empty() const {
+    return _numnodes == 0;
+}
+
 const std::vector<dReal>& SpatialTree::GetVectorConfig(SimpleNodePtr nodebase) const
 {
     SimpleNodePtr node = nodebase;
