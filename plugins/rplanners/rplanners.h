@@ -75,12 +75,12 @@ using SimpleNodePtr = SimpleNode*;
 class SimpleNode
 {
 public:
-    SimpleNode(SimpleNode* parent, const vector<dReal>& config);
-    SimpleNode(SimpleNode* parent, const dReal* pconfig, int dof);
+    SimpleNode(SimpleNodePtr parent, const std::vector<dReal>& config);
+    SimpleNode(SimpleNodePtr parent, const dReal* pconfig, int dof);
     ~SimpleNode();
 
-    SimpleNode* rrtparent; ///< pointer to the RRT tree parent
-    std::vector<SimpleNode*> _vchildren; ///< cache tree direct children of this node (for the next cache level down). Has nothing to do with the RRT tree.
+    SimpleNodePtr rrtparent; ///< pointer to the RRT tree parent
+    std::vector<SimpleNodePtr> _vchildren; ///< cache tree direct children of this node (for the next cache level down). Has nothing to do with the RRT tree.
     int16_t _level; ///< the level the node belongs to
     uint8_t _hasselfchild; ///< if 1, then _vchildren has contains a clone of this node in the level below it.
     uint8_t _usenn; ///< if 1, then use part of the nearest neighbor search, otherwise ignore
@@ -171,7 +171,7 @@ public:
     /// \brief given random index 0 <= inode < _numnodes, return a node. If tree changes, indices might change
     SimpleNodePtr GetNodeFromIndex(size_t inode) const;
 
-    void GetNodesVector(std::vector<SimpleNodePtr>& vnodes);
+    void GetNodesVector(std::vector<SimpleNodePtr>& vnodes) const;
 
 private:
     static int GetNewStaticId();

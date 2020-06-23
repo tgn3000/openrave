@@ -202,24 +202,14 @@ ExtendType SpatialTree::Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr
             _vDeltaConfig[i] *= fdist;
         }
         if( params->SetStateValues(_vNewConfig) != 0 ) {
-            if(bHasAdded) {
-                return ET_Sucess;
-            }
-            return ET_Failed;
+            return bHasAdded ? ET_Sucess : ET_Failed;
         }
         if( params->_neighstatefn(_vNewConfig,_vDeltaConfig,_fromgoal ? NSO_GoalToInitial : 0) == NSS_Failed ) {
-            if(bHasAdded) {
-                return ET_Sucess;
-            }
-            return ET_Failed;
+            return bHasAdded ? ET_Sucess : ET_Failed;
         }
-
         // it could be the case that the node didn't move anywhere, in which case we would go into an infinite loop
         if( _ComputeDistance(&_vCurConfig[0], _vNewConfig) <= dReal(0.01)*_fStepLength ) {
-            if(bHasAdded) {
-                return ET_Sucess;
-            }
-            return ET_Failed;
+            return bHasAdded ? ET_Sucess : ET_Failed;
         }
 
         // necessary to pass in _constraintreturn since _neighstatefn can have constraints and it can change the interpolation. Use _constraintreturn->_bHasRampDeviatedFromInterpolation to figure out if something changed.
@@ -297,19 +287,14 @@ bool SpatialTree::empty() const {
     return _numnodes == 0;
 }
 
-const std::vector<dReal>& SpatialTree::GetVectorConfig(SimpleNodePtr nodebase) const
+const std::vector<dReal>& SpatialTree::GetVectorConfig(SimpleNodePtr node) const
 {
-    SimpleNodePtr node = nodebase;
-    _vTempConfig.resize(_dof);
-    std::copy(node->q, node->q+_dof, _vTempConfig.begin());
-    return _vTempConfig;
+    return _vTempConfig = std::vector<dReal>(node->q, node->q+_dof);
 }
 
-void SpatialTree::GetVectorConfig(SimpleNodePtr nodebase, std::vector<dReal>& v) const
+void SpatialTree::GetVectorConfig(SimpleNodePtr node, std::vector<dReal>& v) const
 {
-    SimpleNodePtr node = nodebase;
-    v.resize(_dof);
-    std::copy(node->q, node->q+_dof, v.begin());
+    v = std::vector<dReal>(node->q, node->q+_dof);
 }
 
 int SpatialTree::GetDOF() {
@@ -340,28 +325,29 @@ bool SpatialTree::Validate() const
         }
 
         const std::set<SimpleNodePtr>& setLevelRawChildren = _vsetLevelNodes.at(enclevel);
-        FOREACHC(itnode, setLevelRawChildren) {
-            FOREACH(itchild, (*itnode)->_vchildren) {
-                dReal curdist = _ComputeDistance(*itnode, *itchild);
-                if( curdist > fLevelBound+g_fEpsilonLinear ) {
+        for(const SimpleNodePtr& node : setLevelRawChildren) {
+            for(const SimpleNodePtr& child : node->_vchildren) {
+                const dReal curdist = _ComputeDistance(node, child);
+                if( curdist > fLevelBound + g_fEpsilonLinear ) {
 #ifdef _DEBUG
-                    RAVELOG_WARN_FORMAT("invalid parent child nodes %d, %d at level %d (%f), dist=%f", (*itnode)->id%(*itchild)->id%currentlevel%fLevelBound%curdist);
+                    RAVELOG_WARN_FORMAT("invalid parent child nodes %d, %d at level %d (%f), dist=%f",
+                                        node->id % child->id % currentlevel % fLevelBound % curdist);
 #else
-                    RAVELOG_WARN_FORMAT("invalid parent child nodes at level %d (%f), dist=%f", currentlevel%fLevelBound%curdist);
+                    RAVELOG_WARN_FORMAT("invalid parent child nodes at level %d (%f), dist=%f", currentlevel % fLevelBound%curdist);
 #endif
                     return false;
                 }
             }
-            nallchildren += (*itnode)->_vchildren.size();
-            if( !(*itnode)->_hasselfchild ) {
-                vAccumNodes.push_back(*itnode);
+            nallchildren += node->_vchildren.size();
+            if( !node->_hasselfchild ) {
+                vAccumNodes.push_back(node);
             }
 
             if( currentlevel < _maxlevel ) {
                 // find its parents
                 int nfound = 0;
-                FOREACH(ittestnode, _vsetLevelNodes.at(_EncodeLevel(currentlevel+1))) {
-                    if( find((*ittestnode)->_vchildren.begin(), (*ittestnode)->_vchildren.end(), *itnode) != (*ittestnode)->_vchildren.end() ) {
+                for(const SimpleNodePtr& parent : _vsetLevelNodes.at(_EncodeLevel(currentlevel+1))) {
+                    if( find(parent->_vchildren.begin(), parent->_vchildren.end(), node) != parent->_vchildren.end() ) {
                         ++nfound;
                     }
                 }
@@ -371,9 +357,10 @@ bool SpatialTree::Validate() const
 
         numnodes += setLevelRawChildren.size();
 
-        for(size_t i = 0; i < vAccumNodes.size(); ++i) {
-            for(size_t j = i+1; j < vAccumNodes.size(); ++j) {
-                dReal curdist = _ComputeDistance(vAccumNodes[i], vAccumNodes[j]);
+        const size_t nNodes = vAccumNodes.size();
+        for(size_t i = 0; i < nNodes; ++i) {
+            for(size_t j = i+1; j < nNodes; ++j) {
+                const dReal curdist = _ComputeDistance(vAccumNodes[i], vAccumNodes[j]);
                 if( curdist <= fLevelBound ) {
 #ifdef _DEBUG
                     RAVELOG_WARN_FORMAT("invalid sibling nodes %d, %d  at level %d (%f), dist=%f", vAccumNodes[i]->id%vAccumNodes[j]->id%currentlevel%fLevelBound%curdist);
@@ -401,13 +388,8 @@ bool SpatialTree::Validate() const
 void SpatialTree::DumpTree(std::ostream& o) const
 {
     o << _numnodes << endl;
-    // first organize all nodes into a vector struct with indices
     std::vector<SimpleNodePtr> vnodes;
-    vnodes.reserve(_numnodes);
-    for(const std::set<SimpleNodePtr>& sLevelNodes : _vsetLevelNodes) {
-        vnodes.insert(end(vnodes), begin(sLevelNodes), end(sLevelNodes));
-    }
-    // there's a bug here when using FOREACHC
+    this->GetNodesVector(vnodes);
     for(const SimpleNodePtr& node : vnodes) {
         for(int i = 0; i < _dof; ++i) {
             o << node->q[i] << ",";
@@ -441,7 +423,7 @@ SimpleNodePtr SpatialTree::GetNodeFromIndex(size_t inode) const
     return SimpleNodePtr();
 }
 
-void SpatialTree::GetNodesVector(std::vector<SimpleNodePtr>& vnodes)
+void SpatialTree::GetNodesVector(std::vector<SimpleNodePtr>& vnodes) const
 {
     vnodes.clear();
     if( (int)vnodes.capacity() < _numnodes ) {
@@ -458,7 +440,7 @@ int SpatialTree::GetNewStaticId() {
     return retid;
 }
 
-SimpleNodePtr SpatialTree::_CreateNode(SimpleNodePtr rrtparent, const vector<dReal>& config, uint32_t userdata)
+SimpleNodePtr SpatialTree::_CreateNode(SimpleNodePtr rrtparent, const std::vector<dReal>& config, uint32_t userdata)
 {
     // allocate memory for the structur and the internal state vectors
     void* pmemory = _pNodesPool->malloc();
