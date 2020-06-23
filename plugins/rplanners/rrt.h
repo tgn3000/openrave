@@ -201,7 +201,7 @@ protected:
     std::deque<dReal> _cachedpath;
 
     SpatialTree< Node > _treeForward;
-    std::vector< NodeBase* > _vecInitialNodes;
+    std::vector< SimpleNodePtr > _vecInitialNodes;
 
     inline boost::shared_ptr<RrtPlanner> shared_planner() {
         return boost::static_pointer_cast<RrtPlanner>(shared_from_this());
@@ -321,7 +321,7 @@ Some python code to display data::\n\
 
         SpatialTreeBase* TreeA = &_treeForward;
         SpatialTreeBase* TreeB = &_treeBackward;
-        NodeBase* iConnectedA=NULL, *iConnectedB=NULL;
+        SimpleNodePtr iConnectedA=NULL, iConnectedB=NULL;
         int iter = 0;
 
         bool bSampleGoal = true;
@@ -337,7 +337,7 @@ Some python code to display data::\n\
                 return OPENRAVE_PLANNER_STATUS(str(boost::format("env=%d, Planning was interrupted")%GetEnv()->GetId()), PS_Interrupted);
             }
             else if( callbackaction == PA_ReturnWithAnySolution ) {
-                if( _vgoalpaths.size() > 0 ) {
+                if( !_vgoalpaths.empty() ) {
                     break;
                 }
             }
@@ -396,7 +396,7 @@ Some python code to display data::\n\
                 }
             }
 
-            if( _sampleConfig.size() == 0 ) {
+            if( _sampleConfig.empty() ) {
                 if( !_parameters->_samplefn(_sampleConfig) ) {
                     continue;
                 }
@@ -461,7 +461,7 @@ Some python code to display data::\n\
             progress._iteration = iter/3;
         }
 
-        if( _vgoalpaths.size() == 0 ) {
+        if( _vgoalpaths.empty() ) {
             std::string description = str(boost::format(_("env=%d, plan failed in %fs, iter=%d, nMaxIterations=%d"))%GetEnv()->GetId()%(0.001f*(float)(utils::GetMilliTime()-basetime))%(iter/3)%_parameters->_nMaxIterations);
             RAVELOG_WARN(description);
             return OPENRAVE_PLANNER_STATUS(description, PS_Failed);
@@ -489,13 +489,13 @@ Some python code to display data::\n\
         return status;
     }
 
-    virtual void _ExtractPath(GOALPATH& goalpath, NodeBase* iConnectedForward, NodeBase* iConnectedBackward)
+    virtual void _ExtractPath(GOALPATH& goalpath, SimpleNodePtr iConnectedForward, SimpleNodePtr iConnectedBackward)
     {
         const int dof = _parameters->GetDOF();
         _cachedpath.clear();
 
         // add nodes from the forward tree
-        SimpleNode* pforward = (SimpleNode*)iConnectedForward;
+        SimpleNodePtr pforward = (SimpleNodePtr)iConnectedForward;
         goalpath.startindex = -1;
         while(1) {
             _cachedpath.insert(_cachedpath.begin(), pforward->q, pforward->q+dof);
@@ -520,7 +520,7 @@ Some python code to display data::\n\
 
         // add nodes from the backward tree
         goalpath.goalindex = -1;
-        SimpleNode *pbackward = (SimpleNode*)iConnectedBackward;
+        SimpleNodePtr pbackward = iConnectedBackward;
         while(1) {
             //vecnodes.push_back(pbackward);
             _cachedpath.insert(_cachedpath.end(), pbackward->q, pbackward->q+dof);
@@ -572,7 +572,7 @@ protected:
     RRTParametersPtr _parameters;
     SpatialTree< SimpleNode > _treeBackward;
     dReal _fGoalBiasProb;
-    std::vector< NodeBase* > _vecGoalNodes;
+    std::vector< SimpleNodePtr > _vecGoalNodes;
     size_t _nValidGoals; ///< num valid goals
     std::vector<GOALPATH> _vgoalpaths;
 };
@@ -607,7 +607,7 @@ public:
         int goal_index = 0;
         vector<dReal> vgoal(_parameters->GetDOF());
         _vecGoals.clear();
-        while(_parameters->vgoalconfig.size() > 0) {
+        while(!_parameters->vgoalconfig.empty()) {
             for(int i = 0; i < _parameters->GetDOF(); i++) {
                 if(goal_index < (int)_parameters->vgoalconfig.size())
                     vgoal[i] = _parameters->vgoalconfig[goal_index];
@@ -631,7 +631,7 @@ public:
             }
         }
 
-        if(( _vecGoals.size() == 0) && !_parameters->_goalfn ) {
+        if(( _vecGoals.empty()) && !_parameters->_goalfn ) {
             RAVELOG_WARN_FORMAT("env=%d, no goals or goal function specified", GetEnv()->GetId());
             _parameters.reset();
             return false;
@@ -653,8 +653,8 @@ public:
         EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
         uint32_t basetime = utils::GetMilliTime();
 
-        NodeBasePtr lastnode; // the last node visited by the RRT
-        NodeBase* bestGoalNode = NULL; // the best goal node found already by the RRT. If this is not NULL, then RRT succeeded
+        SimpleNodePtr lastnode; // the last node visited by the RRT
+        SimpleNodePtr bestGoalNode = NULL; // the best goal node found already by the RRT. If this is not NULL, then RRT succeeded
         dReal fBestGoalNodeDist = 0; // configuration distance from initial position to the goal node
 
         // the main planning loop
@@ -690,7 +690,7 @@ public:
                 }
             }
 
-            if( (iter == 1 || RaveRandomFloat() < _fGoalBiasProb ) && _vecGoals.size() > 0 ) {
+            if( (iter == 1 || RaveRandomFloat() < _fGoalBiasProb ) && !_vecGoals.empty() ) {
                 _sampleConfig = _vecGoals[RaveRandomInt()%_vecGoals.size()];
             }
             else if( !_parameters->_samplefn(_sampleConfig) ) {
@@ -703,7 +703,7 @@ public:
             if( et == ET_Connected ) {
                 FOREACH(itgoal, _vecGoals) {
                     if( _parameters->_distmetricfn(*itgoal, _treeForward.GetVectorConfig(lastnode)) < 2*_parameters->_fStepLength ) {
-                        SimpleNode* pforward = (SimpleNode*)lastnode;
+                        SimpleNodePtr pforward = (SimpleNodePtr)lastnode;
                         while(1) {
                             if(!pforward->rrtparent) {
                                 break;
@@ -729,13 +729,13 @@ public:
             if(( et != ET_Failed) && !!_parameters->_goalfn ) {
                 // have to check all the newly created nodes since anyone could be already in the goal (do not have to do this with _vecGoals since that is being sampled)
                 bool bfound = false;
-                SimpleNode* ptestnode = (SimpleNode*)lastnode;
+                SimpleNodePtr ptestnode = (SimpleNodePtr)lastnode;
                 while(!!ptestnode && ptestnode->_userdata==0) { // when userdata is 0, then it hasn't been checked for goal yet
                     if( _parameters->_goalfn(_treeForward.GetVectorConfig(ptestnode)) <= 1e-4f ) {
                         bfound = true;
                         numfoundgoals++;
                         ptestnode->_userdata = 1;
-                        SimpleNode* pforward = ptestnode;
+                        SimpleNodePtr pforward = ptestnode;
                         while(1) {
                             if(!pforward->rrtparent) {
                                 break;
@@ -801,7 +801,7 @@ public:
         _cachedpath.clear();
 
         // add nodes from the forward tree
-        SimpleNode* pforward = (SimpleNode*)bestGoalNode;
+        SimpleNodePtr pforward = (SimpleNodePtr)bestGoalNode;
         while(1) {
             _cachedpath.insert(_cachedpath.begin(), pforward->q, pforward->q+dof);
             if(!pforward->rrtparent) {
@@ -886,7 +886,7 @@ public:
             if( RaveRandomFloat() < _parameters->_fExploreProb ) {
                 // explore
                 int inode = RaveRandomInt()%_treeForward.GetNumNodes();
-                NodeBase* pnode = _treeForward.GetNodeFromIndex(inode);
+                SimpleNodePtr pnode = _treeForward.GetNodeFromIndex(inode);
 
                 if( !_parameters->_sampleneighfn(vSampleConfig, _treeForward.GetVectorConfig(pnode), _parameters->_fStepLength) ) {
                     continue;
@@ -901,7 +901,7 @@ public:
                 if( !_parameters->_samplefn(vSampleConfig) ) {
                     continue;
                 }
-                NodeBasePtr plastnode;
+                SimpleNodePtr plastnode;
                 if( _treeForward.Extend(vSampleConfig, plastnode, true) == ET_Connected ) {
                     RAVELOG_DEBUG_FORMAT("env=%d, size %d", GetEnv()->GetId()%_treeForward.GetNumNodes());
                 }
@@ -912,7 +912,7 @@ public:
             ptraj->Init(_parameters->_configurationspecification);
         }
         // save nodes to trajectory
-        std::vector<NodeBase*> vnodes;
+        std::vector<SimpleNodePtr> vnodes;
         _treeForward.GetNodesVector(vnodes);
         FOREACH(itnode, vnodes) {
             ptraj->Insert(ptraj->GetNumWaypoints(), _treeForward.GetVectorConfig(*itnode), _parameters->_configurationspecification);

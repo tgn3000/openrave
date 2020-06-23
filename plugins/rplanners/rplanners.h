@@ -68,14 +68,11 @@ public:
 #define VectorWrapper std::vector
 #endif // __clang__
 
-class NodeBase
-{
-public:
-};
-typedef NodeBase* NodeBasePtr;
+class SimpleNode;
+using SimpleNodePtr = SimpleNode*;
 
 /// \brief node in freespace. be careful when constructing since placement new operator is needed.
-class SimpleNode : public NodeBase
+class SimpleNode
 {
 public:
     SimpleNode(SimpleNode* parent, const vector<dReal>& config) : rrtparent(parent) {
@@ -114,19 +111,19 @@ public:
     virtual void Init(boost::weak_ptr<PlannerBase> planner, int dof, boost::function<dReal(const std::vector<dReal>&, const std::vector<dReal>&)>& distmetricfn, dReal fStepLength, dReal maxdistance) = 0;
 
     /// inserts a node in the try
-    virtual NodeBasePtr InsertNode(NodeBasePtr parent, const vector<dReal>& config, uint32_t userdata) = 0;
+    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent, const vector<dReal>& config, uint32_t userdata) = 0;
 
     /// returns the nearest neighbor
-    virtual std::pair<NodeBasePtr, dReal> FindNearestNode(const vector<dReal>& q) const = 0;
+    virtual std::pair<SimpleNodePtr, dReal> FindNearestNode(const vector<dReal>& q) const = 0;
 
     /// \brief returns a temporary config stored on the local class. Next time this function is called, it will overwrite the config
-    virtual const vector<dReal>& GetVectorConfig(NodeBasePtr node) const = 0;
+    virtual const vector<dReal>& GetVectorConfig(SimpleNodePtr node) const = 0;
 
-    virtual void GetVectorConfig(NodeBasePtr nodebase, std::vector<dReal>& v) const = 0;
+    virtual void GetVectorConfig(SimpleNodePtr nodebase, std::vector<dReal>& v) const = 0;
 
     /// extends toward pNewConfig
     /// \return true if extension reached pNewConfig
-    virtual ExtendType Extend(const std::vector<dReal>& pTargetConfig, NodeBasePtr& lastnode, bool bOneStep=false) = 0;
+    virtual ExtendType Extend(const std::vector<dReal>& pTargetConfig, SimpleNodePtr& lastnode, bool bOneStep=false) = 0;
 
     /// \brief the dof configured for
     virtual int GetDOF() = 0;
@@ -136,7 +133,7 @@ public:
     virtual int GetNumNodes() const = 0;
 
     /// invalidates any nodes that point to parentbase. nodes can still be references from outside, but just won't be used as part of the nearest neighbor search
-    virtual void InvalidateNodesWithParent(NodeBasePtr parentbase) = 0;
+    virtual void InvalidateNodesWithParent(SimpleNodePtr parentbase) = 0;
 };
 
 /// Cache stores configuration information in a data structure based on the Cover Tree (Beygelzimer et al. 2006 http://hunch.net/~jl/projects/cover_tree/icml_final/final-icml.pdf)
@@ -144,7 +141,7 @@ template <typename Node>
 class SpatialTree : public SpatialTreeBase
 {
 public:
-    typedef Node* NodePtr;
+    using NodePtr = Node*;
 
     SpatialTree(int fromgoal) {
         _fromgoal = fromgoal;
@@ -229,17 +226,17 @@ public:
         return _distmetricfn(VectorWrapper<dReal>(node0->q, &node0->q[_dof]), VectorWrapper<dReal>(node1->q, &node1->q[_dof]));
     }
 
-    std::pair<NodeBasePtr, dReal> FindNearestNode(const std::vector<dReal>& vquerystate) const
+    std::pair<SimpleNodePtr, dReal> FindNearestNode(const std::vector<dReal>& vquerystate) const
     {
         return _FindNearestNode(vquerystate);
     }
 
-    virtual NodeBasePtr InsertNode(NodeBasePtr parent, const vector<dReal>& config, uint32_t userdata)
+    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent, const vector<dReal>& config, uint32_t userdata)
     {
         return _InsertNode((NodePtr)parent, config, userdata);
     }
 
-    virtual void InvalidateNodesWithParent(NodeBasePtr parentbase)
+    virtual void InvalidateNodesWithParent(SimpleNodePtr parentbase)
     {
         //BOOST_ASSERT(Validate());
         uint64_t starttime = utils::GetNanoPerformanceTime();
@@ -266,7 +263,7 @@ public:
     }
 
     /// deletes all nodes that have parentindex as their parent
-    virtual void _DeleteNodesWithParent(NodeBasePtr parentbase)
+    virtual void _DeleteNodesWithParent(SimpleNodePtr parentbase)
     {
         BOOST_ASSERT(Validate());
         uint64_t starttime = utils::GetNanoPerformanceTime();
@@ -305,7 +302,7 @@ public:
         RAVELOG_VERBOSE("computed in %fs", (1e-9*(utils::GetNanoPerformanceTime()-starttime)));
     }
 
-    virtual ExtendType Extend(const vector<dReal>& vTargetConfig, NodeBasePtr& lastnode, bool bOneStep=false)
+    virtual ExtendType Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr& lastnode, bool bOneStep=false)
     {
         // get the nearest neighbor
         std::pair<NodePtr, dReal> nn = _FindNearestNode(vTargetConfig);
@@ -452,7 +449,7 @@ public:
         return _numnodes;
     }
 
-    virtual const vector<dReal>& GetVectorConfig(NodeBasePtr nodebase) const
+    virtual const vector<dReal>& GetVectorConfig(SimpleNodePtr nodebase) const
     {
         NodePtr node = (NodePtr)nodebase;
         _vTempConfig.resize(_dof);
@@ -460,7 +457,7 @@ public:
         return _vTempConfig;
     }
 
-    virtual void GetVectorConfig(NodeBasePtr nodebase, std::vector<dReal>& v) const
+    virtual void GetVectorConfig(SimpleNodePtr nodebase, std::vector<dReal>& v) const
     {
         NodePtr node = (NodePtr)nodebase;
         v.resize(_dof);
@@ -577,7 +574,7 @@ public:
     }
 
     /// \brief given random index 0 <= inode < _numnodes, return a node. If tree changes, indices might change
-    NodeBase* GetNodeFromIndex(size_t inode) const
+    SimpleNodePtr GetNodeFromIndex(size_t inode) const
     {
         if( (int)inode >= _numnodes ) {
             return NodePtr();
@@ -595,7 +592,7 @@ public:
         return NodePtr();
     }
 
-    void GetNodesVector(std::vector<NodeBase*>& vnodes)
+    void GetNodesVector(std::vector<SimpleNodePtr>& vnodes)
     {
         vnodes.resize(0);
         if( (int)vnodes.capacity() < _numnodes ) {
