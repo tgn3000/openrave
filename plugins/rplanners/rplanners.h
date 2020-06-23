@@ -81,10 +81,10 @@ public:
 
     SimpleNodePtr rrtparent; ///< pointer to the RRT tree parent
     std::vector<SimpleNodePtr> _vchildren; ///< cache tree direct children of this node (for the next cache level down). Has nothing to do with the RRT tree.
-    int16_t _level; ///< the level the node belongs to
-    uint8_t _hasselfchild; ///< if 1, then _vchildren has contains a clone of this node in the level below it.
-    uint8_t _usenn; ///< if 1, then use part of the nearest neighbor search, otherwise ignore
-    uint32_t _userdata; ///< user specified data tagging this node
+    int16_t _level = 0; ///< the level the node belongs to
+    uint8_t _hasselfchild = 0; ///< if 1, then _vchildren has contains a clone of this node in the level below it.
+    uint8_t _usenn = 1; ///< if 1, then use part of the nearest neighbor search, otherwise ignore
+    uint32_t _userdata = 0; ///< user specified data tagging this node
 
 #ifdef _DEBUG
     int id;
@@ -97,10 +97,16 @@ using DistMetricFn = boost::function<dReal(const std::vector<dReal>&, const std:
 class SpatialTreeBase
 {
 public:
-    virtual void Init(PlannerBaseWeakPtr planner, int dof, DistMetricFn& distmetricfn, dReal fStepLength, dReal maxdistance) = 0;
+    virtual void Init(PlannerBaseWeakPtr planner,
+                      const int dof,
+                      DistMetricFn& distmetricfn,
+                      const dReal fStepLength,
+                      const dReal maxdistance) = 0;
 
     /// inserts a node in the try
-    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent, const std::vector<dReal>& config, uint32_t userdata) = 0;
+    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent,
+                                     const std::vector<dReal>& config,
+                                     uint32_t userdata) = 0;
 
     /// returns the nearest neighbor
     virtual std::pair<SimpleNodePtr, dReal> FindNearestNode(const std::vector<dReal>& q) const = 0;
@@ -108,17 +114,18 @@ public:
     /// \brief returns a temporary config stored on the local class. Next time this function is called, it will overwrite the config
     virtual const std::vector<dReal>& GetVectorConfig(SimpleNodePtr node) const = 0;
 
-    virtual void GetVectorConfig(SimpleNodePtr nodebase, std::vector<dReal>& v) const = 0;
+    virtual void GetVectorConfig(SimpleNodePtr nodebase,
+                                 std::vector<dReal>& v) const = 0;
 
     /// extends toward pNewConfig
     /// \return true if extension reached pNewConfig
-    virtual ExtendType Extend(const std::vector<dReal>& pTargetConfig, SimpleNodePtr& lastnode, bool bOneStep=false) = 0;
+    virtual ExtendType Extend(const std::vector<dReal>& pTargetConfig,
+                              SimpleNodePtr& lastnode,
+                              bool bOneStep = false) = 0;
 
     /// \brief the dof configured for
     virtual int GetDOF() = 0;
-
     virtual bool Validate() const = 0;
-
     virtual int GetNumNodes() const = 0;
 
     /// invalidates any nodes that point to parentbase. nodes can still be references from outside, but just won't be used as part of the nearest neighbor search
@@ -130,62 +137,57 @@ class SpatialTree : public SpatialTreeBase
 {
 public:
     SpatialTree(int fromgoal);
-
     ~SpatialTree();
 
-    virtual void Init(PlannerBaseWeakPtr planner, int dof, DistMetricFn& distmetricfn, dReal fStepLength, dReal maxdistance);
-
-    virtual void Reset();
-
-    dReal _ComputeDistance(const dReal* config0, const dReal* config1) const;
-
-    dReal _ComputeDistance(const dReal* config0, const std::vector<dReal>& config1) const;
-
-    dReal _ComputeDistance(SimpleNodePtr node0, SimpleNodePtr node1) const;
-
-    std::pair<SimpleNodePtr, dReal> FindNearestNode(const std::vector<dReal>& vquerystate) const;
-
-    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent, const vector<dReal>& config, uint32_t userdata);
-
-    virtual void InvalidateNodesWithParent(SimpleNodePtr parentbase);
-
-    /// deletes all nodes that have parentindex as their parent
-    virtual void _DeleteNodesWithParent(SimpleNodePtr parentbase);
-
-    virtual ExtendType Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr& lastnode, bool bOneStep=false);
-
-    virtual int GetNumNodes() const;
-    virtual bool empty() const;
-
-    virtual const std::vector<dReal>& GetVectorConfig(SimpleNodePtr nodebase) const;
-
-    virtual void GetVectorConfig(SimpleNodePtr nodebase, std::vector<dReal>& v) const;
-
-    virtual int GetDOF();
-
+    /* =========== Overridden functions ========== */
+    virtual void Init(PlannerBaseWeakPtr planner,
+                      const int dof,
+                      DistMetricFn& distmetricfn,
+                      const dReal fStepLength,
+                      const dReal maxdistance) override;
+    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent,
+                                     const std::vector<dReal>& config,
+                                     uint32_t userdata) override;
+    virtual std::pair<SimpleNodePtr, dReal> FindNearestNode(const std::vector<dReal>& vquerystate) const override;
+    virtual const std::vector<dReal>& GetVectorConfig(SimpleNodePtr nodebase) const override;
+    virtual void GetVectorConfig(SimpleNodePtr nodebase, std::vector<dReal>& v) const override;
+    virtual ExtendType Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr& lastnode, bool bOneStep=false) override;
+    virtual int GetNumNodes() const override;
+    virtual int GetDOF() override;
     /// \brief for debug purposes, validates the tree
-    virtual bool Validate() const;
+    virtual bool Validate() const override;
+    virtual void InvalidateNodesWithParent(SimpleNodePtr parentbase) override;
 
+    /* =========== Own functions ========== */
+    bool empty() const;
     void DumpTree(std::ostream& o) const;
 
     /// \brief given random index 0 <= inode < _numnodes, return a node. If tree changes, indices might change
     SimpleNodePtr GetNodeFromIndex(size_t inode) const;
-
     void GetNodesVector(std::vector<SimpleNodePtr>& vnodes) const;
 
 private:
+    void _Reset();
     static int GetNewStaticId();
-    SimpleNodePtr _CreateNode(SimpleNodePtr rrtparent, const vector<dReal>& config, uint32_t userdata);
+    SimpleNodePtr _CreateNode(SimpleNodePtr rrtparent, const std::vector<dReal>& config, uint32_t userdata);
 
     SimpleNodePtr _CloneNode(SimpleNodePtr refnode);
 
+    dReal _ComputeDistance(const dReal* config0, const dReal* config1) const;
+    dReal _ComputeDistance(const dReal* config0, const std::vector<dReal>& config1) const;
+    dReal _ComputeDistance(SimpleNodePtr node0, SimpleNodePtr node1) const;
+    dReal _ComputeDistance(const std::vector<dReal>& v0,
+                           const std::vector<dReal>& v1) const;
+
     void _DeleteNode(SimpleNodePtr p);
+    /// deletes all nodes that have parentindex as their parent
+    void _DeleteNodesWithParent(SimpleNodePtr parentbase);
 
     int _EncodeLevel(int level) const;
 
     std::pair<SimpleNodePtr, dReal> _FindNearestNode(const std::vector<dReal>& vquerystate) const;
 
-    SimpleNodePtr _InsertNode(SimpleNodePtr parent, const vector<dReal>& config, uint32_t userdata);
+    SimpleNodePtr _InsertNode(SimpleNodePtr parent, const std::vector<dReal>& config, uint32_t userdata);
 
     /// \brief the recursive function that inserts a configuration into the cache tree
     ///

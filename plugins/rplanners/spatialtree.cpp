@@ -1,36 +1,30 @@
 #include "rplanners.h"
 
-SimpleNode::SimpleNode(SimpleNode* parent, const vector<dReal>& config) : rrtparent(parent) {
+SimpleNode::SimpleNode(SimpleNode* parent, const std::vector<dReal>& config) : rrtparent(parent) {
     std::copy(config.begin(), config.end(), q);
-    _level = 0;
-    _hasselfchild = 0;
-    _usenn = 1;
-    _userdata = 0;
 }
 
 SimpleNode::SimpleNode(SimpleNode* parent, const dReal* pconfig, int dof) : rrtparent(parent) {
     std::copy(pconfig, pconfig+dof, q);
-    _level = 0;
-    _hasselfchild = 0;
-    _usenn = 1;
-    _userdata = 0;
 }
 
 SimpleNode::~SimpleNode() {
 }
 
 /// Cache stores configuration information in a data structure based on the Cover Tree (Beygelzimer et al. 2006 http://hunch.net/~jl/projects/cover_tree/icml_final/final-icml.pdf)
-SpatialTree::SpatialTree(int fromgoal) {
-    _fromgoal = fromgoal;
-}
+SpatialTree::SpatialTree(int fromgoal) : _fromgoal(fromgoal) {}
 
 SpatialTree::~SpatialTree() {
-    this->Reset();
+    _Reset();
 }
 
-void SpatialTree::Init(PlannerBaseWeakPtr planner, int dof, DistMetricFn& distmetricfn, dReal fStepLength, dReal maxdistance)
+void SpatialTree::Init(PlannerBaseWeakPtr planner,
+                       const int dof,
+                       DistMetricFn& distmetricfn,
+                       const dReal fStepLength,
+                       const dReal maxdistance)
 {
-    this->Reset();
+    _Reset();
     if( !!_pNodesPool ) {
         // see if pool can be preserved
         if( _dof != dof ) {
@@ -59,7 +53,7 @@ void SpatialTree::Init(PlannerBaseWeakPtr planner, int dof, DistMetricFn& distme
     _constraintreturn.reset(new ConstraintFilterReturn());
 }
 
-void SpatialTree::Reset()
+void SpatialTree::_Reset()
 {
     if( !!_pNodesPool ) {
         // make sure all children are deleted
@@ -83,12 +77,18 @@ dReal SpatialTree::_ComputeDistance(const dReal* config0, const dReal* config1) 
 
 dReal SpatialTree::_ComputeDistance(const dReal* config0, const std::vector<dReal>& config1) const
 {
-    return _distmetricfn(VectorWrapper<dReal>(config0,config0+_dof), config1);
+    return _distmetricfn(VectorWrapper<dReal>(config0, config0 + _dof), config1);
 }
 
 dReal SpatialTree::_ComputeDistance(SimpleNodePtr node0, SimpleNodePtr node1) const
 {
-    return _distmetricfn(VectorWrapper<dReal>(node0->q, &node0->q[_dof]), VectorWrapper<dReal>(node1->q, &node1->q[_dof]));
+    return _distmetricfn(VectorWrapper<dReal>(node0->q, node0->q + _dof), VectorWrapper<dReal>(node1->q, node1->q +_dof));
+}
+
+dReal SpatialTree::_ComputeDistance(const std::vector<dReal>& v0,
+                                    const std::vector<dReal>& v1) const
+{
+    return _distmetricfn(v0, v1);
 }
 
 std::pair<SimpleNodePtr, dReal> SpatialTree::FindNearestNode(const std::vector<dReal>& vquerystate) const
@@ -108,7 +108,8 @@ void SpatialTree::InvalidateNodesWithParent(SimpleNodePtr parentbase)
     // first gather all the nodes, and then delete them in reverse order they were originally added in
     SimpleNodePtr parent = parentbase;
     parent->_usenn = 0;
-    _setchildcache.clear(); _setchildcache.insert(parent);
+    _setchildcache.clear();
+    _setchildcache.insert(parent);
     int numruns=0;
     bool bchanged=true;
     while(bchanged) {
@@ -128,46 +129,44 @@ void SpatialTree::InvalidateNodesWithParent(SimpleNodePtr parentbase)
 }
 
 /// deletes all nodes that have parentindex as their parent
-void SpatialTree::_DeleteNodesWithParent(SimpleNodePtr parentbase)
+void SpatialTree::_DeleteNodesWithParent(SimpleNodePtr parent)
 {
     BOOST_ASSERT(Validate());
-    uint64_t starttime = utils::GetNanoPerformanceTime();
+    const uint64_t starttime = utils::GetNanoPerformanceTime();
     // first gather all the nodes, and then delete them in reverse order they were originally added in
-    SimpleNodePtr parent = parentbase;
     if( _vchildcache.capacity() == 0 ) {
         _vchildcache.reserve(128);
     }
-    _vchildcache.clear(); _vchildcache.push_back(parent);
-    _setchildcache.clear(); _setchildcache.insert(parent);
-    int numruns=0;
-    bool bchanged=true;
+    _vchildcache.clear();
+    _vchildcache.push_back(parent);
+    _setchildcache.clear();
+    _setchildcache.insert(parent);
+    bool bchanged = true;
     while(bchanged) {
-        bchanged=false;
-        FOREACHC(itchildren, _vsetLevelNodes) {
-            FOREACHC(itchild, *itchildren) {
-                if( _setchildcache.find(*itchild) == _setchildcache.end() && _setchildcache.find((*itchild)->rrtparent) != _setchildcache.end() ) {
-                    //if( !std::binary_search(_vchildcache.begin(),_vchildcache.end(),(*itchild)->rrtparent) ) {
-                    _vchildcache.push_back(*itchild);
-                    _setchildcache.insert(*itchild);
-                    bchanged=true;
+        bchanged = false;
+        for(std::set<SimpleNodePtr>& sLevelNodes : _vsetLevelNodes) {
+            for(const SimpleNodePtr node : sLevelNodes) {
+                bchanged = !_setchildcache.count(node) && _setchildcache.count(node->rrtparent);
+                if(bchanged) {
+                    _vchildcache.push_back(node);
+                    _setchildcache.insert(node);
                 }
             }
         }
-        ++numruns;
     }
 
-    int nremove=0;
     // systematically remove backwards
-    for(std::vector<SimpleNodePtr>::reverse_iterator itnode = _vchildcache.rbegin(); itnode != _vchildcache.rend(); ++itnode) {
-        bool bremoved = _RemoveNode(*itnode);
+    for(auto it = _vchildcache.rbegin(); it != _vchildcache.rend(); ++it) {
+        const bool bremoved = _RemoveNode(*it);
         BOOST_ASSERT(bremoved);
-        ++nremove;
     }
-    BOOST_ASSERT(Validate());
+    BOOST_ASSERT(this->Validate());
     RAVELOG_VERBOSE("computed in %fs", (1e-9*(utils::GetNanoPerformanceTime()-starttime)));
 }
 
-ExtendType SpatialTree::Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr& lastnode, bool bOneStep)
+ExtendType SpatialTree::Extend(const std::vector<dReal>& vTargetConfig,
+                               SimpleNodePtr& lastnode,
+                               bool bOneStep)
 {
     // get the nearest neighbor
     std::pair<SimpleNodePtr, dReal> nn = _FindNearestNode(vTargetConfig);
@@ -179,15 +178,14 @@ ExtendType SpatialTree::Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr
     bool bHasAdded = false;
     boost::shared_ptr<PlannerBase> planner(_planner);
     PlannerBase::PlannerParametersConstPtr params = planner->GetParameters();
-    _vCurConfig.resize(_dof);
-    std::copy(pnode->q, pnode->q+_dof, _vCurConfig.begin());
+    _vCurConfig = std::vector<dReal>(pnode->q, pnode->q+_dof);
     // extend
     for(int iter = 0; iter < 100; ++iter) {     // to avoid infinite loops
-        dReal fdist = _ComputeDistance(&_vCurConfig[0], vTargetConfig);
+        dReal fdist = _ComputeDistance(_vCurConfig, vTargetConfig);
         if( fdist > _fStepLength ) {
             fdist = _fStepLength / fdist;
         }
-        else if( fdist <= dReal(0.01) * _fStepLength ) {
+        else if( fdist <= 0.01 * _fStepLength ) {
             // return connect if the distance is very close
             return ET_Connected;
         }
@@ -204,11 +202,12 @@ ExtendType SpatialTree::Extend(const vector<dReal>& vTargetConfig, SimpleNodePtr
         if( params->SetStateValues(_vNewConfig) != 0 ) {
             return bHasAdded ? ET_Sucess : ET_Failed;
         }
-        if( params->_neighstatefn(_vNewConfig,_vDeltaConfig,_fromgoal ? NSO_GoalToInitial : 0) == NSS_Failed ) {
+        // _fromgoal==1 for _treeBackward in BirrtPlanner, 0 for _treeForward in RrtPlanner
+        if( params->_neighstatefn(_vNewConfig, _vDeltaConfig, _fromgoal ? NSO_GoalToInitial : 0) == NSS_Failed ) {
             return bHasAdded ? ET_Sucess : ET_Failed;
         }
         // it could be the case that the node didn't move anywhere, in which case we would go into an infinite loop
-        if( _ComputeDistance(&_vCurConfig[0], _vNewConfig) <= dReal(0.01)*_fStepLength ) {
+        if( _ComputeDistance(_vCurConfig, _vNewConfig) <= 0.01 * _fStepLength ) {
             return bHasAdded ? ET_Sucess : ET_Failed;
         }
 
@@ -499,15 +498,15 @@ std::pair<SimpleNodePtr, dReal> SpatialTree::_FindNearestNode(const std::vector<
     while(!_vCurrentLevelNodes.empty() ) {
         _vNextLevelNodes.clear();
         //RAVELOG_VERBOSE_FORMAT("level %d (%f) has %d nodes", currentlevel%fLevelBound%_vCurrentLevelNodes.size());
-        dReal minchilddist=std::numeric_limits<dReal>::infinity();
-        FOREACH(itcurrentnode, _vCurrentLevelNodes) {
+        dReal minchilddist = std::numeric_limits<dReal>::infinity();
+        for(const std::pair<SimpleNodePtr, dReal>& currpair : _vCurrentLevelNodes) {
             // only take the children whose distances are within the bound
-            FOREACHC(itchild, itcurrentnode->first->_vchildren) {
-                dReal curdist = _ComputeDistance((*itchild)->q, vquerystate);
+            for(const SimpleNodePtr child : currpair.first->_vchildren) {
+                dReal curdist = _ComputeDistance(child->q, vquerystate);
                 if( !bestnode.first || (curdist < bestnode.second && bestnode.first->_usenn)) {
-                    bestnode = make_pair(*itchild, curdist);
+                    bestnode = make_pair(child, curdist);
                 }
-                _vNextLevelNodes.emplace_back(*itchild,  curdist);
+                _vNextLevelNodes.emplace_back(child,  curdist);
                 if( minchilddist > curdist ) {
                     minchilddist = curdist;
                 }
@@ -515,20 +514,22 @@ std::pair<SimpleNodePtr, dReal> SpatialTree::_FindNearestNode(const std::vector<
         }
 
         _vCurrentLevelNodes.clear();
-        dReal ftestbound = minchilddist + fLevelBound;
-        FOREACH(itnode, _vNextLevelNodes) {
-            if( itnode->second < ftestbound ) {
-                _vCurrentLevelNodes.push_back(*itnode);
+        const dReal ftestbound = minchilddist + fLevelBound;
+        for(const std::pair<SimpleNodePtr, dReal>& nextpair : _vNextLevelNodes) {
+            if( nextpair.second < ftestbound ) {
+                _vCurrentLevelNodes.push_back(nextpair);
             }
         }
-        currentlevel -= 1;
+        --currentlevel;
         fLevelBound *= _fBaseInv;
     }
     //RAVELOG_VERBOSE_FORMAT("query went through %d levels", (_maxlevel-currentlevel));
     return bestnode;
 }
 
-SimpleNodePtr SpatialTree::_InsertNode(SimpleNodePtr parent, const vector<dReal>& config, uint32_t userdata)
+SimpleNodePtr SpatialTree::_InsertNode(SimpleNodePtr parent,
+                                       const std::vector<dReal>& config,
+                                       uint32_t userdata)
 {
     SimpleNodePtr newnode = _CreateNode(parent, config, userdata);
     if( _numnodes == 0 ) {
@@ -536,26 +537,22 @@ SimpleNodePtr SpatialTree::_InsertNode(SimpleNodePtr parent, const vector<dReal>
         _vsetLevelNodes.at(_EncodeLevel(_maxlevel)).insert(newnode); // add to the level
         newnode->_level = _maxlevel;
         _numnodes += 1;
+        return newnode;
     }
-    else {
-        _vCurrentLevelNodes.resize(1);
-        _vCurrentLevelNodes[0].first = *_vsetLevelNodes.at(_EncodeLevel(_maxlevel)).begin();
-        _vCurrentLevelNodes[0].second = _ComputeDistance(_vCurrentLevelNodes[0].first->q, config);
-        int nParentFound = _InsertRecursive(newnode, _vCurrentLevelNodes, _maxlevel, _fMaxLevelBound);
-        if( nParentFound == 0 ) {
-            // could possibly happen with circulr joints, still need to take a look at correct fix (see #323)
-            std::stringstream ss; ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
-            FOREACHC(it, config) {
-                ss << *it << ",";
-            }
-            throw OPENRAVE_EXCEPTION_FORMAT("Could not insert config=[%s] inside the cover tree, perhaps cover tree _maxdistance=%f is not enough from the root", ss.str()%_maxdistance, ORE_Assert);
+
+    _vCurrentLevelNodes.resize(1);
+    _vCurrentLevelNodes[0].first = *_vsetLevelNodes.at(_EncodeLevel(_maxlevel)).begin();
+    _vCurrentLevelNodes[0].second = _ComputeDistance(_vCurrentLevelNodes[0].first->q, config);
+    const int nParentFound = _InsertRecursive(newnode, _vCurrentLevelNodes, _maxlevel, _fMaxLevelBound);
+    if( nParentFound == 0 ) {
+        // could possibly happen with circulr joints, still need to take a look at correct fix (see #323)
+        std::stringstream ss; ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
+        FOREACHC(it, config) {
+            ss << *it << ",";
         }
-        if( nParentFound < 0 ) {
-            return SimpleNodePtr();
-        }
+        throw OPENRAVE_EXCEPTION_FORMAT("Could not insert config=[%s] inside the cover tree, perhaps cover tree _maxdistance=%f is not enough from the root", ss.str()%_maxdistance, ORE_Assert);
     }
-    //BOOST_ASSERT(Validate());
-    return newnode;
+    return (nParentFound < 0) ?  SimpleNodePtr() : newnode;
 }
 
 int SpatialTree::_InsertRecursive(SimpleNodePtr nodein,
@@ -650,7 +647,7 @@ int SpatialTree::_InsertRecursive(SimpleNodePtr nodein,
     }
 
     _InsertDirectly(nodein, closestNodeInRange, closestDist, currentlevel-1, fLevelBound*_fBaseInv);
-    _numnodes += 1;
+    ++_numnodes;
     return 1;
 }
 
@@ -676,7 +673,7 @@ bool SpatialTree::_InsertDirectly(SimpleNodePtr nodein, SimpleNodePtr parentnode
         dReal fChildLevelBound = fInsertLevelBound;
         while(parentdist < fChildLevelBound) {
             fChildLevelBound *= _fBaseInv;
-            insertlevel--;
+            --insertlevel;
         }
     }
 
@@ -720,7 +717,7 @@ bool SpatialTree::_RemoveNode(SimpleNodePtr removenode)
 
     SimpleNodePtr proot = *_vsetLevelNodes.at(_EncodeLevel(_maxlevel)).begin();
     if( _numnodes == 1 && removenode == proot ) {
-        Reset();
+        _Reset();
         return true;
     }
 
@@ -741,7 +738,7 @@ bool SpatialTree::_RemoveNode(SimpleNodePtr removenode)
         //_vsetLevelNodes.at(_EncodeLevel(_maxlevel)).clear();
         _vsetLevelNodes.at(_EncodeLevel(_maxlevel)).erase(proot);
         bRemoved = true;
-        _numnodes--;
+        --_numnodes;
     }
     return bRemoved;
 }
@@ -763,32 +760,28 @@ bool SpatialTree::_Remove(SimpleNodePtr removenode, std::vector< std::vector<Sim
     vNextLevelNodes.clear();
 
     bool bfound = false;
-    FOREACH(itcurrentnode, vvCoverSetNodes.at(coverindex-1)) {
+    for(const SimpleNodePtr& node : vvCoverSetNodes.at(coverindex-1)) {
         // only take the children whose distances are within the bound
-        if( setLevelRawChildren.find(*itcurrentnode) != setLevelRawChildren.end() ) {
-            typename std::vector<SimpleNodePtr>::iterator itchild = (*itcurrentnode)->_vchildren.begin();
-            while(itchild != (*itcurrentnode)->_vchildren.end() ) {
-                dReal curdist = _ComputeDistance(removenode, *itchild);
-                if( *itchild == removenode ) {
-                    //vNextLevelNodes.clear();
-                    vNextLevelNodes.push_back(*itchild);
-                    itchild = (*itcurrentnode)->_vchildren.erase(itchild);
-                    if( (*itcurrentnode)->_hasselfchild && _ComputeDistance(*itcurrentnode, *itchild) <= _mindistance) {
-                        (*itcurrentnode)->_hasselfchild = 0;
+        if( setLevelRawChildren.count(node) ) {
+            std::vector<SimpleNodePtr>& vchildren = node->_vchildren;
+            for(auto itchild = begin(vchildren); itchild != end(vchildren); ) {
+                SimpleNodePtr child = *itchild;
+                const dReal curdist = _ComputeDistance(removenode, child);
+                if( child == removenode ) {
+                    vNextLevelNodes.push_back(child);
+                    itchild = vchildren.erase(itchild);
+                    if( node->_hasselfchild && _ComputeDistance(node, *itchild) <= _mindistance) {
+                        node->_hasselfchild = 0;
                     }
                     bfound = true;
-                    //break;
                 }
                 else {
                     if( curdist <= fLevelBound*_fBaseChildMult ) {
-                        vNextLevelNodes.push_back(*itchild);
+                        vNextLevelNodes.push_back(child);
                     }
                     ++itchild;
                 }
             }
-//                if( bfound ) {
-//                    break;
-//                }
         }
     }
 
@@ -855,7 +848,7 @@ bool SpatialTree::_Remove(SimpleNodePtr removenode, std::vector< std::vector<Sim
         size_t erased = setLevelRawChildren.erase(removenode);
         BOOST_ASSERT(erased==1);
         bRemoved = true;
-        _numnodes--;
+        --_numnodes;
     }
     return bRemoved;
 }

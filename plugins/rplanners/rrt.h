@@ -19,7 +19,7 @@
 #include <boost/algorithm/string.hpp>
 #include "rplanners.h"
 
-static const dReal g_fEpsilonDotProduct = RavePow(g_fEpsilon,0.8);
+static const dReal g_fEpsilonDotProduct = RavePow(g_fEpsilon, 0.8);
 
 class RrtPlanner;
 using RrtPlannerPtr = boost::shared_ptr<RrtPlanner>;
@@ -42,7 +42,8 @@ public:
 protected:
     RobotBasePtr _robot;
     std::vector<dReal> _sampleConfig;
-    int _goalindex, _startindex;
+    int _goalindex = -1;
+    int _startindex = -1;
     SpaceSamplerBasePtr _uniformsampler;
     ConstraintFilterReturnPtr _filterreturn;
     std::deque<dReal> _cachedpath;
