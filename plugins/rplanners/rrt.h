@@ -21,7 +21,6 @@
 
 static const dReal g_fEpsilonDotProduct = RavePow(g_fEpsilon,0.8);
 
-template <typename Node>
 class RrtPlanner : public PlannerBase
 {
 public:
@@ -32,9 +31,9 @@ public:
 :Interface Author:  Rosen Diankov\n\n\
 Uses the Rapidly-Exploring Random Trees Algorithm.\n\
 ";
-        RegisterCommand("GetGoalIndex",boost::bind(&RrtPlanner<Node>::GetGoalIndexCommand,this,_1,_2),
+        RegisterCommand("GetGoalIndex",boost::bind(&RrtPlanner::GetGoalIndexCommand,this,_1,_2),
                         "returns the goal index of the plan");
-        RegisterCommand("GetInitGoalIndices",boost::bind(&RrtPlanner<Node>::GetInitGoalIndicesCommand,this,_1,_2),
+        RegisterCommand("GetInitGoalIndices",boost::bind(&RrtPlanner::GetInitGoalIndicesCommand,this,_1,_2),
                         "returns the start and goal indices");
         _filterreturn.reset(new ConstraintFilterReturn());
     }
@@ -200,7 +199,7 @@ protected:
     ConstraintFilterReturnPtr _filterreturn;
     std::deque<dReal> _cachedpath;
 
-    SpatialTree< Node > _treeForward;
+    SpatialTree _treeForward;
     std::vector< SimpleNodePtr > _vecInitialNodes;
 
     boost::shared_ptr<RrtPlanner> shared_planner() {
@@ -211,10 +210,10 @@ protected:
     }
 };
 
-class BirrtPlanner : public RrtPlanner<SimpleNode>
+class BirrtPlanner : public RrtPlanner
 {
 public:
-    BirrtPlanner(EnvironmentBasePtr penv) : RrtPlanner<SimpleNode>(penv), _treeBackward(1)
+    BirrtPlanner(EnvironmentBasePtr penv) : RrtPlanner(penv), _treeBackward(1)
     {
         __description += "Bi-directional RRTs. See\n\n\
 - J.J. Kuffner and S.M. LaValle. RRT-Connect: An efficient approach to single-query path planning. In Proc. IEEE Int'l Conf. on Robotics and Automation (ICRA'2000), pages 995-1001, San Francisco, CA, April 2000.";
@@ -247,7 +246,7 @@ Some python code to display data::\n\
         EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
         _parameters.reset(new RRTParameters());
         _parameters->copy(pparams);
-        if( !RrtPlanner<SimpleNode>::_InitPlan(pbase,_parameters) ) {
+        if( !RrtPlanner::_InitPlan(pbase,_parameters) ) {
             _parameters.reset();
             return false;
         }
@@ -496,7 +495,7 @@ Some python code to display data::\n\
         _cachedpath.clear();
 
         // add nodes from the forward tree
-        SimpleNodePtr pforward = (SimpleNodePtr)iConnectedForward;
+        SimpleNodePtr pforward = iConnectedForward;
         goalpath.startindex = -1;
         while(1) {
             _cachedpath.insert(_cachedpath.begin(), pforward->q, pforward->q+dof);
@@ -574,17 +573,17 @@ Some python code to display data::\n\
 
 protected:
     RRTParametersPtr _parameters;
-    SpatialTree< SimpleNode > _treeBackward;
+    SpatialTree _treeBackward;
     dReal _fGoalBiasProb;
     std::vector< SimpleNodePtr > _vecGoalNodes;
     size_t _nValidGoals; ///< num valid goals
     std::vector<GOALPATH> _vgoalpaths;
 };
 
-class BasicRrtPlanner : public RrtPlanner<SimpleNode>
+class BasicRrtPlanner : public RrtPlanner
 {
 public:
-    BasicRrtPlanner(EnvironmentBasePtr penv) : RrtPlanner<SimpleNode>(penv)
+    BasicRrtPlanner(EnvironmentBasePtr penv) : RrtPlanner(penv)
     {
         __description = "Rosen's Basic RRT planner";
         _fGoalBiasProb = dReal(0.05);
@@ -600,7 +599,7 @@ public:
         EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
         _parameters.reset(new BasicRRTParameters());
         _parameters->copy(pparams);
-        if( !RrtPlanner<SimpleNode>::_InitPlan(pbase,_parameters) ) {
+        if( !RrtPlanner::_InitPlan(pbase,_parameters) ) {
             _parameters.reset();
             return false;
         }
@@ -707,7 +706,7 @@ public:
             if( et == ET_Connected ) {
                 FOREACH(itgoal, _vecGoals) {
                     if( _parameters->_distmetricfn(*itgoal, _treeForward.GetVectorConfig(lastnode)) < 2*_parameters->_fStepLength ) {
-                        SimpleNodePtr pforward = (SimpleNodePtr)lastnode;
+                        SimpleNodePtr pforward = lastnode;
                         while(1) {
                             if(!pforward->rrtparent) {
                                 break;
@@ -733,7 +732,7 @@ public:
             if(( et != ET_Failed) && !!_parameters->_goalfn ) {
                 // have to check all the newly created nodes since anyone could be already in the goal (do not have to do this with _vecGoals since that is being sampled)
                 bool bfound = false;
-                SimpleNodePtr ptestnode = (SimpleNodePtr)lastnode;
+                SimpleNodePtr ptestnode = lastnode;
                 while(!!ptestnode && ptestnode->_userdata==0) { // when userdata is 0, then it hasn't been checked for goal yet
                     if( _parameters->_goalfn(_treeForward.GetVectorConfig(ptestnode)) <= 1e-4f ) {
                         bfound = true;
@@ -805,7 +804,7 @@ public:
         _cachedpath.clear();
 
         // add nodes from the forward tree
-        SimpleNodePtr pforward = (SimpleNodePtr)bestGoalNode;
+        SimpleNodePtr pforward = bestGoalNode;
         while(1) {
             _cachedpath.insert(_cachedpath.begin(), pforward->q, pforward->q+dof);
             if(!pforward->rrtparent) {
@@ -848,10 +847,10 @@ protected:
     int _nValidGoals; ///< num valid goals
 };
 
-class ExplorationPlanner : public RrtPlanner<SimpleNode>
+class ExplorationPlanner : public RrtPlanner
 {
 public:
-    ExplorationPlanner(EnvironmentBasePtr penv) : RrtPlanner<SimpleNode>(penv) {
+    ExplorationPlanner(EnvironmentBasePtr penv) : RrtPlanner(penv) {
         __description = ":Interface Author: Rosen Diankov\n\nRRT-based exploration planner";
     }
     virtual ~ExplorationPlanner() {
@@ -862,7 +861,7 @@ public:
         EnvironmentMutex::scoped_lock lock(GetEnv()->GetMutex());
         _parameters.reset(new ExplorationParameters());
         _parameters->copy(pparams);
-        if( !RrtPlanner<SimpleNode>::_InitPlan(pbase,_parameters) ) {
+        if( !RrtPlanner::_InitPlan(pbase,_parameters) ) {
             _parameters.reset();
             return false;
         }
