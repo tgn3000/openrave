@@ -105,19 +105,21 @@ public:
     dReal q[0]; // the configuration immediately follows the struct
 };
 
+using DistMetricFn = boost::function<dReal(const std::vector<dReal>&, const std::vector<dReal>&)>;
+
 class SpatialTreeBase
 {
 public:
-    virtual void Init(boost::weak_ptr<PlannerBase> planner, int dof, boost::function<dReal(const std::vector<dReal>&, const std::vector<dReal>&)>& distmetricfn, dReal fStepLength, dReal maxdistance) = 0;
+    virtual void Init(PlannerBaseWeakPtr planner, int dof, DistMetricFn& distmetricfn, dReal fStepLength, dReal maxdistance) = 0;
 
     /// inserts a node in the try
-    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent, const vector<dReal>& config, uint32_t userdata) = 0;
+    virtual SimpleNodePtr InsertNode(SimpleNodePtr parent, const std::vector<dReal>& config, uint32_t userdata) = 0;
 
     /// returns the nearest neighbor
-    virtual std::pair<SimpleNodePtr, dReal> FindNearestNode(const vector<dReal>& q) const = 0;
+    virtual std::pair<SimpleNodePtr, dReal> FindNearestNode(const std::vector<dReal>& q) const = 0;
 
     /// \brief returns a temporary config stored on the local class. Next time this function is called, it will overwrite the config
-    virtual const vector<dReal>& GetVectorConfig(SimpleNodePtr node) const = 0;
+    virtual const std::vector<dReal>& GetVectorConfig(SimpleNodePtr node) const = 0;
 
     virtual void GetVectorConfig(SimpleNodePtr nodebase, std::vector<dReal>& v) const = 0;
 
@@ -145,24 +147,13 @@ public:
 
     SpatialTree(int fromgoal) {
         _fromgoal = fromgoal;
-        _fStepLength = 0.04f;
-        _dof = 0;
-        _numnodes = 0;
-        _base = 1.5; // optimal is 1.3?
-        _fBaseInv = 1/_base;
-        _fBaseChildMult = 1/(_base-1);
-        _maxdistance = 0;
-        _mindistance = 0;
-        _maxlevel = 0;
-        _minlevel = 0;
-        _fMaxLevelBound = 0;
     }
 
     ~SpatialTree() {
         Reset();
     }
 
-    virtual void Init(boost::weak_ptr<PlannerBase> planner, int dof, boost::function<dReal(const std::vector<dReal>&, const std::vector<dReal>&)>& distmetricfn, dReal fStepLength, dReal maxdistance)
+    virtual void Init(PlannerBaseWeakPtr planner, int dof, DistMetricFn& distmetricfn, dReal fStepLength, dReal maxdistance)
     {
         Reset();
         if( !!_pNodesPool ) {
@@ -211,17 +202,17 @@ public:
         _numnodes = 0;
     }
 
-    inline dReal _ComputeDistance(const dReal* config0, const dReal* config1) const
+    dReal _ComputeDistance(const dReal* config0, const dReal* config1) const
     {
         return _distmetricfn(VectorWrapper<dReal>(config0, config0+_dof), VectorWrapper<dReal>(config1, config1+_dof));
     }
 
-    inline dReal _ComputeDistance(const dReal* config0, const std::vector<dReal>& config1) const
+    dReal _ComputeDistance(const dReal* config0, const std::vector<dReal>& config1) const
     {
         return _distmetricfn(VectorWrapper<dReal>(config0,config0+_dof), config1);
     }
 
-    inline dReal _ComputeDistance(NodePtr node0, NodePtr node1) const
+    dReal _ComputeDistance(NodePtr node0, NodePtr node1) const
     {
         return _distmetricfn(VectorWrapper<dReal>(node0->q, &node0->q[_dof]), VectorWrapper<dReal>(node1->q, &node1->q[_dof]));
     }
@@ -239,7 +230,7 @@ public:
     virtual void InvalidateNodesWithParent(SimpleNodePtr parentbase)
     {
         //BOOST_ASSERT(Validate());
-        uint64_t starttime = utils::GetNanoPerformanceTime();
+        const uint64_t starttime = utils::GetNanoPerformanceTime();
         // first gather all the nodes, and then delete them in reverse order they were originally added in
         NodePtr parent = (NodePtr)parentbase;
         parent->_usenn = 0;
@@ -359,36 +350,15 @@ public:
 
             // necessary to pass in _constraintreturn since _neighstatefn can have constraints and it can change the interpolation. Use _constraintreturn->_bHasRampDeviatedFromInterpolation to figure out if something changed.
             if( _fromgoal ) {
-                if( params->CheckPathAllConstraints(_vNewConfig, _vCurConfig, std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenEnd, 0xffff|CFO_FillCheckedConfiguration, _constraintreturn) != 0 ) {
+                if( params->CheckPathAllConstraints(_vNewConfig, _vCurConfig, {}, {}, 0, IT_OpenEnd, 0xffff|CFO_FillCheckedConfiguration, _constraintreturn) != 0 ) {
                     return bHasAdded ? ET_Sucess : ET_Failed;
                 }
             }
             else {
-                if( params->CheckPathAllConstraints(_vCurConfig, _vNewConfig, std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenStart, 0xffff|CFO_FillCheckedConfiguration, _constraintreturn) != 0 ) {
+                if( params->CheckPathAllConstraints(_vCurConfig, _vNewConfig, {}, {}, 0, IT_OpenStart, 0xffff|CFO_FillCheckedConfiguration, _constraintreturn) != 0 ) {
                     return bHasAdded ? ET_Sucess : ET_Failed;
                 }
             }
-
-            // if( IS_DEBUGLEVEL(Level_Verbose) ) {
-            //     std::stringstream ss; ss << std::setprecision(std::numeric_limits<dReal>::digits10+1);
-            //     ss << "successfully connected _vCurConfig=[";
-            //     for(size_t itempdof = 0; itempdof < _vCurConfig.size(); ++itempdof ) {
-            //         if( itempdof > 0 ) {
-            //             ss << ", ";
-            //         }
-            //         ss << _vCurConfig[itempdof];
-            //     }
-            //     ss << "]; _vNewConfig=[";
-            //     for(size_t itempdof = 0; itempdof < _vNewConfig.size(); ++itempdof ) {
-            //         if( itempdof > 0 ) {
-            //             ss << ", ";
-            //         }
-            //         ss << _vNewConfig[itempdof];
-            //     }
-            //     ss << "]";
-            //     RAVELOG_VERBOSE(ss.str());
-            // }
-            // dReal currentDistance =  _ComputeDistance(&_vCurConfig[0], _vNewConfig);
 
             int iAdded = 0;
             if( _constraintreturn->_bHasRampDeviatedFromInterpolation ) {
@@ -449,7 +419,7 @@ public:
         return _numnodes;
     }
 
-    virtual const vector<dReal>& GetVectorConfig(SimpleNodePtr nodebase) const
+    virtual const std::vector<dReal>& GetVectorConfig(SimpleNodePtr nodebase) const
     {
         NodePtr node = (NodePtr)nodebase;
         _vTempConfig.resize(_dof);
@@ -472,7 +442,7 @@ public:
     virtual bool Validate() const
     {
         if( _numnodes == 0 ) {
-            return _numnodes==0;
+            return true;
         }
 
         if( _vsetLevelNodes.at(_EncodeLevel(_maxlevel)).size() != 1 ) {
@@ -481,7 +451,8 @@ public:
         }
 
         dReal fLevelBound = _fMaxLevelBound;
-        std::vector<NodePtr> vAccumNodes; vAccumNodes.reserve(_numnodes);
+        std::vector<NodePtr> vAccumNodes;
+        vAccumNodes.reserve(_numnodes);
         size_t nallchildren = 0;
         size_t numnodes = 0;
         for(int currentlevel = _maxlevel; currentlevel >= _minlevel; --currentlevel, fLevelBound *= _fBaseInv ) {
@@ -579,14 +550,14 @@ public:
         if( (int)inode >= _numnodes ) {
             return NodePtr();
         }
-        FOREACHC(itchildren, _vsetLevelNodes) {
-            if( inode < itchildren->size() ) {
-                typename std::set<NodePtr>::iterator itchild = itchildren->begin();
+        for(const std::set<NodePtr>& sLevelNodes : _vsetLevelNodes) {
+            if( inode < sLevelNodes.size() ) {
+                typename std::set<NodePtr>::iterator itchild = sLevelNodes.begin();
                 advance(itchild, inode);
                 return *itchild;
             }
             else {
-                inode -= itchildren->size();
+                inode -= sLevelNodes.size();
             }
         }
         return NodePtr();
@@ -598,8 +569,8 @@ public:
         if( (int)vnodes.capacity() < _numnodes ) {
             vnodes.reserve(_numnodes);
         }
-        FOREACHC(itchildren, _vsetLevelNodes) {
-            vnodes.insert(vnodes.end(), itchildren->begin(), itchildren->end());
+        for(const std::set<NodePtr>& sLevelNodes : _vsetLevelNodes) {
+            vnodes.insert(vnodes.end(), sLevelNodes.begin(), sLevelNodes.end());
         }
     }
 
@@ -609,7 +580,7 @@ private:
         int retid = s_id++;
         return retid;
     }
-    inline NodePtr _CreateNode(NodePtr rrtparent, const vector<dReal>& config, uint32_t userdata)
+    NodePtr _CreateNode(NodePtr rrtparent, const vector<dReal>& config, uint32_t userdata)
     {
         // allocate memory for the structur and the internal state vectors
         void* pmemory = _pNodesPool->malloc();
@@ -621,7 +592,7 @@ private:
         return node;
     }
 
-    inline NodePtr _CloneNode(NodePtr refnode)
+    NodePtr _CloneNode(NodePtr refnode)
     {
         // allocate memory for the structur and the internal state vectors
         void* pmemory = _pNodesPool->malloc();
@@ -641,7 +612,7 @@ private:
         }
     }
 
-    inline int _EncodeLevel(int level) const {
+    int _EncodeLevel(int level) const {
         level <<= 1;
         return (level > 0) ? (level + 1) : (-level);
     }
@@ -734,7 +705,10 @@ private:
     /// \param[in] currentlevel the current level traversing
     /// \param[in] fLevelBound pow(_base, level)
     /// \return 1 if point is inserted and parent found. 0 if no parent found and point is not inserted. -1 if parent found but point not inserted since it is close to _mindistance
-    int _InsertRecursive(NodePtr nodein, const std::vector< std::pair<NodePtr, dReal> >& vCurrentLevelNodes, int currentlevel, dReal fLevelBound)
+    int _InsertRecursive(NodePtr nodein,
+                         const std::vector< std::pair<NodePtr, dReal> >& vCurrentLevelNodes,
+                         int currentlevel,
+                         dReal fLevelBound)
     {
 #ifdef _DEBUG
         // copy for debugging
@@ -746,21 +720,21 @@ private:
         if( enclevel < (int)_vsetLevelNodes.size() ) {
             // build the level below
             _vNextLevelNodes.clear(); // for currentlevel-1
-            FOREACHC(itcurrentnode, vCurrentLevelNodes) {
-                if( itcurrentnode->second <= fLevelBound ) {
+            for(const std::pair<NodePtr, dReal>& currnode : vCurrentLevelNodes) {
+                if( currnode.second <= fLevelBound ) {
                     if( !closestNodeInRange ) {
-                        closestNodeInRange = itcurrentnode->first;
-                        closestDist = itcurrentnode->second;
+                        closestNodeInRange = currnode.first;
+                        closestDist = currnode.second;
                     }
                     else {
-                        if(  itcurrentnode->second < closestDist-g_fEpsilonLinear ) {
-                            closestNodeInRange = itcurrentnode->first;
-                            closestDist = itcurrentnode->second;
+                        if(  currnode.second < closestDist-g_fEpsilonLinear ) {
+                            closestNodeInRange = currnode.first;
+                            closestDist = currnode.second;
                         }
                         // if distances are close, get the node on the lowest level...
-                        else if( itcurrentnode->second < closestDist+_mindistance && itcurrentnode->first->_level < closestNodeInRange->_level ) {
-                            closestNodeInRange = itcurrentnode->first;
-                            closestDist = itcurrentnode->second;
+                        else if( currnode.second < closestDist+_mindistance && currnode.first->_level < closestNodeInRange->_level ) {
+                            closestNodeInRange = currnode.first;
+                            closestDist = currnode.second;
                         }
                     }
                     if ( (closestDist <= _mindistance) ) {
@@ -768,13 +742,13 @@ private:
                         return -1;
                     }
                 }
-                if( itcurrentnode->second <= fLevelBound*_fBaseChildMult ) {
+                if( currnode.second <= fLevelBound*_fBaseChildMult ) {
                     // node is part of all sets below its level
-                    _vNextLevelNodes.push_back(*itcurrentnode);
+                    _vNextLevelNodes.push_back(currnode);
                 }
                 // only take the children whose distances are within the bound
-                if( itcurrentnode->first->_level == currentlevel ) {
-                    FOREACHC(itchild, itcurrentnode->first->_vchildren) {
+                if( currnode.first->_level == currentlevel ) {
+                    FOREACHC(itchild, currnode.first->_vchildren) {
                         dReal curdist = _ComputeDistance(nodein, *itchild);
                         if( curdist <= fLevelBound*_fBaseChildMult ) {
                             _vNextLevelNodes.emplace_back(*itchild,  curdist);
@@ -793,21 +767,21 @@ private:
             }
         }
         else {
-            FOREACHC(itcurrentnode, vCurrentLevelNodes) {
-                if( itcurrentnode->second <= fLevelBound ) {
+            for(const std::pair<NodePtr, dReal>& currnode : vCurrentLevelNodes) {
+                if( currnode.second <= fLevelBound ) {
                     if( !closestNodeInRange ) {
-                        closestNodeInRange = itcurrentnode->first;
-                        closestDist = itcurrentnode->second;
+                        closestNodeInRange = currnode.first;
+                        closestDist = currnode.second;
                     }
                     else {
-                        if(  itcurrentnode->second < closestDist-g_fEpsilonLinear ) {
-                            closestNodeInRange = itcurrentnode->first;
-                            closestDist = itcurrentnode->second;
+                        if(  currnode.second < closestDist-g_fEpsilonLinear ) {
+                            closestNodeInRange = currnode.first;
+                            closestDist = currnode.second;
                         }
                         // if distances are close, get the node on the lowest level...
-                        else if( itcurrentnode->second < closestDist+_mindistance && itcurrentnode->first->_level < closestNodeInRange->_level ) {
-                            closestNodeInRange = itcurrentnode->first;
-                            closestDist = itcurrentnode->second;
+                        else if( currnode.second < closestDist+_mindistance && currnode.first->_level < closestNodeInRange->_level ) {
+                            closestNodeInRange = currnode.first;
+                            closestDist = currnode.second;
                         }
                     }
                     if ( (closestDist < _mindistance) ) {
@@ -903,8 +877,8 @@ private:
         if( _maxlevel-_minlevel >= (int)_vvCacheNodes.size() ) {
             _vvCacheNodes.resize(_maxlevel-_minlevel+1);
         }
-        FOREACH(it, _vvCacheNodes) {
-            it->clear();
+        for(std::vector<NodePtr>& vCacheNodes : _vvCacheNodes) {
+            vCacheNodes.clear();
         }
         _vvCacheNodes.at(0).push_back(proot);
         bool bRemoved = _Remove(removenode, _vvCacheNodes, _maxlevel, _fMaxLevelBound);
@@ -924,7 +898,7 @@ private:
 
     bool _Remove(NodePtr removenode, std::vector< std::vector<NodePtr> >& vvCoverSetNodes, int currentlevel, dReal fLevelBound)
     {
-        int enclevel = _EncodeLevel(currentlevel);
+        const int enclevel = _EncodeLevel(currentlevel);
         if( enclevel >= (int)_vsetLevelNodes.size() ) {
             return false;
         }
@@ -1036,25 +1010,26 @@ private:
         return bRemoved;
     }
 
-
-    boost::function<dReal(const std::vector<dReal>&, const std::vector<dReal>&)> _distmetricfn;
-    boost::weak_ptr<PlannerBase> _planner;
-    dReal _fStepLength;
-    int _dof; ///< the number of values of each state
-    int _fromgoal;
+    DistMetricFn _distmetricfn;
+    PlannerBaseWeakPtr _planner;
+    dReal _fStepLength = 0.04;
+    int _dof = 0; ///< the number of values of each state
+    int _fromgoal = 0; ///< either _treeForward(0) in RrtPlanner, or _treeBackward(1) in BirrtPlanner that inherits RrtPlanner
 
     // cover tree data structures
     boost::shared_ptr< boost::pool<> > _pNodesPool; ///< pool nodes are created from
 
     std::vector< std::set<NodePtr> > _vsetLevelNodes; ///< _vsetLevelNodes[enc(level)][node] holds the indices of the children of "node" of a given the level. enc(level) maps (-inf,inf) into [0,inf) so it can be indexed by the vector. Every node has an entry in a map here. If the node doesn't hold any children, then it is at the leaf of the tree. _vsetLevelNodes.at(_EncodeLevel(_maxlevel)) is the root.
 
-    dReal _maxdistance; ///< maximum possible distance between two states. used to balance the tree. Has to be > 0.
-    dReal _mindistance; ///< minimum possible distance between two states until they are declared the same
-    dReal _base, _fBaseInv, _fBaseChildMult; ///< a constant used to control the max level of traversion. _fBaseInv = 1/_base, _fBaseChildMult=1/(_base-1)
-    int _maxlevel; ///< the maximum allowed levels in the tree, this is where the root node starts (inclusive)
-    int _minlevel; ///< the minimum allowed levels in the tree (inclusive)
-    int _numnodes; ///< the number of nodes in the current tree starting at the root at _vsetLevelNodes.at(_EncodeLevel(_maxlevel))
-    dReal _fMaxLevelBound; // pow(_base, _maxlevel)
+    dReal _maxdistance = 0.0; ///< maximum possible distance between two states. used to balance the tree. Has to be > 0.
+    dReal _mindistance = 0.0; ///< minimum possible distance between two states until they are declared the same
+    dReal _base = 1.5; ///< a constant used to control the max level of traversion
+    dReal _fBaseInv = 2.0/3.0; ///< _fBaseInv = 1/_base
+    dReal _fBaseChildMult = 2.0; ///< _fBaseChildMult = 1/(_base-1)
+    int _maxlevel = 0; ///< the maximum allowed levels in the tree, this is where the root node starts (inclusive)
+    int _minlevel = 0; ///< the minimum allowed levels in the tree (inclusive)
+    int _numnodes = 0; ///< the number of nodes in the current tree starting at the root at _vsetLevelNodes.at(_EncodeLevel(_maxlevel))
+    dReal _fMaxLevelBound = 0.0; // pow(_base, _maxlevel)
 
     // cache
     std::vector<NodePtr> _vchildcache;

@@ -73,7 +73,7 @@ Uses the Rapidly-Exploring Random Trees Algorithm.\n\
         for(size_t index = 0; index < params->vinitialconfig.size(); index += params->GetDOF()) {
             std::copy(params->vinitialconfig.begin()+index,params->vinitialconfig.begin()+index+params->GetDOF(),vinitialconfig.begin());
             _filterreturn->Clear();
-            if( params->CheckPathAllConstraints(vinitialconfig,vinitialconfig, std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenStart, CFO_FillCollisionReport, _filterreturn) != 0 ) {
+            if( params->CheckPathAllConstraints(vinitialconfig,vinitialconfig, {}, {}, 0, IT_OpenStart, CFO_FillCollisionReport, _filterreturn) != 0 ) {
                 RAVELOG_DEBUG_FORMAT("env=%d, initial configuration for rrt does not satisfy constraints: %s", GetEnv()->GetId()%_filterreturn->_report.__str__());
                 continue;
             }
@@ -147,7 +147,7 @@ Uses the Rapidly-Exploring Random Trees Algorithm.\n\
 
             // check if the nodes can be connected by a straight line
             _filterreturn->Clear();
-            if ( params->CheckPathAllConstraints(vstart, vend, std::vector<dReal>(), std::vector<dReal>(), 0, IT_Open, 0xffff|CFO_FillCheckedConfiguration, _filterreturn) != 0 ) {
+            if ( params->CheckPathAllConstraints(vstart, vend, {}, {}, 0, IT_Open, 0xffff|CFO_FillCheckedConfiguration, _filterreturn) != 0 ) {
                 if( nrejected++ > (int)path.size()+8 ) {
                     break;
                 }
@@ -203,10 +203,10 @@ protected:
     SpatialTree< Node > _treeForward;
     std::vector< SimpleNodePtr > _vecInitialNodes;
 
-    inline boost::shared_ptr<RrtPlanner> shared_planner() {
+    boost::shared_ptr<RrtPlanner> shared_planner() {
         return boost::static_pointer_cast<RrtPlanner>(shared_from_this());
     }
-    inline boost::shared_ptr<RrtPlanner const> shared_planner_const() const {
+    boost::shared_ptr<RrtPlanner const> shared_planner_const() const {
         return boost::static_pointer_cast<RrtPlanner const>(shared_from_this());
     }
 };
@@ -272,7 +272,7 @@ Some python code to display data::\n\
         _nValidGoals = 0;
         for(size_t igoal = 0; igoal < _parameters->vgoalconfig.size(); igoal += dof) {
             std::copy(_parameters->vgoalconfig.begin()+igoal,_parameters->vgoalconfig.begin()+igoal+dof,vgoal.begin());
-            int ret = _parameters->CheckPathAllConstraints(vgoal,vgoal,std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenStart);
+            int ret = _parameters->CheckPathAllConstraints(vgoal,vgoal,{}, {}, 0, IT_OpenStart);
             if( ret == 0 ) {
                 _vecGoalNodes.push_back(_treeBackward.InsertNode(NULL, vgoal, _vecGoalNodes.size()));
                 _nValidGoals++;
@@ -280,7 +280,7 @@ Some python code to display data::\n\
             else {
                 RAVELOG_WARN_FORMAT("env=%d, goal %d fails constraints with 0x%x", GetEnv()->GetId()%igoal%ret);
                 if( IS_DEBUGLEVEL(Level_Verbose) ) {
-                    int ret = _parameters->CheckPathAllConstraints(vgoal,vgoal,std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenStart);
+                    int ret = _parameters->CheckPathAllConstraints(vgoal,vgoal,{}, {}, 0, IT_OpenStart);
                 }
                 _vecGoalNodes.push_back(NULL); // have to push back dummy or else indices will be messed up
             }
@@ -482,7 +482,7 @@ Some python code to display data::\n\
             ptraj->Init(_parameters->_configurationspecification);
         }
         ptraj->Insert(ptraj->GetNumWaypoints(), bestpath.qall, _parameters->_configurationspecification);
-        std::string description = str(boost::format(_("env=%d, plan success, iters=%d, path=%d points, computation time=%fs\n"))%GetEnv()->GetId()%progress._iteration%ptraj->GetNumWaypoints()%(0.001f*(float)(utils::GetMilliTime()-basetime)));
+        const std::string description = str(boost::format(_("env=%d, plan success, iters=%d, path=%d points, computation time=%fs\n"))%GetEnv()->GetId()%progress._iteration%ptraj->GetNumWaypoints()%(0.001f*(float)(utils::GetMilliTime()-basetime)));
         RAVELOG_DEBUG(description);
         PlannerStatus status = _ProcessPostPlanners(_robot,ptraj);
         //TODO should use accessor to change description
@@ -623,7 +623,7 @@ public:
                 goal_index++;
             }
 
-            if( GetParameters()->CheckPathAllConstraints(vgoal,vgoal, std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenStart) == 0 ) {
+            if( GetParameters()->CheckPathAllConstraints(vgoal,vgoal, {}, {}, 0, IT_OpenStart) == 0 ) {
                 _vecGoals.push_back(vgoal);
             }
             else {
@@ -895,7 +895,7 @@ public:
                 if( !_parameters->_sampleneighfn(vSampleConfig, _treeForward.GetVectorConfig(pnode), _parameters->_fStepLength) ) {
                     continue;
                 }
-                if( GetParameters()->CheckPathAllConstraints(_treeForward.GetVectorConfig(pnode), vSampleConfig, std::vector<dReal>(), std::vector<dReal>(), 0, IT_OpenStart) == 0 ) {
+                if( GetParameters()->CheckPathAllConstraints(_treeForward.GetVectorConfig(pnode), vSampleConfig, {}, {}, 0, IT_OpenStart) == 0 ) {
                     _treeForward.InsertNode(pnode, vSampleConfig, 0);
                     GetEnv()->UpdatePublishedBodies();
                     RAVELOG_DEBUG_FORMAT("env=%d, size %d", GetEnv()->GetId()%_treeForward.GetNumNodes());
